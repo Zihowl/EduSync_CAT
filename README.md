@@ -1,4 +1,5 @@
-# EduSync - Proyecto de Capacitación
+# EduSync - Proyecto de Egreso
+Sistema de Gestión de Horarios
 
 ## Stack
 - Backend: NestJS + GraphQL (Apollo) + TypeORM -> PostgreSQL (Docker)
