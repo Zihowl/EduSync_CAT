@@ -2,18 +2,16 @@
 “EduSync” es un sistema integrado compuesto por una plataforma web de administración (Calendar Administration Tool) y una aplicación móvil nativa Android. "CAT" permite a los administradores gestionar horarios académicos, catálogos institucionales (docentes, materias, grupos, salones) y usuarios del sistema.
 
 ## Stack
-- Backend: NestJS + GraphQL (Apollo) + TypeORM -> PostgreSQL (Docker)
-- Frontend: Angular 17+ (Standalone) + Ionic + GraphQL (Apollo)
+- Backend: Rust (Axum + async-graphql + SQLx) -> PostgreSQL
+- Frontend: Angular 20+ (Standalone) + Ionic + GraphQL (Apollo)
 
 ## Cómo iniciar
 1. Levantar BD: `podman compose up -d`
-2. Backend: `cd backend && npm run start:dev`
+2. Backend: `cd backend-rs && ./scripts/dev-up.sh`
 3. Frontend: `cd frontend && npm start -- --host 0.0.0.0`
 
-## Backend Rust (recomendado para evitar conflicto de puerto)
-1. Levantar BD: `podman compose up -d`
-2. Backend Rust: `cd backend-rs && ./scripts/dev-up.sh`
-3. Para detenerlo: `cd backend-rs && ./scripts/dev-stop.sh`
+## Backend Legacy (NestJS)
+El backend en `backend/` se conserva como referencia histórica de la migración.
 
 ## Licencia
 Este proyecto está licenciado bajo GNU GPL v3.0 o posterior.
