@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
+use argon2::password_hash::rand_core::OsRng;
 use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
-use rand::{distributions::Alphanumeric, rngs::OsRng, seq::SliceRandom, Rng};
+use rand::{distr::Alphanumeric, prelude::{IndexedRandom, SliceRandom}, RngExt};
 use regex::Regex;
 
 use crate::domain::{
@@ -99,7 +100,7 @@ impl UserService {
         let nums = b"0123456789";
         let symbols = b"!@#$%^&*()-_=+[]{}<>?";
 
-        let mut rng = OsRng;
+        let mut rng = rand::rng();
         let mut chars = vec![
             *upper.choose(&mut rng).unwrap() as char,
             *lower.choose(&mut rng).unwrap() as char,
@@ -107,8 +108,7 @@ impl UserService {
             *symbols.choose(&mut rng).unwrap() as char,
         ];
 
-        let random_tail: String = rng
-            .sample_iter(&Alphanumeric)
+        let random_tail: String = std::iter::repeat_with(|| rng.sample(Alphanumeric))
             .take(length.saturating_sub(4))
             .map(char::from)
             .collect();

@@ -22,8 +22,8 @@ use axum::{
 };
 use config::AppConfig;
 use chrono::Utc;
-use rand::Rng;
-use rand::seq::SliceRandom;
+use rand::prelude::{IndexedRandom, SliceRandom};
+use rand::RngExt;
 use domain::{
     ports::{
         allowed_domain_repository::AllowedDomainRepository,
@@ -202,9 +202,9 @@ async fn genesis_protocol(user_repo: Arc<dyn UserRepository>) -> anyhow::Result<
     tracing::warn!("Empty database detected. Starting Genesis Protocol...");
 
     // Generate random email: admin-{randomHex}@setup.local
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let random_hex: String = (0..8)
-        .map(|_| format!("{:x}", rng.gen_range(0..16)))
+        .map(|_| format!("{:x}", rng.random_range(0..16)))
         .collect();
     let email = format!("admin-{}@setup.local", random_hex);
 
