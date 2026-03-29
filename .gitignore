@@ -1,0 +1,29 @@
+# Dependencias
+node_modules/
+
+# Builds y distribución
+dist/
+www/
+build/
+
+# Entorno y Secretos
+.env
+*.env
+.DS_Store
+
+# Docker y Datos de BD
+postgres_data/
+docker-compose.override.yml
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDEs
+.vscode/
+.idea/
+
+# Micelaneos del proyecto
+/bitacora
+Modelo.md

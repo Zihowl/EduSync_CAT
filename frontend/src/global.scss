@@ -1,0 +1,79 @@
+/*
+ * App Global CSS
+ * ----------------------------------------------------------------------------
+ * Put style rules here that you want to apply globally. These styles are for
+ * the entire app and not just one component. Additionally, this file can be
+ * used as an entry point to import other CSS/Sass files to be included in the
+ * output CSS.
+ * For more information on global stylesheets, visit the documentation:
+ * https://ionicframework.com/docs/layout/global-stylesheets
+ */
+
+/* Core CSS required for Ionic components to work properly */
+@import "@ionic/angular/css/core.css";
+
+/* Basic CSS for apps built with Ionic */
+@import "@ionic/angular/css/normalize.css";
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "@ionic/angular/css/display.css";
+
+/* Optional CSS utils that can be commented out */
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/float-elements.css";
+@import "@ionic/angular/css/text-alignment.css";
+@import "@ionic/angular/css/text-transformation.css";
+@import "@ionic/angular/css/flex-utils.css";
+
+/**
+ * Ionic Dark Mode
+ * -----------------------------------------------------
+ * For more info, please see:
+ * https://ionicframework.com/docs/theming/dark-mode
+ */
+
+/* @import "@ionic/angular/css/palettes/dark.always.css"; */
+/* @import "@ionic/angular/css/palettes/dark.class.css"; */
+@import '@ionic/angular/css/palettes/dark.system.css';
+
+/* frontend/src/global.scss */
+@import 'bootstrap/dist/css/bootstrap.css';
+
+/* Soft, prominent login toast */
+ion-toast.login-toast {
+	--background: #ffffff;
+	--color: #1f2937;
+	--box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+	--border-radius: 10px;
+	--min-width: 0;
+	--max-width: 400px;
+}
+
+ion-toast.login-toast::part(container) {
+	padding: 10px 14px;
+	display: inline-flex;
+	flex-direction: column;
+	align-items: flex-start;
+	width: auto;
+	max-width: 90vw;
+	margin: 0 auto;
+	border-radius: 10px;
+}
+
+ion-toast.login-toast::part(header) {
+	font-size: 1rem;
+	font-weight: 600;
+	margin-bottom: 2px;
+	color: var(--ion-color-primary);
+}
+
+ion-toast.login-toast::part(message) {
+	font-size: 0.98rem;
+	line-height: 1.35;
+	color: #1f2937;
+}
+
+ion-toast.login-toast::part(icon) {
+	color: #64748b;
+	font-size: 1.1rem;
+}

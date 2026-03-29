@@ -1,0 +1,9 @@
+pub mod allowed_domain_repository;
+pub mod building_repository;
+pub mod classroom_repository;
+pub mod group_repository;
+pub mod school_year_repository;
+pub mod schedule_slot_repository;
+pub mod subject_repository;
+pub mod teacher_repository;
+pub mod user_repository;

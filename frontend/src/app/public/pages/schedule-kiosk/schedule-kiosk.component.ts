@@ -1,0 +1,260 @@
+import { Component, OnInit, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import {
+    IonContent, IonHeader, IonToolbar, IonTitle, IonSelect,
+    IonSelectOption, IonList, IonItem, IonLabel, IonIcon,
+    IonCard, IonCardHeader, IonCardTitle, IonCardContent,
+    IonGrid, IonRow, IonCol, IonChip, IonSpinner, IonNote,
+    IonSegment, IonSegmentButton
+} from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import {
+    calendarOutline, timeOutline, personOutline, bookOutline,
+    businessOutline, layersOutline, schoolOutline
+} from 'ionicons/icons';
+import { environment } from '../../../../environments/environment';
+
+interface ScheduleSlot {
+    id: number;
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+    subgroup: string | null;
+    teacher: { id: number; name: string };
+    subject: { id: number; name: string };
+    classroom: { id: number; name: string };
+    group: { id: number; name: string; parent?: { id: number; name: string } };
+}
+
+const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+@Component({
+    selector: 'app-schedule-kiosk',
+    standalone: true,
+    imports: [
+        CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, IonTitle,
+        IonSelect, IonSelectOption, IonList, IonItem, IonLabel, IonIcon,
+        IonCard, IonCardHeader, IonCardTitle, IonCardContent,
+        IonGrid, IonRow, IonCol, IonChip, IonSpinner, IonNote,
+        IonSegment, IonSegmentButton
+    ],
+    template: `
+        <ion-header>
+            <ion-toolbar color="primary">
+                <ion-title>
+                    <ion-icon name="school-outline" class="me-2"></ion-icon>
+                    Consulta de Horarios
+                </ion-title>
+            </ion-toolbar>
+        </ion-header>
+
+        <ion-content class="ion-padding">
+            <ion-grid>
+                <ion-row class="ion-justify-content-center">
+                    <ion-col size="12" size-md="8" size-lg="6">
+                        <ion-card>
+                            <ion-card-header>
+                                <ion-card-title>Selecciona un grupo</ion-card-title>
+                            </ion-card-header>
+                            <ion-card-content>
+                                <ion-select
+                                    [(ngModel)]="selectedGroupId"
+                                    (ionChange)="LoadSchedules()"
+                                    placeholder="Selecciona un grupo..."
+                                    interface="action-sheet"
+                                    class="w-100">
+                                    <ion-select-option *ngFor="let g of groups" [value]="g.id">
+                                        {{ g.parent ? g.parent.name + '-' : '' }}{{ g.name }}
+                                    </ion-select-option>
+                                </ion-select>
+                            </ion-card-content>
+                        </ion-card>
+                    </ion-col>
+                </ion-row>
+
+                <ion-row *ngIf="selectedGroupId" class="ion-justify-content-center">
+                    <ion-col size="12" size-md="10">
+                        <ion-segment [(ngModel)]="viewMode" class="ion-margin-bottom">
+                            <ion-segment-button value="list">Lista</ion-segment-button>
+                            <ion-segment-button value="day">Por día</ion-segment-button>
+                        </ion-segment>
+
+                        <!-- Vista por día -->
+                        <div *ngIf="viewMode === 'day'">
+                            <ion-segment [(ngModel)]="selectedDay" scrollable>
+                                <ion-segment-button *ngFor="let d of [1,2,3,4,5,6]" [value]="d">
+                                    {{ getDayShort(d) }}
+                                </ion-segment-button>
+                            </ion-segment>
+
+                            <ion-list *ngIf="getSchedulesForDay(selectedDay).length > 0" class="ion-margin-top">
+                                <ion-item *ngFor="let s of getSchedulesForDay(selectedDay)">
+                                    <ion-icon name="time-outline" slot="start" color="primary"></ion-icon>
+                                    <ion-label>
+                                        <h2 class="fw-bold">{{ s.subject.name }}</h2>
+                                        <p>{{ s.startTime.substring(0,5) }} - {{ s.endTime.substring(0,5) }}</p>
+                                        <p>
+                                            <ion-icon name="person-outline" class="inline-icon"></ion-icon>
+                                            {{ s.teacher.name }}
+                                        </p>
+                                        <p>
+                                            <ion-icon name="business-outline" class="inline-icon"></ion-icon>
+                                            {{ s.classroom.name }}
+                                            <ion-chip *ngIf="s.subgroup" color="tertiary" class="ms-2">{{ s.subgroup }}</ion-chip>
+                                        </p>
+                                    </ion-label>
+                                </ion-item>
+                            </ion-list>
+
+                            <div *ngIf="getSchedulesForDay(selectedDay).length === 0" class="ion-text-center ion-padding opacity-50">
+                                <ion-icon name="calendar-outline" style="font-size: 48px;"></ion-icon>
+                                <p>No hay clases este día</p>
+                            </div>
+                        </div>
+
+                        <!-- Vista de lista completa -->
+                        <div *ngIf="viewMode === 'list'">
+                            <ng-container *ngFor="let day of [1,2,3,4,5,6]">
+                                <ion-card *ngIf="getSchedulesForDay(day).length > 0" class="day-card">
+                                    <ion-card-header color="light">
+                                        <ion-card-title>
+                                            <ion-icon name="calendar-outline" class="me-2"></ion-icon>
+                                            {{ getDayName(day) }}
+                                        </ion-card-title>
+                                    </ion-card-header>
+                                    <ion-card-content class="ion-no-padding">
+                                        <ion-list lines="full">
+                                            <ion-item *ngFor="let s of getSchedulesForDay(day)">
+                                                <ion-label>
+                                                    <h3 class="fw-bold">{{ s.subject.name }}</h3>
+                                                    <p class="time-badge">
+                                                        <ion-chip color="primary" outline>
+                                                            {{ s.startTime.substring(0,5) }} - {{ s.endTime.substring(0,5) }}
+                                                        </ion-chip>
+                                                    </p>
+                                                    <p>{{ s.teacher.name }} · {{ s.classroom.name }}</p>
+                                                </ion-label>
+                                                <ion-chip *ngIf="s.subgroup" slot="end" color="tertiary">{{ s.subgroup }}</ion-chip>
+                                            </ion-item>
+                                        </ion-list>
+                                    </ion-card-content>
+                                </ion-card>
+                            </ng-container>
+                        </div>
+                    </ion-col>
+                </ion-row>
+
+                <!-- Loading -->
+                <ion-row *ngIf="loading" class="ion-justify-content-center ion-padding">
+                    <ion-spinner name="crescent"></ion-spinner>
+                </ion-row>
+
+                <!-- Estado inicial -->
+                <ion-row *ngIf="!selectedGroupId && !loading" class="ion-justify-content-center">
+                    <ion-col size="12" class="ion-text-center opacity-50 ion-padding">
+                        <ion-icon name="school-outline" style="font-size: 80px;"></ion-icon>
+                        <h2>Bienvenido</h2>
+                        <p>Selecciona un grupo para ver su horario de clases</p>
+                    </ion-col>
+                </ion-row>
+            </ion-grid>
+        </ion-content>
+    `,
+    styles: [`
+        .me-2 { margin-right: 0.5rem; }
+        .ms-2 { margin-left: 0.5rem; }
+        .w-100 { width: 100%; }
+        .inline-icon { font-size: 14px; margin-right: 4px; vertical-align: middle; }
+        .day-card { margin-bottom: 16px; }
+        .time-badge { margin: 4px 0; }
+        ion-segment { margin-bottom: 16px; }
+    `]
+})
+export class ScheduleKioskComponent implements OnInit
+{
+    private http = inject(HttpClient);
+
+    groups: any[] = [];
+    schedules: ScheduleSlot[] = [];
+    selectedGroupId: number | null = null;
+    selectedDay: number = 1;
+    viewMode: 'list' | 'day' = 'list';
+    loading = false;
+
+    private apiUrl = environment.apiUrl || 'http://localhost:3000';
+
+    ngOnInit()
+    {
+        addIcons({
+            calendarOutline, timeOutline, personOutline, bookOutline,
+            businessOutline, layersOutline, schoolOutline
+        });
+        this.LoadGroups();
+    }
+
+    getDayName(day: number): string
+    {
+        return DAYS[day] || '';
+    }
+
+    getDayShort(day: number): string
+    {
+        const shorts = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+        return shorts[day] || '';
+    }
+
+    getSchedulesForDay(day: number): ScheduleSlot[]
+    {
+        return this.schedules
+            .filter(s => s.dayOfWeek === day)
+            .sort((a, b) => a.startTime.localeCompare(b.startTime));
+    }
+
+    LoadGroups()
+    {
+        // Obtener grupos desde el endpoint público
+        this.http.get<ScheduleSlot[]>(`${this.apiUrl}/public/schedules`).subscribe({
+            next: (schedules) => {
+                // Extraer grupos únicos de los horarios publicados
+                const groupMap = new Map<number, any>();
+                schedules.forEach(s => {
+                    if (!groupMap.has(s.group.id)) {
+                        groupMap.set(s.group.id, s.group);
+                    }
+                });
+                this.groups = Array.from(groupMap.values()).sort((a, b) => {
+                    const nameA = (a.parent?.name || '') + a.name;
+                    const nameB = (b.parent?.name || '') + b.name;
+                    return nameA.localeCompare(nameB);
+                });
+            },
+            error: (err) => console.error('Error loading groups:', err)
+        });
+    }
+
+    LoadSchedules()
+    {
+        if (!this.selectedGroupId) return;
+
+        this.loading = true;
+        this.http.get<ScheduleSlot[]>(`${this.apiUrl}/public/schedules?groupId=${this.selectedGroupId}`).subscribe({
+            next: (schedules) => {
+                this.schedules = schedules;
+                this.loading = false;
+                // Auto-select el primer día con clases
+                for (let d = 1; d <= 6; d++) {
+                    if (this.getSchedulesForDay(d).length > 0) {
+                        this.selectedDay = d;
+                        break;
+                    }
+                }
+            },
+            error: (err) => {
+                console.error('Error loading schedules:', err);
+                this.loading = false;
+            }
+        });
+    }
+}

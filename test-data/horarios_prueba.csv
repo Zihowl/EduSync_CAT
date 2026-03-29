@@ -1,0 +1,17 @@
+ClaveMateria,Materia,NoEmpleado,Docente,Grupo,Aula,Edificio,Dia,HoraInicio,HoraFin
+MAT101,Cálculo Diferencial,EMP001,Juan Pérez García,8A,A101,Edificio A,Lunes,07:00,08:00
+MAT101,Cálculo Diferencial,EMP001,Juan Pérez García,8A,A101,Edificio A,Miércoles,07:00,08:00
+FIS201,Física Mecánica,EMP002,María López Hernández,8A,LAB01,Edificio B,Lunes,08:00,09:00
+FIS201,Física Mecánica,EMP002,María López Hernández,8A,LAB01,Edificio B,Jueves,08:00,09:00
+PROG301,Programación Orientada a Objetos,EMP003,Carlos Ramírez Soto,8A,COMP01,Edificio C,Martes,09:00,11:00
+PROG301,Programación Orientada a Objetos,EMP003,Carlos Ramírez Soto,8A,COMP01,Edificio C,Viernes,09:00,11:00
+BD401,Bases de Datos,EMP004,Ana Martínez Cruz,8A,COMP02,Edificio C,Lunes,11:00,12:00
+BD401,Bases de Datos,EMP004,Ana Martínez Cruz,8A,COMP02,Edificio C,Miércoles,11:00,12:00
+RED501,Redes de Computadoras,EMP005,Roberto Sánchez Díaz,8B,COMP03,Edificio C,Martes,07:00,08:00
+RED501,Redes de Computadoras,EMP005,Roberto Sánchez Díaz,8B,COMP03,Edificio C,Jueves,07:00,08:00
+MAT101,Cálculo Diferencial,EMP001,Juan Pérez García,8B,A102,Edificio A,Martes,08:00,09:00
+MAT101,Cálculo Diferencial,EMP001,Juan Pérez García,8B,A102,Edificio A,Viernes,08:00,09:00
+ING601,Inglés Técnico,EMP006,Laura González Ruiz,8A,B201,Edificio B,Jueves,14:00,15:00
+ING601,Inglés Técnico,EMP006,Laura González Ruiz,8B,B201,Edificio B,Viernes,14:00,15:00
+ETIC701,Ética Profesional,EMP007,Pedro Flores Vega,8A,A103,Edificio A,Viernes,12:00,13:00
+ETIC701,Ética Profesional,EMP007,Pedro Flores Vega,8B,A103,Edificio A,Lunes,12:00,13:00

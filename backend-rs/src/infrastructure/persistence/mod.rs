@@ -1,0 +1,9 @@
+pub mod pg_allowed_domain_repo;
+pub mod pg_building_repo;
+pub mod pg_classroom_repo;
+pub mod pg_group_repo;
+pub mod pg_school_year_repo;
+pub mod pg_schedule_slot_repo;
+pub mod pg_subject_repo;
+pub mod pg_teacher_repo;
+pub mod pg_user_repo;

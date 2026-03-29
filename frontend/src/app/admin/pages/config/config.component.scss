@@ -1,0 +1,18 @@
+.config-container
+{
+    max-width: 600px;
+
+    .current-cycle {
+        .cycle-range {
+            letter-spacing: 0.2px;
+            line-height: 1.2;
+        }
+
+        .cycle-saved {
+            display: block;
+            margin-top: 0.25rem;
+            color: rgba(255,255,255,0.72);
+            font-size: 0.85rem;
+        }
+    }
+}

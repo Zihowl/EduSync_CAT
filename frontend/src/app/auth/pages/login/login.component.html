@@ -1,0 +1,44 @@
+<ion-header>
+    <ion-toolbar color="primary">
+        <ion-title class="login-title">EduSync CAT</ion-title>
+    </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+    <div class="container d-flex justify-content-center align-items-center h-100 login-container">
+        <ion-card class="w-100 shadow login-card">
+            <ion-card-content>
+                <div class="text-center mb-4">
+                    <h1>Bienvenido</h1>
+                    <p>Ingresa tus credenciales de administrador</p>
+                </div>
+                <form [formGroup]="loginForm" (ngSubmit)="OnSubmit()">
+                    <div class="mb-3">
+                        <ion-input
+                            label="Correo Institucional"
+                            label-placement="floating"
+                            fill="outline"
+                            formControlName="email"
+                            type="email"
+                            placeholder="usuario@dominio">
+                        </ion-input>
+                    </div>
+
+                    <div class="mb-3">
+                        <ion-input
+                            label="Contraseña"
+                            label-placement="floating"
+                            fill="outline"
+                            formControlName="password"
+                            type="password">
+                        </ion-input>
+                    </div>
+
+                    <ion-button expand="block" type="submit" [disabled]="loginForm.invalid || isLoading">
+                        {{ isLoading ? 'Verificando...' : 'Iniciar Sesión' }}
+                    </ion-button>
+                </form>
+            </ion-card-content>
+        </ion-card>
+    </div>
+</ion-content>

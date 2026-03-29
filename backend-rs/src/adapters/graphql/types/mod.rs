@@ -1,0 +1,10 @@
+pub mod allowed_domain_type;
+pub mod auth_types;
+pub mod building_type;
+pub mod classroom_type;
+pub mod group_type;
+pub mod schedule_slot_type;
+pub mod school_year_type;
+pub mod subject_type;
+pub mod teacher_type;
+pub mod user_type;

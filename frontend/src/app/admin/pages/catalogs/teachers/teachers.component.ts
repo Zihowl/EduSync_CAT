@@ -1,0 +1,278 @@
+import { Component, OnInit, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Apollo, gql } from 'apollo-angular';
+import {
+    IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, 
+    IonBackButton, IonList, IonItem, IonLabel, IonAvatar, 
+    IonIcon, IonSearchbar, IonFab, IonFabButton, IonModal, 
+    IonInput, IonFooter, IonButton
+} from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { personOutline, trashOutline, addOutline, pencilOutline, mailOutline, cardOutline } from 'ionicons/icons';
+
+const GET_TEACHERS = gql`
+    query GetTeachers {
+        GetTeachers {
+            id
+            employeeNumber
+            name
+            email
+        }
+    }
+`;
+
+const CREATE_TEACHER = gql`
+    mutation CreateTeacher($input: CreateTeacherInput!) {
+        CreateTeacher(input: $input) {
+            id
+            name
+        }
+    }
+`;
+
+const UPDATE_TEACHER = gql`
+    mutation UpdateTeacher($input: UpdateTeacherInput!) {
+        UpdateTeacher(input: $input) {
+            id
+            employeeNumber
+            name
+            email
+        }
+    }
+`;
+
+const REMOVE_TEACHER = gql`
+    mutation RemoveTeacher($id: Int!) {
+        RemoveTeacher(id: $id)
+    }
+`;
+
+@Component({
+    selector: 'app-teachers',
+    standalone: true,
+    imports: [
+        CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, 
+        IonTitle, IonButtons, IonBackButton, IonList, IonItem, 
+        IonLabel, IonAvatar, IonIcon, IonSearchbar, IonFab, 
+        IonFabButton, IonModal, IonInput, IonFooter, IonButton
+    ],
+    template: `
+        <ion-header>
+            <ion-toolbar color="primary">
+                <ion-buttons slot="start">
+                    <ion-back-button defaultHref="/admin"></ion-back-button>
+                </ion-buttons>
+                <ion-title>Docentes</ion-title>
+            </ion-toolbar>
+            <ion-toolbar color="primary">
+                <ion-searchbar placeholder="Buscar docente..." (ionInput)="Filter($event)"></ion-searchbar>
+            </ion-toolbar>
+        </ion-header>
+
+        <ion-content>
+            <ion-list lines="inset">
+                <ion-item *ngFor="let t of filteredTeachers">
+                    <ion-avatar slot="start" class="d-flex align-items-center justify-content-center bg-light text-primary">
+                        <span class="fs-5 fw-bold">{{ GetInitials(t.name) }}</span>
+                    </ion-avatar>
+                    <ion-label>
+                        <h2 class="fw-bold">{{ t.name }}</h2>
+                        <p>No. Empleado: {{ t.employeeNumber }}</p>
+                        <p>{{ t.email || 'Sin correo' }}</p>
+                    </ion-label>
+                    <ion-buttons slot="end">
+                        <ion-button color="medium" (click)="OpenModal(t)">
+                            <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
+                        </ion-button>
+                        <ion-button color="danger" (click)="RemoveTeacher(t.id)">
+                            <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+                        </ion-button>
+                    </ion-buttons>
+                </ion-item>
+            </ion-list>
+
+            <div *ngIf="filteredTeachers.length === 0" class="ion-text-center ion-padding mt-5 opacity-50">
+                <ion-icon name="person-outline" style="font-size: 64px;"></ion-icon>
+                <p>No se encontraron docentes</p>
+            </div>
+
+            <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+                <ion-fab-button (click)="OpenModal()">
+                    <ion-icon name="add-outline"></ion-icon>
+                </ion-fab-button>
+            </ion-fab>
+
+            <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false">
+                <ng-template>
+                    <ion-header>
+                        <ion-toolbar color="primary">
+                            <ion-title>{{ editingItem ? 'Editar' : 'Nuevo' }} Docente</ion-title>
+                            <ion-buttons slot="end">
+                                <ion-button (click)="isModalOpen = false">Cerrar</ion-button>
+                            </ion-buttons>
+                        </ion-toolbar>
+                    </ion-header>
+                    <ion-content class="ion-padding">
+                        <ion-list>
+                            <ion-item fill="outline" class="mb-3">
+                                <ion-label position="stacked">Nombre completo</ion-label>
+                                <ion-input [(ngModel)]="formData.name" placeholder="Ej. Juan Pérez"></ion-input>
+                                <ion-icon name="person-outline" slot="start"></ion-icon>
+                            </ion-item>
+                            
+                            <ion-item fill="outline" class="mb-3">
+                                <ion-label position="stacked">Número de empleado</ion-label>
+                                <ion-input [(ngModel)]="formData.employeeNumber" placeholder="Ej. 123456"></ion-input>
+                                <ion-icon name="card-outline" slot="start"></ion-icon>
+                            </ion-item>
+
+                            <ion-item fill="outline">
+                                <ion-label position="stacked">Correo institucional</ion-label>
+                                <ion-input type="email" [(ngModel)]="formData.email" placeholder="ejemplo@correo.com"></ion-input>
+                                <ion-icon name="mail-outline" slot="start"></ion-icon>
+                            </ion-item>
+                        </ion-list>
+                    </ion-content>
+                    <ion-footer class="ion-padding">
+                        <ion-button expand="block" (click)="Save()" [disabled]="!formData.name || !formData.employeeNumber">
+                            {{ editingItem ? 'Actualizar' : 'Guardar' }}
+                        </ion-button>
+                    </ion-footer>
+                </ng-template>
+            </ion-modal>
+        </ion-content>
+    `,
+    styles: [`
+        ion-item { --padding-start: 16px; }
+        .mb-3 { margin-bottom: 1rem; }
+    `]
+})
+export class TeachersComponent implements OnInit
+{
+    private apollo = inject(Apollo);
+
+    teachers: any[] = [];
+    filteredTeachers: any[] = [];
+    isModalOpen = false;
+    editingItem: any = null;
+    formData = {
+        name: '',
+        employeeNumber: '',
+        email: ''
+    };
+
+    ngOnInit() {
+        addIcons({ personOutline, trashOutline, addOutline, pencilOutline, mailOutline, cardOutline });
+        this.LoadTeachers();
+    }
+
+    LoadTeachers() {
+        this.apollo.watchQuery<any>({ query: GET_TEACHERS, fetchPolicy: 'network-only' }).valueChanges.subscribe({
+            next: (res: any) => {
+                this.teachers = res?.data?.GetTeachers ?? [];
+                this.filteredTeachers = [...this.teachers];
+            },
+            error: (err) => {
+                console.error('Error loading teachers:', err);
+            }
+        });
+    }
+
+    Filter(event: any) {
+        const query = event.detail.value?.toLowerCase() || '';
+        this.filteredTeachers = this.teachers.filter(t => 
+            t.name.toLowerCase().includes(query) || 
+            t.employeeNumber.toLowerCase().includes(query)
+        );
+    }
+
+    GetInitials(name: string): string {
+        return name
+            .split(' ')
+            .map(n => n[0])
+            .slice(0, 2)
+            .join('')
+            .toUpperCase();
+    }
+
+    OpenModal(item: any = null) {
+        this.editingItem = item;
+        if (item) {
+            this.formData = { 
+                name: item.name, 
+                employeeNumber: item.employeeNumber, 
+                email: item.email || '' 
+            };
+        } else {
+            this.formData = { name: '', employeeNumber: '', email: '' };
+        }
+        this.isModalOpen = true;
+    }
+
+    Save() {
+        if (!this.formData.name || !this.formData.employeeNumber) return;
+
+        // Validar formato de email si se proporciona
+        if (this.formData.email) {
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!emailRegex.test(this.formData.email)) {
+                alert('Por favor, ingresa un correo electrónico válido (ej. usuario@dominio.com)');
+                return;
+            }
+        }
+
+        const teacherInput = {
+            name: this.formData.name,
+            employeeNumber: this.formData.employeeNumber,
+            email: this.formData.email || null
+        };
+
+        if (this.editingItem) {
+            this.apollo.mutate({
+                mutation: UPDATE_TEACHER,
+                variables: { 
+                    input: { 
+                        id: Number(this.editingItem.id), 
+                        ...teacherInput 
+                    } 
+                },
+                refetchQueries: [{ query: GET_TEACHERS }]
+            }).subscribe({
+                next: () => { 
+                    this.isModalOpen = false;
+                    this.editingItem = null;
+                },
+                error: (err) => {
+                    console.error('Update teacher error:', err);
+                    alert('Error al actualizar: ' + (err.message || 'Error desconocido'));
+                }
+            });
+        } else {
+            this.apollo.mutate({
+                mutation: CREATE_TEACHER,
+                variables: { input: teacherInput },
+                refetchQueries: [{ query: GET_TEACHERS }]
+            }).subscribe({
+                next: () => { 
+                    this.isModalOpen = false; 
+                },
+                error: (err) => {
+                    console.error('Create teacher error:', err);
+                    alert('Error al crear: ' + (err.message || 'Error desconocido'));
+                }
+            });
+        }
+    }
+
+    RemoveTeacher(id: number) {
+        if (!confirm('¿Seguro que desea eliminar este docente?')) return;
+        this.apollo.mutate({
+            mutation: REMOVE_TEACHER,
+            variables: { id: parseInt(id.toString()) },
+            refetchQueries: [{ query: GET_TEACHERS }]
+        }).subscribe({
+            error: (err) => alert('Error al eliminar: ' + err.message)
+        });
+    }
+}

@@ -1,0 +1,233 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type AllowedDomain {
+  domain: String!
+  id: ID!
+}
+
+type Building {
+  classrooms: [Classroom!]
+  description: String
+  id: ID!
+  name: String!
+}
+
+type Classroom {
+  building: Building
+  id: ID!
+  name: String!
+}
+
+input CreateAdminInput {
+  email: String!
+  fullName: String!
+}
+
+input CreateBuildingInput {
+  description: String
+  name: String!
+}
+
+input CreateClassroomInput {
+  buildingId: Int
+  name: String!
+}
+
+input CreateGroupInput {
+  name: String!
+  parentId: Int
+}
+
+input CreateScheduleSlotInput {
+  classroomId: Int!
+  dayOfWeek: Int!
+  endTime: String!
+  groupId: Int!
+  isPublished: Boolean = false
+  startTime: String!
+  subgroup: String
+  subjectId: Int!
+  teacherId: Int!
+}
+
+input CreateSubjectInput {
+  code: String!
+  name: String!
+}
+
+input CreateTeacherInput {
+  email: String
+  employeeNumber: String!
+  name: String!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type Group {
+  children: [Group!]
+  id: ID!
+  name: String!
+  parent: Group
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+type LoginResponse {
+  accessToken: String!
+  user: User!
+}
+
+type Mutation {
+  CreateAdmin(input: CreateAdminInput!): User!
+  CreateAllowedDomain(domain: String!): AllowedDomain!
+  CreateBuilding(input: CreateBuildingInput!): Building!
+  CreateClassroom(input: CreateClassroomInput!): Classroom!
+  CreateGroup(input: CreateGroupInput!): Group!
+  CreateScheduleSlot(input: CreateScheduleSlotInput!): ScheduleSlot!
+  CreateSubject(input: CreateSubjectInput!): Subject!
+  CreateTeacher(input: CreateTeacherInput!): Teacher!
+  Login(loginInput: LoginInput!): LoginResponse!
+  RemoveAllowedDomain(id: Int!): Boolean!
+  RemoveBuilding(id: Int!): Boolean!
+  RemoveClassroom(id: Int!): Boolean!
+  RemoveGroup(id: Int!): Boolean!
+  RemoveScheduleSlot(id: Int!): Boolean!
+  RemoveSubject(id: Int!): Boolean!
+  RemoveTeacher(id: Int!): Boolean!
+  SetCurrentSchoolYear(endDate: String!, startDate: String!): SchoolYear!
+
+  """Retorna la cantidad de horarios actualizados"""
+  SetSchedulesPublished(ids: [Int!]!, isPublished: Boolean!): Int!
+  UpdateBuilding(input: UpdateBuildingInput!): Building!
+  UpdateClassroom(input: UpdateClassroomInput!): Classroom!
+  UpdateGroup(input: UpdateGroupInput!): Group!
+  UpdateScheduleSlot(input: UpdateScheduleSlotInput!): ScheduleSlot!
+  UpdateSubject(input: UpdateSubjectInput!): Subject!
+  UpdateTeacher(input: UpdateTeacherInput!): Teacher!
+}
+
+type Query {
+  GetAllowedDomains: [AllowedDomain!]!
+  GetBuilding(id: Int!): Building
+  GetBuildings: [Building!]!
+  GetClassroom(id: Int!): Classroom
+  GetClassrooms: [Classroom!]!
+  GetCurrentSchoolYear: SchoolYear
+  GetGroup(id: Int!): Group
+  GetGroups: [Group!]!
+  GetSchedule(id: Int!): ScheduleSlot
+  GetSchedules(filter: ScheduleFilterInput): [ScheduleSlot!]!
+  GetSubject(id: Int!): Subject
+  GetSubjects: [Subject!]!
+  GetTeacher(id: Int!): Teacher
+  GetTeachers: [Teacher!]!
+  GetUsers: [User!]!
+}
+
+input ScheduleFilterInput {
+  classroomId: Int
+  dayOfWeek: Int
+  groupId: Int
+  isPublished: Boolean
+  limit: Int = 50
+  page: Int = 1
+  teacherId: Int
+}
+
+type ScheduleSlot {
+  classroom: Classroom!
+  createdAt: DateTime!
+  createdBy: User
+  dayOfWeek: Int!
+  endTime: String!
+  group: Group!
+  id: ID!
+  isPublished: Boolean!
+  startTime: String!
+  subgroup: String
+  subject: Subject!
+  teacher: Teacher!
+  updatedAt: DateTime!
+}
+
+type SchoolYear {
+  createdAt: DateTime!
+  endDate: String!
+  id: ID!
+  startDate: String!
+}
+
+type Subject {
+  code: String!
+  id: ID!
+  name: String!
+}
+
+type Teacher {
+  email: String
+  employeeNumber: String!
+  id: ID!
+  name: String!
+}
+
+input UpdateBuildingInput {
+  description: String
+  id: Int!
+  name: String
+}
+
+input UpdateClassroomInput {
+  buildingId: Int
+  id: Int!
+  name: String
+}
+
+input UpdateGroupInput {
+  id: Int!
+  name: String
+  parentId: Int
+}
+
+input UpdateScheduleSlotInput {
+  classroomId: Int
+  dayOfWeek: Int
+  endTime: String
+  groupId: Int
+  id: Int!
+  isPublished: Boolean = false
+  startTime: String
+  subgroup: String
+  subjectId: Int
+  teacherId: Int
+}
+
+input UpdateSubjectInput {
+  code: String
+  id: Int!
+  name: String
+}
+
+input UpdateTeacherInput {
+  email: String
+  employeeNumber: String
+  id: Int!
+  name: String
+}
+
+type User {
+  createdAt: DateTime!
+  email: String!
+  fullName: String
+  id: ID!
+  isActive: Boolean!
+  role: String!
+  updatedAt: DateTime!
+}

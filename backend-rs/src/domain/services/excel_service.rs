@@ -1,0 +1,215 @@
+use std::{io::Cursor, sync::Arc};
+
+use calamine::{Data, Reader, Xlsx};
+
+use crate::domain::{
+    errors::DomainError,
+    services::{
+        building_service::BuildingService,
+        classroom_service::ClassroomService,
+        group_service::GroupService,
+        schedule_service::{CreateScheduleSlot, ScheduleService},
+        subject_service::SubjectService,
+        teacher_service::TeacherService,
+    },
+};
+
+#[derive(Clone)]
+pub struct ExcelService {
+    teacher_service: Arc<TeacherService>,
+    subject_service: Arc<SubjectService>,
+    building_service: Arc<BuildingService>,
+    classroom_service: Arc<ClassroomService>,
+    group_service: Arc<GroupService>,
+    schedule_service: Arc<ScheduleService>,
+}
+
+#[derive(Clone)]
+pub struct ExcelImportResult {
+    pub success: bool,
+    pub processed: usize,
+    pub errors: Vec<String>,
+}
+
+impl ExcelService {
+    pub fn new(
+        teacher_service: Arc<TeacherService>,
+        subject_service: Arc<SubjectService>,
+        building_service: Arc<BuildingService>,
+        classroom_service: Arc<ClassroomService>,
+        group_service: Arc<GroupService>,
+        schedule_service: Arc<ScheduleService>,
+    ) -> Self {
+        Self {
+            teacher_service,
+            subject_service,
+            building_service,
+            classroom_service,
+            group_service,
+            schedule_service,
+        }
+    }
+
+    pub async fn process_schedule_file(
+        &self,
+        file: &[u8],
+        uploaded_by: Option<uuid::Uuid>,
+    ) -> Result<ExcelImportResult, DomainError> {
+        let mut workbook: Xlsx<Cursor<Vec<u8>>> = Xlsx::new(Cursor::new(file.to_vec()))
+            .map_err(|e| DomainError::BadRequest(format!("No se pudo leer Excel: {e}")))?;
+
+        let sheet_name = workbook
+            .sheet_names()
+            .first()
+            .cloned()
+            .ok_or_else(|| DomainError::BadRequest("El archivo Excel esta vacio".to_string()))?;
+
+        let range = workbook
+            .worksheet_range(&sheet_name)
+            .map_err(|e| DomainError::BadRequest(format!("No se pudo leer hoja: {e}")))?;
+
+        let mut rows = range.rows();
+        let header = rows
+            .next()
+            .ok_or_else(|| DomainError::BadRequest("El archivo no contiene filas".to_string()))?;
+
+        let headers: Vec<String> = header.iter().map(cell_to_string).collect();
+
+        let mut processed = 0usize;
+        let mut errors = Vec::new();
+        for (idx, row) in rows.enumerate() {
+            let row_number = idx + 2;
+            match self.process_row(&headers, row, uploaded_by).await {
+                Ok(_) => processed += 1,
+                Err(e) => errors.push(format!("Fila {row_number}: {}", e.msg())),
+            }
+        }
+
+        Ok(ExcelImportResult {
+            success: true,
+            processed,
+            errors,
+        })
+    }
+
+    async fn process_row(
+        &self,
+        headers: &[String],
+        row: &[Data],
+        uploaded_by: Option<uuid::Uuid>,
+    ) -> Result<(), DomainError> {
+        let value = |name: &str| -> String {
+            headers
+                .iter()
+                .position(|h| h == name)
+                .and_then(|i| row.get(i))
+                .map(cell_to_string)
+                .unwrap_or_default()
+                .trim()
+                .to_string()
+        };
+
+        let clave_materia = value("ClaveMateria");
+        let materia = value("Materia");
+        let no_empleado = value("NoEmpleado");
+        let docente = value("Docente");
+        let grupo = value("Grupo");
+        let aula = value("Aula");
+        let edificio = value("Edificio");
+        let dia = value("Dia");
+        let hora_inicio = normalize_time(&value("HoraInicio"));
+        let hora_fin = normalize_time(&value("HoraFin"));
+
+        if clave_materia.is_empty() || grupo.is_empty() || dia.is_empty() || hora_inicio.is_empty() {
+            return Err(DomainError::BadRequest(
+                "Se requiere ClaveMateria, Grupo, Dia y HoraInicio".to_string(),
+            ));
+        }
+
+        let subject = match self.subject_service.create(&clave_materia, if materia.is_empty() { "Materia Sin Nombre" } else { &materia }).await {
+            Ok(v) => v,
+            Err(DomainError::Conflict(_)) => self.subject_service.find_all().await?.into_iter().find(|s| s.code == clave_materia).ok_or_else(|| DomainError::NotFound("Materia no encontrada".to_string()))?,
+            Err(e) => return Err(e),
+        };
+
+        let emp = if no_empleado.is_empty() { format!("SIN_NUM_{}", chrono::Utc::now().timestamp_millis()) } else { no_empleado };
+        let teacher = match self.teacher_service.create(&emp, if docente.is_empty() { "Docente Por Asignar" } else { &docente }, None).await {
+            Ok(v) => v,
+            Err(DomainError::Conflict(_)) => self.teacher_service.find_all().await?.into_iter().find(|t| t.employee_number == emp).ok_or_else(|| DomainError::NotFound("Docente no encontrado".to_string()))?,
+            Err(e) => return Err(e),
+        };
+
+        if !edificio.is_empty() {
+            let _ = self.building_service.create(&edificio, None).await;
+        }
+
+        let classroom_name = if aula.is_empty() { "VIRTUAL" } else { &aula };
+        let classroom = match self.classroom_service.create(classroom_name, None).await {
+            Ok(v) => v,
+            Err(DomainError::Conflict(_)) => self.classroom_service.find_all().await?.into_iter().find(|c| c.name == classroom_name).ok_or_else(|| DomainError::NotFound("Salon no encontrado".to_string()))?,
+            Err(e) => return Err(e),
+        };
+
+        let group = match self.group_service.create(&grupo, None).await {
+            Ok(v) => v,
+            Err(DomainError::Conflict(_)) => self.group_service.find_all().await?.into_iter().find(|g| g.name == grupo).ok_or_else(|| DomainError::NotFound("Grupo no encontrado".to_string()))?,
+            Err(e) => return Err(e),
+        };
+
+        let day_of_week = parse_day(&dia);
+
+        self.schedule_service
+            .create(CreateScheduleSlot {
+                teacher_id: teacher.id,
+                subject_id: subject.id,
+                classroom_id: classroom.id,
+                group_id: group.id,
+                day_of_week,
+                start_time: hora_inicio,
+                end_time: if hora_fin.is_empty() { "00:00:00".to_string() } else { hora_fin },
+                subgroup: None,
+                is_published: false,
+                created_by_id: uploaded_by,
+            })
+            .await?;
+
+        Ok(())
+    }
+}
+
+fn parse_day(day: &str) -> i32 {
+    let d = day.to_lowercase();
+    if d.contains("lun") { return 1; }
+    if d.contains("mar") { return 2; }
+    if d.contains("mie") || d.contains("mié") { return 3; }
+    if d.contains("jue") { return 4; }
+    if d.contains("vie") { return 5; }
+    if d.contains("sab") || d.contains("sáb") { return 6; }
+    0
+}
+
+fn normalize_time(value: &str) -> String {
+    if value.is_empty() {
+        return String::new();
+    }
+    if value.contains(':') {
+        let mut parts: Vec<&str> = value.split(':').collect();
+        while parts.len() < 3 {
+            parts.push("00");
+        }
+        return format!("{:0>2}:{:0>2}:{:0>2}", parts[0], parts[1], parts[2]);
+    }
+    "00:00:00".to_string()
+}
+
+fn cell_to_string(cell: &Data) -> String {
+    match cell {
+        Data::String(v) => v.clone(),
+        Data::Float(v) => v.to_string(),
+        Data::Int(v) => v.to_string(),
+        Data::Bool(v) => v.to_string(),
+        Data::DateTime(v) => v.to_string(),
+        Data::Empty => String::new(),
+        _ => String::new(),
+    }
+}

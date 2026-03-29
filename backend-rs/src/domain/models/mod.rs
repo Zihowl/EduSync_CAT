@@ -1,0 +1,9 @@
+pub mod allowed_domain;
+pub mod building;
+pub mod classroom;
+pub mod group;
+pub mod school_year;
+pub mod schedule_slot;
+pub mod subject;
+pub mod teacher;
+pub mod user;

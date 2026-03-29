@@ -1,0 +1,19 @@
+use async_trait::async_trait;
+use uuid::Uuid;
+
+use crate::domain::{errors::DomainError, models::user::User};
+
+#[async_trait]
+pub trait UserRepository: Send + Sync {
+    async fn find_all(&self) -> Result<Vec<User>, DomainError>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, DomainError>;
+    async fn find_by_email(&self, email: &str) -> Result<Option<User>, DomainError>;
+    async fn create_admin(
+        &self,
+        email: &str,
+        full_name: &str,
+        password_hash: &str,
+        is_super_admin: bool,
+    ) -> Result<User, DomainError>;
+    async fn count_all(&self) -> Result<i64, DomainError>;
+}
