@@ -1,5 +1,5 @@
 # EduSync - Proyecto de Egreso
-Sistema de Gestión de Horarios
+“EduSync” es un sistema integrado compuesto por una plataforma web de administración (Calendar Administration Tool) y una aplicación móvil nativa Android. "CAT" permite a los administradores gestionar horarios académicos, catálogos institucionales (docentes, materias, grupos, salones) y usuarios del sistema.
 
 ## Stack
 - Backend: NestJS + GraphQL (Apollo) + TypeORM -> PostgreSQL (Docker)
