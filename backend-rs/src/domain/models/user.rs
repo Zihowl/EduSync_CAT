@@ -4,22 +4,22 @@ use uuid::Uuid;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum UserRole {
-    SUPER_ADMIN,
-    ADMIN_HORARIOS,
+    SuperAdmin,
+    AdminHorarios,
 }
 
 impl UserRole {
     pub fn as_str(&self) -> &'static str {
         match self {
-            Self::SUPER_ADMIN => "SUPER_ADMIN",
-            Self::ADMIN_HORARIOS => "ADMIN_HORARIOS",
+            Self::SuperAdmin => "SUPER_ADMIN",
+            Self::AdminHorarios => "ADMIN_HORARIOS",
         }
     }
 
     pub fn from_str(value: &str) -> Self {
         match value {
-            "SUPER_ADMIN" => Self::SUPER_ADMIN,
-            _ => Self::ADMIN_HORARIOS,
+            "SUPER_ADMIN" => Self::SuperAdmin,
+            _ => Self::AdminHorarios,
         }
     }
 }

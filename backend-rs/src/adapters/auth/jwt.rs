@@ -11,6 +11,7 @@ pub struct JwtClaims {
     pub exp: i64,
 }
 
+#[allow(dead_code)]
 pub fn encode_jwt(claims: &JwtClaims, secret: &str) -> Result<String, DomainError> {
     encode(
         &Header::default(),

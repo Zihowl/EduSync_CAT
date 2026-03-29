@@ -32,6 +32,7 @@ impl UserService {
         self.repo.find_all().await
     }
 
+    #[allow(dead_code)]
     pub async fn find_by_email(&self, email: &str) -> Result<Option<User>, DomainError> {
         self.repo.find_by_email(email).await
     }

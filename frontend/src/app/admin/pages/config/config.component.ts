@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgForOf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
 import { IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonList, IonItem, IonLabel, IonInput, IonButton, IonIcon, IonCard, IonCardContent } from '@ionic/angular/standalone';
@@ -56,6 +56,7 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
     standalone: true,
     imports: [
         CommonModule,
+        NgForOf,
         FormsModule,
         IonContent,
         IonHeader,

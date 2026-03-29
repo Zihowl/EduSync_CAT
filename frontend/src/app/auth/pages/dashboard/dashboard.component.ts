@@ -1,8 +1,9 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
     selector: 'app-dashboard',
+    schemas: [CUSTOM_ELEMENTS_SCHEMA],
     template: `
         <ion-header>
             <ion-toolbar color="primary">

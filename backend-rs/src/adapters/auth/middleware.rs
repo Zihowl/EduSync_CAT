@@ -7,6 +7,7 @@ use crate::{adapters::auth::jwt::decode_jwt, config::AppConfig};
 #[derive(Clone, Debug)]
 pub struct AuthUser {
     pub user_id: Uuid,
+    #[allow(dead_code)]
     pub email: String,
     pub role: String,
 }

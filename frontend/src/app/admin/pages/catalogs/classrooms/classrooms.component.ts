@@ -58,7 +58,7 @@ const REMOVE_CLASSROOM = gql`
         CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, 
         IonTitle, IonButtons, IonBackButton, IonList, IonItem, 
         IonLabel, IonSelect, IonSelectOption, IonButton, IonIcon, 
-        IonFab, IonFabButton, IonModal, IonInput, IonFooter, IonNote
+        IonFab, IonFabButton, IonModal, IonInput, IonFooter
     ],
     template: `
         <ion-header>
