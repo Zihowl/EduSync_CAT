@@ -1,0 +1,60 @@
+ion-item {
+    --padding-start: 16px;
+}
+
+.schedule-filter {
+    margin-start: 1rem;
+}
+
+.schedule-subject-title {
+    font-weight: 600;
+}
+
+.schedule-badge {
+    margin-left: 0.5rem;
+}
+
+.schedule-inline-icon {
+    font-size: 14px;
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+.schedule-subgroup {
+    color: var(--ion-color-medium);
+}
+
+.schedule-empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+    opacity: 0.6;
+    margin-top: 2rem;
+}
+
+.schedule-empty-icon {
+    font-size: 64px;
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.schedule-published {
+    --background: rgba(var(--ion-color-success-rgb), 0.05);
+}
+
+.schedule-updating {
+    opacity: 0.6;
+}
+
+.schedule-form-item {
+    margin-bottom: 1rem;
+}
+
+ion-datetime-button {
+    margin-left: auto;
+}
+
+.schedule-time-error {
+    padding: 1rem;
+    text-align: center;
+    color: var(--ion-color-danger);
+}

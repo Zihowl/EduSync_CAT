@@ -73,11 +73,11 @@ const REMOVE_TEACHER = gql`
         <ion-content>
             <ion-list lines="inset">
                 <ion-item *ngFor="let t of filteredTeachers">
-                    <ion-avatar slot="start" class="d-flex align-items-center justify-content-center bg-light text-primary">
-                        <span class="fs-5 fw-bold">{{ GetInitials(t.name) }}</span>
+                    <ion-avatar slot="start" class="teacher-avatar">
+                        <span class="teacher-initials">{{ GetInitials(t.name) }}</span>
                     </ion-avatar>
                     <ion-label>
-                        <h2 class="fw-bold">{{ t.name }}</h2>
+                        <h2 class="teacher-name">{{ t.name }}</h2>
                         <p>No. Empleado: {{ t.employeeNumber }}</p>
                         <p>{{ t.email || 'Sin correo' }}</p>
                     </ion-label>
@@ -92,8 +92,8 @@ const REMOVE_TEACHER = gql`
                 </ion-item>
             </ion-list>
 
-            <div *ngIf="filteredTeachers.length === 0" class="ion-text-center ion-padding mt-5 opacity-50">
-                <ion-icon name="person-outline" style="font-size: 64px;"></ion-icon>
+            <div *ngIf="filteredTeachers.length === 0" class="teacher-empty-state">
+                <ion-icon name="person-outline" class="teacher-empty-icon"></ion-icon>
                 <p>No se encontraron docentes</p>
             </div>
 
@@ -115,13 +115,13 @@ const REMOVE_TEACHER = gql`
                     </ion-header>
                     <ion-content class="ion-padding">
                         <ion-list>
-                            <ion-item fill="outline" class="mb-3">
+                            <ion-item fill="outline" class="teacher-form-item">
                                 <ion-label position="stacked">Nombre completo</ion-label>
                                 <ion-input [(ngModel)]="formData.name" placeholder="Ej. Juan Pérez"></ion-input>
                                 <ion-icon name="person-outline" slot="start"></ion-icon>
                             </ion-item>
                             
-                            <ion-item fill="outline" class="mb-3">
+                            <ion-item fill="outline" class="teacher-form-item">
                                 <ion-label position="stacked">Número de empleado</ion-label>
                                 <ion-input [(ngModel)]="formData.employeeNumber" placeholder="Ej. 123456"></ion-input>
                                 <ion-icon name="card-outline" slot="start"></ion-icon>
@@ -143,10 +143,7 @@ const REMOVE_TEACHER = gql`
             </ion-modal>
         </ion-content>
     `,
-    styles: [`
-        ion-item { --padding-start: 16px; }
-        .mb-3 { margin-bottom: 1rem; }
-    `]
+    styleUrls: ['./teachers.component.scss']
 })
 export class TeachersComponent implements OnInit
 {

@@ -75,9 +75,9 @@ const REMOVE_CLASSROOM = gql`
                 <ion-item *ngFor="let c of classrooms">
                     <ion-icon name="home-outline" slot="start" color="primary"></ion-icon>
                     <ion-label>
-                        <h2 class="fw-bold">{{ c.name }}</h2>
+                        <h2 class="classroom-name">{{ c.name }}</h2>
                         <p *ngIf="c.building">Edificio: <strong>{{ c.building.name }}</strong></p>
-                        <p *ngIf="!c.building" class="opacity-50">Sin edificio asignado</p>
+                        <p *ngIf="!c.building" class="classroom-no-building">Sin edificio asignado</p>
                     </ion-label>
                     <ion-buttons slot="end">
                         <ion-button color="medium" (click)="OpenModal(c)">
@@ -90,8 +90,8 @@ const REMOVE_CLASSROOM = gql`
                 </ion-item>
             </ion-list>
 
-            <div *ngIf="classrooms.length === 0" class="ion-text-center ion-padding mt-5 opacity-50">
-                <ion-icon name="home-outline" style="font-size: 64px;"></ion-icon>
+            <div *ngIf="classrooms.length === 0" class="classroom-empty-state">
+                <ion-icon name="home-outline" class="classroom-empty-icon"></ion-icon>
                 <p>No hay aulas registradas</p>
             </div>
 
@@ -113,7 +113,7 @@ const REMOVE_CLASSROOM = gql`
                     </ion-header>
                     <ion-content class="ion-padding">
                         <ion-list>
-                            <ion-item fill="outline" class="mb-3">
+                            <ion-item fill="outline" class="classroom-form-item">
                                 <ion-label position="stacked">Nombre del aula / Salón</ion-label>
                                 <ion-input [(ngModel)]="formData.name" placeholder="Ej. Laboratorio 1"></ion-input>
                             </ion-item>
@@ -138,10 +138,7 @@ const REMOVE_CLASSROOM = gql`
             </ion-modal>
         </ion-content>
     `,
-    styles: [`
-        ion-item { --padding-start: 16px; }
-        .mb-3 { margin-bottom: 1rem; }
-    `]
+    styleUrls: ['./classrooms.component.scss']
 })
 export class ClassroomsComponent implements OnInit
 {

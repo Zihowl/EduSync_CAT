@@ -1,0 +1,22 @@
+.dashboard-badge {
+    margin-right: 0.75rem;
+}
+
+.dashboard-title {
+    margin: 0;
+    text-align: start;
+    padding-left: 1rem;
+    font-size: 1.75rem;
+    font-weight: 600;
+}
+
+.dashboard-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-icon {
+    margin-right: 0.5rem;
+    font-size: 1.25rem;
+}

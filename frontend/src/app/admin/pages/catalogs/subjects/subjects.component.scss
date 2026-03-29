@@ -1,1 +1,24 @@
-/* Styles for SubjectsComponent - kept empty for now */
+ion-item {
+    --padding-start: 16px;
+}
+
+.subject-name {
+    font-weight: 600;
+}
+
+.subject-empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+    opacity: 0.6;
+    margin-top: 2rem;
+}
+
+.subject-empty-icon {
+    font-size: 64px;
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.subject-form-item {
+    margin-bottom: 1rem;
+}

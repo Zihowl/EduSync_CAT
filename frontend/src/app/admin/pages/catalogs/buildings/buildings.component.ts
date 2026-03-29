@@ -6,7 +6,7 @@ import {
     IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, 
     IonBackButton, IonList, IonItem, IonLabel, IonButton, 
     IonIcon, IonFab, IonFabButton, IonModal, IonInput, 
-    IonTextarea, IonNote, IonFooter
+    IonTextarea, IonFooter
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trashOutline, addOutline, pencilOutline, businessOutline } from 'ionicons/icons';
@@ -53,7 +53,7 @@ const REMOVE_BUILDING = gql`
         CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, 
         IonTitle, IonButtons, IonBackButton, IonList, IonItem, 
         IonLabel, IonButton, IonIcon, IonFab, IonFabButton, 
-        IonModal, IonInput, IonTextarea, IonNote, IonFooter
+        IonModal, IonInput, IonTextarea, IonFooter
     ],
     template: `
         <ion-header>
@@ -70,7 +70,7 @@ const REMOVE_BUILDING = gql`
                 <ion-item *ngFor="let b of buildings">
                     <ion-icon name="business-outline" slot="start" color="primary"></ion-icon>
                     <ion-label>
-                        <h2 class="fw-bold">{{ b.name }}</h2>
+                        <h2 class="building-name">{{ b.name }}</h2>
                         <p>{{ b.description || 'Sin descripción' }}</p>
                     </ion-label>
                     <ion-buttons slot="end">
@@ -84,8 +84,8 @@ const REMOVE_BUILDING = gql`
                 </ion-item>
             </ion-list>
 
-            <div *ngIf="buildings.length === 0" class="ion-text-center ion-padding mt-5 opacity-50">
-                <ion-icon name="business-outline" style="font-size: 64px;"></ion-icon>
+            <div *ngIf="buildings.length === 0" class="building-empty-state">
+                <ion-icon name="business-outline" class="building-empty-icon"></ion-icon>
                 <p>No hay edificios registrados</p>
             </div>
 
@@ -107,7 +107,7 @@ const REMOVE_BUILDING = gql`
                     </ion-header>
                     <ion-content class="ion-padding">
                         <ion-list>
-                            <ion-item fill="outline" class="mb-3">
+                            <ion-item fill="outline" class="building-form-item">
                                 <ion-label position="stacked">Nombre del edificio</ion-label>
                                 <ion-input [(ngModel)]="formData.name" placeholder="Ej. Edificio A"></ion-input>
                             </ion-item>
@@ -127,10 +127,7 @@ const REMOVE_BUILDING = gql`
             </ion-modal>
         </ion-content>
     `,
-    styles: [`
-        ion-item { --padding-start: 16px; }
-        .mb-3 { margin-bottom: 1rem; }
-    `]
+    styleUrls: ['./buildings.component.scss']
 })
 export class BuildingsComponent implements OnInit
 {

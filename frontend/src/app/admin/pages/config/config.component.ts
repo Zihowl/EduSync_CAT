@@ -2,9 +2,9 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
-import { IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonList, IonItem, IonLabel, IonInput, IonButton, IonIcon } from '@ionic/angular/standalone';
+import { IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonList, IonItem, IonLabel, IonInput, IonButton, IonIcon, IonCard, IonCardContent } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { trashOutline } from 'ionicons/icons';
+import { alertCircleOutline, calendarOutline, checkmarkOutline, globeOutline, informationCircleOutline, trashOutline } from 'ionicons/icons';
 
 const GET_DOMAINS = gql`
     query GetAllowedDomains {
@@ -68,7 +68,9 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
         IonLabel,
         IonInput,
         IonButton,
-        IonIcon
+        IonIcon,
+        IonCard,
+        IonCardContent
     ],
     template: `
         <ion-header>
@@ -80,72 +82,138 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
             </ion-toolbar>
         </ion-header>
 
-        <ion-content class="ion-padding">
-            <div class="container config-container">
+        <ion-content class="ion-padding config-content">
+            <div class="config-wrapper">
+                <div class="config-container">
+                    <!-- SECCIÓN CICLO ESCOLAR -->
+                    <div class="config-section">
+                        <div class="section-header">
+                            <ion-icon name="calendar-outline"></ion-icon>
+                            <h2>Ciclo Escolar</h2>
+                        </div>
+                        
+                        <ion-card>
+                            <p class="panel-subtitle">Configurar ciclo</p>
+                            <ion-card-content>
+                                <form class="form-section">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <ion-input
+                                                label="Fecha de inicio"
+                                                label-placement="stacked"
+                                                fill="outline"
+                                                type="date"
+                                                [(ngModel)]="newSchoolYearStart"
+                                                name="startDate">
+                                            </ion-input>
+                                        </div>
+                                        <div class="form-group">
+                                            <ion-input
+                                                label="Fecha de cierre"
+                                                label-placement="stacked"
+                                                fill="outline"
+                                                type="date"
+                                                [(ngModel)]="newSchoolYearEnd"
+                                                name="endDate">
+                                            </ion-input>
+                                        </div>
+                                    </div>
+                                    <ion-button 
+                                        expand="block"
+                                        color="primary"
+                                        (click)="AddSchoolYear()" 
+                                        [disabled]="!newSchoolYearStart || !newSchoolYearEnd"
+                                        class="form-submit">
+                                        <ion-icon name="checkmark-outline" slot="start"></ion-icon>
+                                        Guardar Ciclo
+                                    </ion-button>
+                                </form>
+                            </ion-card-content>
+                        </ion-card>
 
-                <h3>Ciclo Escolar</h3>
-                <form class="card mb-4 bg-dark text-white border-secondary">
-                    <div class="card-body d-flex gap-2 justify-content-between align-items-center border-opacity-0 flex-wrap">
-                        <div class="d-flex gap-2 align-items-center  flex-column col-lg-4 col-12 flex-grow-1">
-                            <label class="mb-0 text-white">Fecha inicio</label>
-                            <input type="date" class="form-control bg-dark text-white" [(ngModel)]="newSchoolYearStart" name="startDate">
-                        </div>
-                        <div class="d-flex gap-2 align-items-center  flex-column col-lg-4 col-12 flex-grow-1">
-                            <label class="mb-0 text-white">Fecha de cierre</label>
-                            <input type="date" class="form-control bg-dark text-white" [(ngModel)]="newSchoolYearEnd" name="endDate">
-                        </div>
-                        <div class="col-lg-2 col-12">
-                            <button class="btn btn-primary w-100" (click)="AddSchoolYear()" [disabled]="!newSchoolYearStart || !newSchoolYearEnd">
-                                Guardar
-                            </button>
-                        </div>
+                        <ion-card class="info-card">
+                            <p class="info-card-title">Ciclo actual</p>
+                            <ion-card-content>
+                                <div *ngIf="currentSchoolYear; else noCycle" class="current-cycle">
+                                    <div class="cycle-range">
+                                        <ion-icon name="calendar-outline"></ion-icon>
+                                        {{ currentSchoolYear.startDate | date:'dd/MM/yyyy' }} 
+                                        <span class="arrow">→</span> 
+                                        {{ currentSchoolYear.endDate | date:'dd/MM/yyyy' }}
+                                    </div>
+                                    <small class="cycle-saved">
+                                        Configurado: {{ currentSchoolYear.createdAt | date:'short' }}
+                                    </small>
+                                </div>
+                                <ng-template #noCycle>
+                                    <div class="no-data">
+                                        <ion-icon name="alert-circle-outline"></ion-icon>
+                                        <p>No hay ciclo configurado</p>
+                                    </div>
+                                </ng-template>
+                            </ion-card-content>
+                        </ion-card>
                     </div>
-                </form>
 
-                <div class="card mb-4 bg-dark text-white border-secondary">
-                    <div class="card-body">
-                        <h5 class="mb-2">Ciclo en curso</h5>
-                        <div *ngIf="currentSchoolYear; else noCycle" class="current-cycle">
-                            <div class="cycle-range fw-bold fs-5 text-white">
-                                {{ currentSchoolYear.startDate | date:'dd-MM-yyyy' }} → {{ currentSchoolYear.endDate | date:'dd-MM-yyyy' }}
-                            </div>
-                            <small class="cycle-saved text-white-50">Guardado: {{ currentSchoolYear.createdAt | date:'short' }}</small>
+                    <!-- SECCIÓN DOMINIOS PERMITIDOS -->
+                    <div class="config-section">
+                        <div class="section-header">
+                            <ion-icon name="globe-outline"></ion-icon>
+                            <h2>Dominios Permitidos</h2>
                         </div>
-                        <ng-template #noCycle>
-                            <div class="text-muted">No hay ciclo en curso.</div>
-                        </ng-template>
-                    </div>
-                </div> 
 
-                <br>
-                <h3>Dominios Permitidos</h3>
-                <div class="card mb-4 bg-dark text-white border-secondary">
-                    <div class="card-body d-flex gap-2">
-                        <input
-                            type="text"
-                            class="form-control bg-dark text-white border-secondary"
-                            [(ngModel)]="newDomain"
-                            placeholder="ej: ceti.mx"
-                            (keyup.enter)="AddDomain()">
-                        <button class="btn btn-primary" (click)="AddDomain()" [disabled]="!newDomain">
-                            Agregar
-                        </button>
+                        <ion-card>
+                            <p class="panel-subtitle">Agregar dominio</p>
+                            <ion-card-content>
+                                <div class="domain-input-section">
+                                    <ion-input
+                                        label="Dominio"
+                                        label-placement="stacked"
+                                        fill="outline"
+                                        type="text"
+                                        [(ngModel)]="newDomain"
+                                        placeholder="ej: institución.edu.mx"
+                                        (keyup.enter)="AddDomain()">
+                                    </ion-input>
+                                    <ion-button 
+                                        color="success"
+                                        (click)="AddDomain()" 
+                                        [disabled]="!newDomain"
+                                        class="add-domain-btn">
+                                        Agregar
+                                    </ion-button>
+                                </div>
+                            </ion-card-content>
+                        </ion-card>
+
+                        <ion-card class="domains-list-card" *ngIf="domains.length > 0">
+                            <p class="domains-list-title">Dominios registrados ({{ domains.length }})</p>
+                            <ion-list class="domains-list">
+                                <ion-item *ngFor="let d of domains" class="domain-item">
+                                    <ion-label class="domain-name">{{ d.domain }}</ion-label>
+                                    <ion-button 
+                                        fill="clear" 
+                                        color="danger" 
+                                        slot="end" 
+                                        (click)="RemoveDomain(d.id)"
+                                        class="delete-btn">
+                                        <ion-icon name="trash-outline"></ion-icon>
+                                    </ion-button>
+                                </ion-item>
+                            </ion-list>
+                        </ion-card>
+
+                        <ion-card class="empty-state-card" *ngIf="domains.length === 0">
+                            <ion-card-content>
+                                <div class="no-data">
+                                    <ion-icon name="information-circle-outline"></ion-icon>
+                                    <p>Sin dominios registrados</p>
+                                    <small>Agrega dominios arriba para permitir usuarios</small>
+                                </div>
+                            </ion-card-content>
+                        </ion-card>
                     </div>
                 </div>
-
-                <hr class="" style="margin: 1.1rem 0 1.3rem;">
-            
-                <ion-list>
-                    <ion-item *ngFor="let d of domains">
-                        <ion-label>{{ d.domain }}</ion-label>
-                        <ion-button fill="clear" color="danger" slot="end" (click)="RemoveDomain(d.id)">
-                            <ion-icon name="trash-outline"></ion-icon>
-                        </ion-button>
-                    </ion-item>
-                    <div *ngIf="domains.length === 0" class="text-center p-3 text-muted">
-                        No hay dominios registrados.
-                    </div>
-                </ion-list>
             </div>
         </ion-content>
     `,
@@ -163,7 +231,14 @@ export class ConfigComponent implements OnInit
 
     ngOnInit() 
     {
-      addIcons({ trashOutline });
+            addIcons({
+                trashOutline,
+                calendarOutline,
+                checkmarkOutline,
+                globeOutline,
+                alertCircleOutline,
+                informationCircleOutline
+            });
         this.LoadDomains();
         this.LoadCurrentSchoolYear();
     }

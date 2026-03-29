@@ -1,4 +1,25 @@
-.users-container
-{
-    max-width: 800px;
+.users-content {
+    display: flex;
+    justify-content: center;
 }
+
+.users-container {
+    max-width: 800px;
+    width: 100%;
+}
+
+.empty-state {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 0.9rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.ion-margin-top {
+    margin-top: 0.5rem !important;
+}
+

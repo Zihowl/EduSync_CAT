@@ -13,7 +13,7 @@ import {
   IonButton,
   IonIcon,
   IonProgressBar,
-  IonText
+  IonAlert
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { cloudUploadOutline, documentTextOutline } from 'ionicons/icons';
@@ -35,7 +35,7 @@ import { environment } from '../../../../environments/environment';
         IonButton,
         IonIcon,
         IonProgressBar,
-        IonText
+        IonAlert
     ],
     template: `
         <ion-header>
@@ -47,57 +47,68 @@ import { environment } from '../../../../environments/environment';
             </ion-toolbar>
         </ion-header>
 
-        <ion-content class="ion-padding">
-            <div class="container upload-container">
-                <ion-card class="text-center p-4">
-                    <ion-icon name="cloud-upload-outline" class="upload-icon" color="primary"></ion-icon>
-                    <h2>Subir Archivo Excel</h2>
-                    <p class="text-muted">
-                        El archivo debe contener las columnas: <br>
-                        <strong>ClaveMateria, Materia, NoEmpleado, Docente, Grupo, Aula, Dia, HoraInicio, HoraFin</strong>
-                    </p>
-
-                    <input
-                        type="file"
-                        #fileInput
-                        (change)="OnFileSelected($event)"
-                        accept=".xlsx, .xls"
-                        class="upload-file-input">
-
-                    <div *ngIf="!selectedFile" class="mt-3">
-                        <ion-button (click)="fileInput.click()">
-                            Seleccionar Archivo
-                        </ion-button>
-                    </div>
-
-                    <div *ngIf="selectedFile" class="mt-3">
-                        <p class="fw-bold">
-                            <ion-icon name="document-text-outline"></ion-icon>
-                            {{ selectedFile.name }}
-                        </p>
-
-                        <ion-button color="success" (click)="Upload()" [disabled]="isLoading">
-                            {{ isLoading ? 'Procesando...' : 'Confirmar Carga' }}
-                        </ion-button>
-                        <ion-button fill="clear" color="danger" (click)="selectedFile = null" [disabled]="isLoading">
-                            Cancelar
-                        </ion-button>
-                    </div>
-
-                    <ion-progress-bar *ngIf="isLoading" type="indeterminate" class="mt-3"></ion-progress-bar>
-
-                    <div *ngIf="uploadResult" class="mt-4 text-start">
-                        <div class="alert alert-success" *ngIf="uploadResult.processed > 0">
-                            ✅ Se procesaron {{ uploadResult.processed }} registros correctamente.
+        <ion-content class="ion-padding upload-content">
+            <div class="upload-container">
+                <ion-card class="upload-card">
+                    <ion-card-content>
+                        <div class="upload-header">
+                            <ion-icon name="cloud-upload-outline" class="upload-icon" color="primary"></ion-icon>
+                            <h2>Subir Archivo Excel</h2>
+                            <p class="text-muted">
+                                El archivo debe contener las columnas: <br>
+                                <strong>ClaveMateria, Materia, NoEmpleado, Docente, Grupo, Aula, Dia, HoraInicio, HoraFin</strong>
+                            </p>
                         </div>
 
-                        <div class="alert alert-warning" *ngIf="uploadResult.errors.length > 0">
-                            ⚠️ Hubo errores en algunas filas:
-                            <ul class="mb-0">
-                                <li *ngFor="let err of uploadResult.errors">{{ err }}</li>
-                            </ul>
+                        <input
+                            type="file"
+                            #fileInput
+                            (change)="OnFileSelected($event)"
+                            accept=".xlsx, .xls"
+                            class="upload-file-input">
+
+                        <div *ngIf="!selectedFile" class="button-area">
+                            <ion-button expand="block" (click)="fileInput.click()">
+                                Seleccionar Archivo
+                            </ion-button>
                         </div>
-                    </div>
+
+                        <div *ngIf="selectedFile" class="selected-file">
+                            <p class="file-name">
+                                <ion-icon name="document-text-outline"></ion-icon>
+                                {{ selectedFile.name }}
+                            </p>
+
+                            <div class="button-group">
+                                <ion-button expand="block" color="success" (click)="Upload()" [disabled]="isLoading">
+                                    {{ isLoading ? 'Procesando...' : 'Confirmar Carga' }}
+                                </ion-button>
+                                <ion-button expand="block" fill="clear" color="danger" (click)="selectedFile = null" [disabled]="isLoading">
+                                    Cancelar
+                                </ion-button>
+                            </div>
+                        </div>
+
+                        <ion-progress-bar *ngIf="isLoading" type="indeterminate" class="upload-progress"></ion-progress-bar>
+
+                        <ion-alert
+                            [isOpen]="!!uploadResult && uploadResult.processed > 0"
+                            header="Carga Exitosa"
+                            [message]="'Se procesaron ' + uploadResult?.processed + ' registros correctamente.'"
+                            [buttons]="['OK']"
+                            (didDismiss)="uploadResult = null">
+                        </ion-alert>
+
+                        <ion-alert
+                            *ngIf="uploadResult && uploadResult.errors.length > 0"
+                            [isOpen]="!!uploadResult && uploadResult.errors.length > 0"
+                            header="Errores en la Carga"
+                            [subHeader]="'Hubo errores en algunas filas (total: ' + uploadResult.errors.length + ')'"
+                            [message]="uploadResult.errors.slice(0, 5).join(' | ')"
+                            [buttons]="['OK']"
+                            (didDismiss)="uploadResult = null">
+                        </ion-alert>
+                    </ion-card-content>
                 </ion-card>
             </div>
         </ion-content>

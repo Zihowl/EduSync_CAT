@@ -4,9 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
 import { 
     IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, 
-    IonBackButton, IonList, IonItem, IonLabel, IonSelect, 
-    IonSelectOption, IonButton, IonIcon, IonFab, IonFabButton, 
-    IonModal, IonInput, IonFooter, IonNote, IonSearchbar
+    IonBackButton, IonList, IonItem, IonLabel, 
+    IonButton, IonIcon, IonFab, IonFabButton, 
+    IonModal, IonInput, IonFooter, IonSearchbar
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trashOutline, addOutline, pencilOutline, peopleOutline, personOutline, searchOutline, returnDownForward, addCircleOutline, people, person } from 'ionicons/icons';
@@ -62,8 +62,8 @@ const REMOVE_GROUP = gql`
     imports: [
         CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, 
         IonTitle, IonButtons, IonBackButton, IonList, IonItem, 
-        IonLabel, IonSelect, IonSelectOption, IonButton, IonIcon, 
-        IonFab, IonFabButton, IonModal, IonInput, IonFooter, IonNote, IonSearchbar
+        IonLabel, IonButton, IonIcon, 
+        IonFab, IonFabButton, IonModal, IonInput, IonFooter, IonSearchbar
     ],
     template: `
         <ion-header>
@@ -80,10 +80,10 @@ const REMOVE_GROUP = gql`
 
         <ion-content>
             <ion-list lines="inset">
-                <ion-item *ngFor="let g of filteredGroups" [class.subgroup-item]="g.parent">
+                <ion-item *ngFor="let g of filteredGroups" [class.groups-subgroup-item]="g.parent">
                     <ion-icon [name]="g.parent ? 'return-down-forward' : 'people-outline'" slot="start" [color]="g.parent ? 'medium' : 'primary'"></ion-icon>
                     <ion-label>
-                        <h2 class="fw-bold"><span *ngIf="g.parent" class="parent-prefix">{{ g.parent.name }}-</span>{{ g.name }}</h2>
+                        <h2 class="groups-title"><span *ngIf="g.parent" class="groups-parent-prefix">{{ g.parent.name }}-</span>{{ g.name }}</h2>
                         <p *ngIf="!g.parent">Grupo Base</p>
                     </ion-label>
                     <ion-buttons slot="end">
@@ -100,8 +100,8 @@ const REMOVE_GROUP = gql`
                 </ion-item>
             </ion-list>
 
-            <div *ngIf="filteredGroups.length === 0" class="ion-text-center ion-padding mt-5 opacity-50">
-                <ion-icon name="people-outline" style="font-size: 64px;"></ion-icon>
+            <div *ngIf="filteredGroups.length === 0" class="groups-empty-state">
+                <ion-icon name="people-outline" class="groups-empty-icon"></ion-icon>
                 <p>{{ allGroups.length === 0 ? 'No hay grupos registrados' : 'No se encontraron resultados' }}</p>
             </div>
 
@@ -123,15 +123,15 @@ const REMOVE_GROUP = gql`
                     </ion-header>
                     <ion-content class="ion-padding">
                         <ion-list>
-                            <ion-item fill="outline" class="mb-3">
+                            <ion-item fill="outline" class="groups-form-item">
                                 <ion-label position="stacked">{{ formData.parentId ? 'Nombre del Subgrupo' : 'Nombre del Grupo' }}</ion-label>
                                 <ion-input [(ngModel)]="formData.name" [placeholder]="formData.parentId ? 'Ej. Desarrollo, A, 1...' : 'Ej. 8A, Sistemas...'"></ion-input>
                                 <ion-icon name="people-outline" slot="start"></ion-icon>
                             </ion-item>
                             
-                            <p *ngIf="formData.parentId" class="preview-text ion-padding-horizontal">
-                                <ion-icon name="arrow-forward-outline" class="preview-icon"></ion-icon>
-                                <span class="preview-label">{{ getParentName(formData.parentId) }}-</span><strong>{{ formData.name || '...' }}</strong>
+                            <p *ngIf="formData.parentId" class="groups-preview-text">
+                                <ion-icon name="arrow-forward-outline" class="groups-preview-icon"></ion-icon>
+                                <span class="groups-preview-label">{{ getParentName(formData.parentId) }}-</span><strong>{{ formData.name || '...' }}</strong>
                             </p>
                         </ion-list>
                     </ion-content>
@@ -144,15 +144,7 @@ const REMOVE_GROUP = gql`
             </ion-modal>
         </ion-content>
     `,
-    styles: [`
-        ion-item { --padding-start: 16px; }
-        .subgroup-item { --padding-start: 40px; }
-        .parent-prefix { color: var(--ion-color-medium); font-weight: 400; }
-        .preview-text { display: flex; align-items: center; gap: 6px; color: var(--ion-color-dark); margin: 0; font-size: 0.95rem; }
-        .preview-icon { color: var(--ion-color-medium); font-size: 14px; }
-        .preview-label { color: var(--ion-color-medium); }
-        .mb-3 { margin-bottom: 1rem; }
-    `]
+    styleUrls: ['./groups.component.scss']
 })
 export class GroupsComponent implements OnInit
 {

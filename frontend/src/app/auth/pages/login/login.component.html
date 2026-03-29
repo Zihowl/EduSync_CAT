@@ -4,16 +4,16 @@
     </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
-    <div class="container d-flex justify-content-center align-items-center h-100 login-container">
-        <ion-card class="w-100 shadow login-card">
+<ion-content class="ion-padding login-content">
+    <div class="login-container">
+        <ion-card class="login-card">
             <ion-card-content>
-                <div class="text-center mb-4">
+                <div class="text-center">
                     <h1>Bienvenido</h1>
-                    <p>Ingresa tus credenciales de administrador</p>
+                    <p class="text-muted">Ingresa tus credenciales de administrador</p>
                 </div>
                 <form [formGroup]="loginForm" (ngSubmit)="OnSubmit()">
-                    <div class="mb-3">
+                    <div class="form-group">
                         <ion-input
                             label="Correo Institucional"
                             label-placement="floating"
@@ -24,7 +24,7 @@
                         </ion-input>
                     </div>
 
-                    <div class="mb-3">
+                    <div class="form-group">
                         <ion-input
                             label="Contraseña"
                             label-placement="floating"

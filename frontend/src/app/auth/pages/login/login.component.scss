@@ -1,16 +1,39 @@
-.login-title
-{
+.login-title {
     color: white;
     font-style: italic;
     font-weight: bold;
 }
 
-.login-container
-{
-    min-height: 80vh;
+.login-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.login-card
-{
-    max-width: 400px;
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100%;
+    width: 100%;
+    padding: 1rem;
 }
+
+.login-card {
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-muted {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+

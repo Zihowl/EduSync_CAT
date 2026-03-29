@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { IonContent, IonHeader, IonTitle, IonToolbar, IonCard, IonCardContent, IonButton, IonInput, IonItem, IonLabel } from '@ionic/angular/standalone';
+import { IonContent, IonHeader, IonTitle, IonToolbar, IonCard, IonCardContent, IonButton, IonInput } from '@ionic/angular/standalone';
 import { ActivatedRoute } from '@angular/router';
 import { ToastController } from '@ionic/angular';
 
@@ -21,9 +21,7 @@ import { AuthService } from '../../../core/services/auth.service';
         IonCard,
         IonCardContent,
         IonButton,
-        IonInput,
-        IonItem,
-        IonLabel
+        IonInput
     ],
     templateUrl: './login.component.html',
     styleUrls: ['./login.component.scss']

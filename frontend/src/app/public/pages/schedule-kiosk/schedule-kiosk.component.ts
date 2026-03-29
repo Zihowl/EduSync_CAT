@@ -37,14 +37,14 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
         CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, IonTitle,
         IonSelect, IonSelectOption, IonList, IonItem, IonLabel, IonIcon,
         IonCard, IonCardHeader, IonCardTitle, IonCardContent,
-        IonGrid, IonRow, IonCol, IonChip, IonSpinner, IonNote,
+        IonGrid, IonRow, IonCol, IonChip, IonSpinner,
         IonSegment, IonSegmentButton
     ],
     template: `
         <ion-header>
             <ion-toolbar color="primary">
                 <ion-title>
-                    <ion-icon name="school-outline" class="me-2"></ion-icon>
+                    <ion-icon name="school-outline" class="kiosk-title-icon"></ion-icon>
                     Consulta de Horarios
                 </ion-title>
             </ion-toolbar>
@@ -64,7 +64,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                                     (ionChange)="LoadSchedules()"
                                     placeholder="Selecciona un grupo..."
                                     interface="action-sheet"
-                                    class="w-100">
+                                    class="kiosk-select">
                                     <ion-select-option *ngFor="let g of groups" [value]="g.id">
                                         {{ g.parent ? g.parent.name + '-' : '' }}{{ g.name }}
                                     </ion-select-option>
@@ -76,7 +76,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
 
                 <ion-row *ngIf="selectedGroupId" class="ion-justify-content-center">
                     <ion-col size="12" size-md="10">
-                        <ion-segment [(ngModel)]="viewMode" class="ion-margin-bottom">
+                        <ion-segment [(ngModel)]="viewMode" class="kiosk-segment">
                             <ion-segment-button value="list">Lista</ion-segment-button>
                             <ion-segment-button value="day">Por día</ion-segment-button>
                         </ion-segment>
@@ -93,23 +93,23 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                                 <ion-item *ngFor="let s of getSchedulesForDay(selectedDay)">
                                     <ion-icon name="time-outline" slot="start" color="primary"></ion-icon>
                                     <ion-label>
-                                        <h2 class="fw-bold">{{ s.subject.name }}</h2>
+                                        <h2 class="kiosk-subject-title">{{ s.subject.name }}</h2>
                                         <p>{{ s.startTime.substring(0,5) }} - {{ s.endTime.substring(0,5) }}</p>
                                         <p>
-                                            <ion-icon name="person-outline" class="inline-icon"></ion-icon>
+                                            <ion-icon name="person-outline" class="kiosk-inline-icon"></ion-icon>
                                             {{ s.teacher.name }}
                                         </p>
                                         <p>
-                                            <ion-icon name="business-outline" class="inline-icon"></ion-icon>
+                                            <ion-icon name="business-outline" class="kiosk-inline-icon"></ion-icon>
                                             {{ s.classroom.name }}
-                                            <ion-chip *ngIf="s.subgroup" color="tertiary" class="ms-2">{{ s.subgroup }}</ion-chip>
+                                            <ion-chip *ngIf="s.subgroup" color="tertiary" class="kiosk-subgroup">{{ s.subgroup }}</ion-chip>
                                         </p>
                                     </ion-label>
                                 </ion-item>
                             </ion-list>
 
-                            <div *ngIf="getSchedulesForDay(selectedDay).length === 0" class="ion-text-center ion-padding opacity-50">
-                                <ion-icon name="calendar-outline" style="font-size: 48px;"></ion-icon>
+                            <div *ngIf="getSchedulesForDay(selectedDay).length === 0" class="kiosk-empty-state">
+                                <ion-icon name="calendar-outline" class="kiosk-empty-icon"></ion-icon>
                                 <p>No hay clases este día</p>
                             </div>
                         </div>
@@ -117,10 +117,10 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                         <!-- Vista de lista completa -->
                         <div *ngIf="viewMode === 'list'">
                             <ng-container *ngFor="let day of [1,2,3,4,5,6]">
-                                <ion-card *ngIf="getSchedulesForDay(day).length > 0" class="day-card">
+                                <ion-card *ngIf="getSchedulesForDay(day).length > 0" class="kiosk-day-card">
                                     <ion-card-header color="light">
                                         <ion-card-title>
-                                            <ion-icon name="calendar-outline" class="me-2"></ion-icon>
+                                            <ion-icon name="calendar-outline" class="kiosk-day-icon"></ion-icon>
                                             {{ getDayName(day) }}
                                         </ion-card-title>
                                     </ion-card-header>
@@ -128,8 +128,8 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                                         <ion-list lines="full">
                                             <ion-item *ngFor="let s of getSchedulesForDay(day)">
                                                 <ion-label>
-                                                    <h3 class="fw-bold">{{ s.subject.name }}</h3>
-                                                    <p class="time-badge">
+                                                    <h3 class="kiosk-subject-title">{{ s.subject.name }}</h3>
+                                                    <p class="kiosk-time-badge">
                                                         <ion-chip color="primary" outline>
                                                             {{ s.startTime.substring(0,5) }} - {{ s.endTime.substring(0,5) }}
                                                         </ion-chip>
@@ -153,8 +153,8 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
 
                 <!-- Estado inicial -->
                 <ion-row *ngIf="!selectedGroupId && !loading" class="ion-justify-content-center">
-                    <ion-col size="12" class="ion-text-center opacity-50 ion-padding">
-                        <ion-icon name="school-outline" style="font-size: 80px;"></ion-icon>
+                    <ion-col size="12" class="kiosk-welcome-state">
+                        <ion-icon name="school-outline" class="kiosk-welcome-icon"></ion-icon>
                         <h2>Bienvenido</h2>
                         <p>Selecciona un grupo para ver su horario de clases</p>
                     </ion-col>
@@ -162,15 +162,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
             </ion-grid>
         </ion-content>
     `,
-    styles: [`
-        .me-2 { margin-right: 0.5rem; }
-        .ms-2 { margin-left: 0.5rem; }
-        .w-100 { width: 100%; }
-        .inline-icon { font-size: 14px; margin-right: 4px; vertical-align: middle; }
-        .day-card { margin-bottom: 16px; }
-        .time-badge { margin: 4px 0; }
-        ion-segment { margin-bottom: 16px; }
-    `]
+    styleUrls: ['./schedule-kiosk.component.scss']
 })
 export class ScheduleKioskComponent implements OnInit
 {

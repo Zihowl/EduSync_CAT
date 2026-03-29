@@ -54,7 +54,7 @@ interface Card { title: string; icon: string; route: string; color?: string; rol
             <ion-toolbar color="primary">
                 <ion-title>EduSync Admin</ion-title>
                 <ion-buttons slot="end">
-                    <ion-badge color="light" class="me-2">{{ (role$ | async) }}</ion-badge>
+                    <ion-badge color="light" class="dashboard-badge">{{ (role$ | async) }}</ion-badge>
                     <ion-button (click)="Logout()">
                         <ion-icon slot="icon-only" name="log-out-outline"></ion-icon>
                     </ion-button>
@@ -66,7 +66,7 @@ interface Card { title: string; icon: string; route: string; color?: string; rol
             <ion-grid class="ion-margin-top">
                 <ion-row>
                     <ion-col size="12" size-md="6">
-                        <h1 class="ion-no-margin ion-text-start ion-margin-start">Panel de Control</h1>
+                        <h1 class="dashboard-title">Panel de Control</h1>
                     </ion-col>
                 </ion-row>
 
@@ -74,10 +74,10 @@ interface Card { title: string; icon: string; route: string; color?: string; rol
                     <ion-row>
                         <ng-container *ngFor="let card of cards; trackBy: trackByTitle">
                             <ion-col *ngIf="currentRole && card.roles.includes(currentRole)" size="12" size-md="6">
-                                <ion-card button [routerLink]="card.route" class="h-100" [color]="card.color">
+                                <ion-card button [routerLink]="card.route" class="dashboard-card" [color]="card.color">
                                     <ion-card-header>
                                         <ion-card-title>
-                                            <ion-icon [name]="card.icon" class="me-2"></ion-icon>
+                                            <ion-icon [name]="card.icon" class="dashboard-icon"></ion-icon>
                                             {{ card.title }}
                                         </ion-card-title>
                                     </ion-card-header>

@@ -87,9 +87,9 @@ const GET_ALLOWED_DOMAINS = gql`
             </ion-toolbar>
         </ion-header>
 
-        <ion-content class="ion-padding">
-            <div class="container users-container">
-                <ion-list class="shadow-sm rounded">
+        <ion-content class="ion-padding users-content">
+            <div class="users-container">
+                <ion-list inset="true">
                     <ion-item *ngFor="let u of users">
                         <ion-icon slot="start" name="shield-checkmark-outline" color="medium"></ion-icon>
                         <ion-label>
@@ -101,7 +101,7 @@ const GET_ALLOWED_DOMAINS = gql`
                         </ion-badge>
                     </ion-item>
 
-                    <div *ngIf="users.length === 0" class="p-4 text-center text-muted">
+                    <div *ngIf="users.length === 0" class="empty-state">
                         Cargando usuarios...
                     </div>
                 </ion-list>
@@ -124,7 +124,7 @@ const GET_ALLOWED_DOMAINS = gql`
                         </ion-header>
                         <ion-content class="ion-padding">
                             <form [formGroup]="adminForm" (ngSubmit)="CreateUser()">
-                                <div class="mb-3">
+                                <div class="form-group">
                                     <ion-input
                                         label="Nombre Completo"
                                         label-placement="floating"
@@ -133,7 +133,7 @@ const GET_ALLOWED_DOMAINS = gql`
                                     </ion-input>
                                 </div>
 
-                                <div class="mb-3">
+                                <div class="form-group">
                                     <ion-input
                                         label="Correo Institucional"
                                         label-placement="floating"
@@ -149,7 +149,7 @@ const GET_ALLOWED_DOMAINS = gql`
                                     <ion-note
                                         *ngIf="adminForm.get('email')?.value && getEmailDomain()"
                                         [color]="isDomainAllowed() ? 'success' : 'danger'"
-                                        class="ion-padding-start mt-2">
+                                        class="ion-padding-start ion-margin-top">
                                         <small>{{ isDomainAllowed() ? 'Dominio permitido' : 'Dominio NO permitido — registra el dominio en Configuración' }}</small>
                                     </ion-note>
                                 </div>

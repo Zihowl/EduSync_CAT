@@ -75,12 +75,15 @@ impl ConfigService {
         if domain.is_empty() {
             return Err(DomainError::BadRequest("Domain is required".to_string()));
         }
+        if domain.len() > 255 {
+            return Err(DomainError::BadRequest("Domain is too long".to_string()));
+        }
         if !domain.contains('.') {
             return Err(DomainError::BadRequest("Domain must contain a dot".to_string()));
         }
 
         let regex = Regex::new(
-            r"^(?=.{1,255}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$",
+            r"^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$",
         )
         .map_err(|e| DomainError::Internal(format!("Regex invalida: {e}")))?;
         if !regex.is_match(domain) {

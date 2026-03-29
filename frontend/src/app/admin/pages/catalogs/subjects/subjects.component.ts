@@ -70,7 +70,7 @@ const REMOVE_SUBJECT = gql`
                 <ion-item *ngFor="let s of subjects">
                     <ion-icon name="book-outline" slot="start" color="primary"></ion-icon>
                     <ion-label>
-                        <h2 class="fw-bold">{{ s.name }}</h2>
+                        <h2 class="subject-name">{{ s.name }}</h2>
                         <p>Clave: {{ s.code }}</p>
                     </ion-label>
                     <ion-buttons slot="end">
@@ -84,8 +84,8 @@ const REMOVE_SUBJECT = gql`
                 </ion-item>
             </ion-list>
 
-            <div *ngIf="subjects.length === 0" class="ion-text-center ion-padding mt-5 opacity-50">
-                <ion-icon name="book-outline" style="font-size: 64px;"></ion-icon>
+            <div *ngIf="subjects.length === 0" class="subject-empty-state">
+                <ion-icon name="book-outline" class="subject-empty-icon"></ion-icon>
                 <p>No hay materias registradas</p>
             </div>
 
@@ -107,7 +107,7 @@ const REMOVE_SUBJECT = gql`
                     </ion-header>
                     <ion-content class="ion-padding">
                         <ion-list>
-                            <ion-item fill="outline" class="mb-3">
+                            <ion-item fill="outline" class="subject-form-item">
                                 <ion-label position="stacked">Clave de la materia</ion-label>
                                 <ion-input [(ngModel)]="formData.code" placeholder="Ej. MAT101"></ion-input>
                             </ion-item>
@@ -127,10 +127,7 @@ const REMOVE_SUBJECT = gql`
             </ion-modal>
         </ion-content>
     `,
-    styles: [`
-        ion-item { --padding-start: 16px; }
-        .mb-3 { margin-bottom: 1rem; }
-    `]
+    styleUrls: ['./subjects.component.scss']
 })
 export class SubjectsComponent implements OnInit
 {
