@@ -7,30 +7,10 @@ services:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-root}
       POSTGRES_DB: ${DB_NAME:-edusync_db}
-      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
     networks:
       - edusync-net
-
-  pgadmin:
-    container_name: edusync_cat_pgadmin
-    image: dpage/pgadmin4:latest
-    restart: always
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@edusync.cat}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-root}
-    ports:
-      - "5050:80"
-    depends_on:
-      - db
-    networks:
-      - edusync-net
-
-volumes:
-  pgdata:
 
 networks:
   edusync-net:
