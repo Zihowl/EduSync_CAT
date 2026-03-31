@@ -131,3 +131,166 @@ impl AuthService {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::errors::DomainError;
+    use crate::domain::models::user::{User, UserRole};
+    use crate::domain::ports::user_repository::UserRepository;
+    use argon2::{password_hash::{PasswordHasher, SaltString}, Argon2};
+    use async_trait::async_trait;
+    use chrono::{Duration, Utc};
+    use std::sync::Mutex;
+    use uuid::Uuid;
+
+    struct MockUserRepository {
+        user: Mutex<User>,
+    }
+
+    impl MockUserRepository {
+        fn new(user: User) -> Self {
+            Self {
+                user: Mutex::new(user),
+            }
+        }
+    }
+
+    #[async_trait]
+    impl UserRepository for MockUserRepository {
+        async fn find_all(&self) -> Result<Vec<User>, DomainError> {
+            let user = self.user.lock().unwrap().clone();
+            Ok(vec![user])
+        }
+
+        async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, DomainError> {
+            let user = self.user.lock().unwrap().clone();
+            if user.id == id {
+                Ok(Some(user))
+            } else {
+                Ok(None)
+            }
+        }
+
+        async fn find_by_email(&self, email: &str) -> Result<Option<User>, DomainError> {
+            let user = self.user.lock().unwrap().clone();
+            if user.email == email {
+                Ok(Some(user))
+            } else {
+                Ok(None)
+            }
+        }
+
+        async fn create_admin(
+            &self,
+            _email: &str,
+            _full_name: &str,
+            _password_hash: &str,
+            _is_super_admin: bool,
+        ) -> Result<User, DomainError> {
+            Err(DomainError::Internal("create_admin not implemented".into()))
+        }
+
+        async fn increment_failed_login_attempts(&self, user_id: Uuid) -> Result<(), DomainError> {
+            let mut user = self.user.lock().unwrap();
+            if user.id == user_id {
+                user.failed_login_attempts += 1;
+                Ok(())
+            } else {
+                Err(DomainError::NotFound("User not found".into()))
+            }
+        }
+
+        async fn reset_failed_login_attempts(&self, user_id: Uuid) -> Result<(), DomainError> {
+            let mut user = self.user.lock().unwrap();
+            if user.id == user_id {
+                user.failed_login_attempts = 0;
+                user.lockout_until = None;
+                Ok(())
+            } else {
+                Err(DomainError::NotFound("User not found".into()))
+            }
+        }
+
+        async fn set_lockout_until(
+            &self,
+            user_id: Uuid,
+            until: Option<chrono::DateTime<Utc>>,
+        ) -> Result<(), DomainError> {
+            let mut user = self.user.lock().unwrap();
+            if user.id == user_id {
+                user.lockout_until = until;
+                Ok(())
+            } else {
+                Err(DomainError::NotFound("User not found".into()))
+            }
+        }
+
+        async fn count_all(&self) -> Result<i64, DomainError> {
+            Ok(1)
+        }
+    }
+
+    async fn setup_auth_service() -> (AuthService, std::sync::Arc<MockUserRepository>) {
+        let password = "CorrectHorseBatteryStaple";
+        let salt = SaltString::new("1234567890123456").unwrap();
+        let hash = Argon2::default()
+            .hash_password(password.as_bytes(), &salt)
+            .unwrap()
+            .to_string();
+
+        let user = User {
+            id: Uuid::new_v4(),
+            email: "admin@example.com".to_string(),
+            full_name: Some("Admin".to_string()),
+            password_hash: hash,
+            role: UserRole::SuperAdmin,
+            is_active: true,
+            is_temp_password: false,
+            failed_login_attempts: 0,
+            lockout_until: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        let repo = std::sync::Arc::new(MockUserRepository::new(user));
+        let svc = AuthService::new(repo.clone(), "secret".to_string(), 3600);
+        (svc, repo)
+    }
+
+    #[tokio::test]
+    async fn test_lockout_increments_and_resets() {
+        let (auth_service, repo) = setup_auth_service().await;
+
+        // First two invalid attempts should not trigger lockout.
+        for _ in 0..2 {
+            let res = auth_service.validate_user("admin@example.com", "wrong password").await;
+            assert!(matches!(res, Err(DomainError::Unauthorized(_))));
+        }
+
+        let user_after_two = repo.find_by_email("admin@example.com").await.unwrap().unwrap();
+        assert_eq!(user_after_two.failed_login_attempts, 2);
+        assert!(user_after_two.lockout_until.is_none());
+
+        // Third invalid attempt triggers 15s lockout.
+        let res3 = auth_service.validate_user("admin@example.com", "wrong password").await;
+        assert!(matches!(res3, Err(DomainError::Unauthorized(msg)) if msg.contains("Cuenta bloqueada temporalmente")));
+
+        let user_after_three = repo.find_by_email("admin@example.com").await.unwrap().unwrap();
+        assert!(user_after_three.failed_login_attempts >= 3);
+        assert!(user_after_three.lockout_until.is_some());
+
+        // If lockout is in effect, login with correct password is blocked.
+        let res_locked = auth_service.validate_user("admin@example.com", "CorrectHorseBatteryStaple").await;
+        assert!(matches!(res_locked, Err(DomainError::Unauthorized(msg)) if msg.contains("Cuenta bloqueada temporalmente")));
+
+        // Force unlock and test successful login resets counters.
+        repo.set_lockout_until(user_after_three.id, Some(Utc::now() - Duration::seconds(1))).await.unwrap();
+        let success = auth_service.validate_user("admin@example.com", "CorrectHorseBatteryStaple").await;
+        assert!(success.is_ok());
+
+        let user_after_success = repo.find_by_email("admin@example.com").await.unwrap().unwrap();
+        assert_eq!(user_after_success.failed_login_attempts, 0);
+        assert!(user_after_success.lockout_until.is_none());
+    }
+}

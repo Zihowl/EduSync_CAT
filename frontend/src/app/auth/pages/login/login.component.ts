@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -34,6 +34,7 @@ export class LoginComponent
     private router = inject(Router);
     private route = inject(ActivatedRoute);
     private toastCtrl = inject(ToastController);
+    private cdr = inject(ChangeDetectorRef);
 
     loginForm: FormGroup = this.fb.group({
         email: ['', [Validators.required, Validators.email, Validators.pattern(STRICT_EMAIL_WITH_TLD_REGEX)]],
@@ -42,7 +43,40 @@ export class LoginComponent
 
     errorMessage: string = '';
     isLoading: boolean = false;
+    isLockoutActive: boolean = false;
+    lockoutRemainingSeconds: number = 0;
+    private lockoutIntervalId: any = null;
     returnUrl: string = '/admin';
+
+    private startLockoutCountdown(seconds: number) {
+        this.clearLockoutCountdown();
+        this.lockoutRemainingSeconds = seconds;
+        this.isLockoutActive = true;
+        this.cdr.markForCheck();
+
+        this.lockoutIntervalId = setInterval(() => {
+            this.lockoutRemainingSeconds = Math.max(this.lockoutRemainingSeconds - 1, 0);
+            this.cdr.markForCheck();
+            if (this.lockoutRemainingSeconds <= 0) {
+                this.resetLockoutState();
+            }
+        }, 1000);
+    }
+
+    private clearLockoutCountdown() {
+        if (this.lockoutIntervalId) {
+            clearInterval(this.lockoutIntervalId);
+            this.lockoutIntervalId = null;
+        }
+    }
+
+    private resetLockoutState() {
+        this.clearLockoutCountdown();
+        this.isLockoutActive = false;
+        this.lockoutRemainingSeconds = 0;
+        this.errorMessage = '';
+        this.cdr.markForCheck();
+    }
 
     ngOnInit()
     {
@@ -85,13 +119,24 @@ export class LoginComponent
         await toast.present();
     }
 
-    private parseLoginError(err: any): { message: string; title: string } {
+    private parseLoginError(err: any): { message: string; title: string; lockoutSeconds?: number } {
         const gqlErr = err?.graphQLErrors?.[0];
         const networkErr = err?.networkError;
+        const message = gqlErr?.message?.toString?.() || err?.message?.toString?.() || '';
 
-        if (gqlErr) {
+        if (gqlErr || message) {
             const code = gqlErr?.extensions?.code?.toString?.().toUpperCase() || '';
-            const message = gqlErr?.message?.toString?.() || '';
+
+            // Check for lockout message
+            const lockoutMatch = message.match(/(?:en\s+)?(\d+)\s+segundos?(?:[.!?]*|$)/i);
+            if (lockoutMatch) {
+                const lockoutSeconds = Number(lockoutMatch[1]);
+                return {
+                    message: `Cuenta bloqueada temporalmente. Intenta de nuevo en ${lockoutSeconds} segundos.`,
+                    title: 'Cuenta bloqueada',
+                    lockoutSeconds,
+                };
+            }
 
             if (code === 'UNAUTHENTICATED' || code === 'UNAUTHORIZED' || message.toLowerCase().includes('credenciales')) {
                 return {
@@ -119,9 +164,9 @@ export class LoginComponent
         };
     }
 
-    OnSubmit()
+    onSubmit()
     {
-        if (this.loginForm.invalid)
+        if (this.loginForm.invalid || this.isLockoutActive)
         {
             return;
         }
@@ -138,6 +183,7 @@ export class LoginComponent
                 const returnUrl = this.returnUrl;
                 if (success)
                 {
+                    this.resetLockoutState();
                     sessionStorage.removeItem('returnUrl');
                     this.router.navigateByUrl(returnUrl);
                 }
@@ -147,8 +193,13 @@ export class LoginComponent
                 this.isLoading = false;
                 const parsed = this.parseLoginError(err);
                 this.errorMessage = parsed.message;
+
+                if (parsed.lockoutSeconds && parsed.lockoutSeconds > 0) {
+                    this.startLockoutCountdown(parsed.lockoutSeconds);
+                }
+
                 this.showToast(this.errorMessage, parsed.title);
-                console.error('Login error:', err);
+                this.cdr.markForCheck();
             }
         });
     }

@@ -4,6 +4,7 @@
 }
 
 .login-content {
+    --background: linear-gradient(rgba(15, 23, 42, 0.35), rgba(15, 23, 42, 0.35)), url('/assets/wallpaper.jpg') 37% center / cover no-repeat;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -21,8 +22,11 @@
 .login-card {
     max-width: 400px;
     width: 100%;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    color: var(--ion-text-color, #0f172a);
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    border-radius: 1rem;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    color: var(--ion-text-color, #f8fafc);
 }
 
 ion-button {
@@ -53,10 +57,10 @@ ion-button {
 
 .native-login-input {
     width: 100%;
-    border: 1px solid rgba(148, 163, 184, 0.18); /* Más discreto por defecto */
+    border: 1px solid rgba(148, 163, 184, 0.35);
     border-radius: 12px;
-    background: var(--ion-background-color, #ffffff);
-    color: var(--ion-text-color, #0f172a);
+    background: rgba(8, 13, 23, 0.5);
+    color: var(--ion-text-color, #f8fafc);
     padding: 0.78rem 0.9rem;
     font-size: 0.97rem;
     line-height: 1.2;
@@ -110,5 +114,15 @@ ion-button {
 
 .form-group {
     margin-bottom: 1rem;
+}
+
+.lockout-info {
+    margin-bottom: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 0.8rem;
+    background: rgba(250, 204, 21, 0.05);
+    color: #ca8a04;
+    font-weight: 600;
+    font-size: 0.89rem;
 }
 

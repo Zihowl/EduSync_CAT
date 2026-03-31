@@ -56,13 +56,13 @@ export class AuthService
             variables: { email, password }
         }).pipe(
             map(result => {
-                console.log('Respuesta del Backend:', result);
+                console.log('[AuthService] Full response from backend:', result);
 
                 const data = result.data?.Login || result.data?.login; 
                 
                 if (data && data.accessToken) 
                 {
-                    console.log('Guardando Usuario:', data.user);
+                    console.log('[AuthService] Guardando Usuario:', data.user);
                     this.SaveSession(data.accessToken, data.user);
                     return true;
                 }
