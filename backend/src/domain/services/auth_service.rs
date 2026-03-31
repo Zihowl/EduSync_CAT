@@ -106,6 +106,10 @@ impl AuthService {
         self.repo.reset_failed_login_attempts(user.id).await?;
         self.repo.set_lockout_until(user.id, None).await?;
 
+        if user.is_temp_password {
+            return Err(DomainError::Unauthorized("Contraseña temporal. Cambia tu contraseña antes de continuar".to_string()));
+        }
+
         Ok(user)
     }
 
@@ -293,4 +297,20 @@ mod tests {
         assert_eq!(user_after_success.failed_login_attempts, 0);
         assert!(user_after_success.lockout_until.is_none());
     }
+
+    #[tokio::test]
+    async fn test_temp_password_prevents_jwt_login() {
+        let (auth_service, repo) = setup_auth_service().await;
+
+        // Mark this user as having temporary password in repo state.
+        {
+            let mut user = repo.user.lock().unwrap();
+            user.is_temp_password = true;
+        }
+
+        let result = auth_service.validate_user("admin@example.com", "CorrectHorseBatteryStaple").await;
+
+        assert!(matches!(result, Err(DomainError::Unauthorized(msg)) if msg.contains("temporal")));
+    }
 }
+
