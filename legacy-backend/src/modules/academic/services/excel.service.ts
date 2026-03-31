@@ -30,7 +30,7 @@ export class ExcelService
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         const rawData = (xlsx.utils as any).sheet_to_json(sheet) as Array<Record<string, unknown>>;
 
         if (rawData.length === 0) 
