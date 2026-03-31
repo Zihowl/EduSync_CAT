@@ -2,11 +2,13 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { IonContent, IonHeader, IonTitle, IonToolbar, IonCard, IonCardContent, IonButton, IonInput } from '@ionic/angular/standalone';
+import { IonContent, IonHeader, IonTitle, IonToolbar, IonCard, IonCardContent, IonButton } from '@ionic/angular/standalone';
 import { ActivatedRoute } from '@angular/router';
 import { ToastController } from '@ionic/angular';
 
 import { AuthService } from '../../../core/services/auth.service';
+
+const STRICT_EMAIL_WITH_TLD_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 @Component({
     selector: 'app-login',
@@ -20,8 +22,7 @@ import { AuthService } from '../../../core/services/auth.service';
         IonToolbar,
         IonCard,
         IonCardContent,
-        IonButton,
-        IonInput
+        IonButton
     ],
     templateUrl: './login.component.html',
     styleUrls: ['./login.component.scss']
@@ -35,8 +36,8 @@ export class LoginComponent
     private toastCtrl = inject(ToastController);
 
     loginForm: FormGroup = this.fb.group({
-        email: ['', [Validators.required, Validators.email]],
-        password: ['', [Validators.required, Validators.minLength(6)]]
+        email: ['', [Validators.required, Validators.email, Validators.pattern(STRICT_EMAIL_WITH_TLD_REGEX)]],
+        password: ['', [Validators.required]]
     });
 
     errorMessage: string = '';
@@ -84,6 +85,40 @@ export class LoginComponent
         await toast.present();
     }
 
+    private parseLoginError(err: any): { message: string; title: string } {
+        const gqlErr = err?.graphQLErrors?.[0];
+        const networkErr = err?.networkError;
+
+        if (gqlErr) {
+            const code = gqlErr?.extensions?.code?.toString?.().toUpperCase() || '';
+            const message = gqlErr?.message?.toString?.() || '';
+
+            if (code === 'UNAUTHENTICATED' || code === 'UNAUTHORIZED' || message.toLowerCase().includes('credenciales')) {
+                return {
+                    message: 'Verifica tu correo y contraseña.',
+                    title: 'Credenciales inválidas'
+                };
+            }
+
+            return {
+                message: message || 'Error en el inicio de sesión. Intenta de nuevo.',
+                title: 'Error de autenticación'
+            };
+        }
+
+        if (networkErr) {
+            return {
+                message: 'No se pudo conectar al backend. Comprueba tu red o el servidor e intenta de nuevo.',
+                title: 'Error de conexión'
+            };
+        }
+
+        return {
+            message: 'Revisa tus datos e intenta nuevamente.',
+            title: 'Error de inicio de sesión'
+        };
+    }
+
     OnSubmit()
     {
         if (this.loginForm.invalid)
@@ -110,23 +145,10 @@ export class LoginComponent
             error: (err) =>
             {
                 this.isLoading = false;
-                const gqlMsg = err?.graphQLErrors?.[0]?.message;
-                const netMsg = err?.networkError?.message;
-
-                if (gqlMsg)
-                {
-                    this.errorMessage = gqlMsg;
-                }
-                else if (netMsg)
-                {
-                    this.errorMessage = 'No se pudo conectar al backend (posible CORS/red).';
-                }
-                else
-                {
-                    this.errorMessage = 'Credenciales inválidas o error de conexión.';
-                }
-                this.showToast(this.errorMessage, 'Revisa tus datos');
-                console.error(err);
+                const parsed = this.parseLoginError(err);
+                this.errorMessage = parsed.message;
+                this.showToast(this.errorMessage, parsed.title);
+                console.error('Login error:', err);
             }
         });
     }

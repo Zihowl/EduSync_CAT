@@ -42,9 +42,18 @@ impl AuthService {
     }
 
     pub async fn validate_user(&self, email: &str, password: &str) -> Result<User, DomainError> {
+        let normalized_email = email.trim();
+        if normalized_email.is_empty() {
+            return Err(DomainError::BadRequest("Email es requerido".to_string()));
+        }
+
+        if password.trim().is_empty() {
+            return Err(DomainError::BadRequest("Password es requerido".to_string()));
+        }
+
         let user = self
             .repo
-            .find_by_email(email)
+            .find_by_email(normalized_email)
             .await?
             .ok_or_else(|| DomainError::Unauthorized("Credenciales invalidas".to_string()))?;
 
