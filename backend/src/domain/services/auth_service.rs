@@ -233,7 +233,7 @@ mod tests {
 
     async fn setup_auth_service() -> (AuthService, std::sync::Arc<MockUserRepository>) {
         let password = "CorrectHorseBatteryStaple";
-        let salt = SaltString::new("1234567890123456").unwrap();
+        let salt = SaltString::from_b64("1234567890123456").unwrap();
         let hash = Argon2::default()
             .hash_password(password.as_bytes(), &salt)
             .unwrap()
