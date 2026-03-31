@@ -1,6 +1,20 @@
+.login-header {
+    background: transparent;
+}
+
+.login-toolbar {
+    --background: rgba(15, 23, 42, 0.72);
+    --border-width: 0;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
 .login-title {
-    color: white;
-    font-weight: bold;
+    color: #f8fafc;
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
 .login-content {
@@ -125,4 +139,22 @@ ion-button {
     font-weight: 600;
     font-size: 0.89rem;
 }
+
+.login-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    padding: 0.7rem 0;
+    background: rgba(8, 13, 23, 0.55);
+    color: #cbd5e1;
+    font-size: 0.78rem;
+}
+
+.login-footer a {
+    color: #60a5fa;
+    text-decoration: underline;
+}
+
 

@@ -34,9 +34,13 @@ bootstrapApplication(AppComponent,
         provideApollo(() =>
         {
             const httpLink = inject(HttpLink);
+            const apiUrl = (environment.apiUrl || '').replace(/\/+$/, '');
+            const graphqlUrl = apiUrl ? `${apiUrl}/graphql` : '/graphql';
+
+            console.log('URL de GraphQL:', graphqlUrl);
 
             return {
-                link: httpLink.create({ uri: `${environment.apiUrl}/graphql` }),
+                link: httpLink.create({ uri: graphqlUrl }),
                 cache: new InMemoryCache(),
             };
         }),

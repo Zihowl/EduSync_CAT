@@ -47,6 +47,7 @@ export class LoginComponent
     lockoutRemainingSeconds: number = 0;
     private lockoutIntervalId: any = null;
     returnUrl: string = '/admin';
+    currentYear = new Date().getFullYear();
 
     private startLockoutCountdown(seconds: number) {
         this.clearLockoutCountdown();
