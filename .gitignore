@@ -25,5 +25,6 @@ yarn-error.log*
 .idea/
 
 # Micelaneos del proyecto
+/legacy-backend
 /bitacora
 Modelo.md

@@ -7,7 +7,7 @@
 
 ## Cómo iniciar
 1. Levantar BD: `podman compose up -d`
-2. Backend (Rust): `cd backend-rs && ./scripts/dev-up.sh`
+2. Backend (Rust): `cd backend && ./scripts/dev-up.sh`
 3. Frontend (Ionic + Angular):
    - `cd frontend`
    - `ionic serve --host 0.0.0.0`
@@ -15,11 +15,4 @@
 
 > Nota: Ionic corre en `http://localhost:8100` y el backend Rust en `http://localhost:3000`.
 4. Crear Tunel para pruebas:
-   -`cloudflared tunnel --url http://localhost:8100` 
-
-## Backend Legacy (NestJS)
-El backend en `backend/` se conserva como referencia histórica de la migración.
-
-## Licencia
-Este proyecto está licenciado bajo GNU GPL v3.0 o posterior.
-Consulta el archivo `LICENSE` para el texto completo.
+   -`cloudflared tunnel --url http://localhost:8100`
