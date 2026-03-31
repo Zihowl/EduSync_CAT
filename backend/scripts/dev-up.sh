@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Always run from backend-rs root regardless of current directory.
+# Always run from backend root regardless of current directory.
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 APP_PORT="${APP_PORT:-3000}"
 
-# If the port is already in use by another backend-rs process, stop it first.
+# If the port is already in use by another backend process, stop it first.
 if command -v lsof >/dev/null 2>&1; then
   mapfile -t pids < <(lsof -t -iTCP:"$APP_PORT" -sTCP:LISTEN 2>/dev/null | sort -u)
   if [ "${#pids[@]}" -gt 0 ]; then
@@ -23,5 +23,5 @@ if command -v lsof >/dev/null 2>&1; then
   fi
 fi
 
-echo "[dev-up] Starting backend-rs on port $APP_PORT"
+echo "[dev-up] Starting backend on port $APP_PORT"
 exec cargo run
