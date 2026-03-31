@@ -2,11 +2,11 @@ import { Component, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { IonContent, IonHeader, IonTitle, IonToolbar, IonCard, IonCardContent, IonButton } from '@ionic/angular/standalone';
+import { IonContent, IonHeader, IonTitle, IonToolbar, IonCard, IonCardContent, IonButton, IonIcon } from '@ionic/angular/standalone';
 import { ActivatedRoute } from '@angular/router';
-import { ToastController } from '@ionic/angular';
 
 import { AuthService } from '../../../core/services/auth.service';
+import { NotificationCardComponent, DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS } from '../../../shared/components/notification-card/notification-card.component';
 
 const STRICT_EMAIL_WITH_TLD_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -22,7 +22,8 @@ const STRICT_EMAIL_WITH_TLD_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
         IonToolbar,
         IonCard,
         IonCardContent,
-        IonButton
+        IonButton,
+        NotificationCardComponent
     ],
     templateUrl: './login.component.html',
     styleUrls: ['./login.component.scss']
@@ -33,7 +34,6 @@ export class LoginComponent
     private authService = inject(AuthService);
     private router = inject(Router);
     private route = inject(ActivatedRoute);
-    private toastCtrl = inject(ToastController);
     private cdr = inject(ChangeDetectorRef);
 
     loginForm: FormGroup = this.fb.group({
@@ -42,10 +42,14 @@ export class LoginComponent
     });
 
     errorMessage: string = '';
+    errorTitle: string = '';
+    errorIcon: string = 'alert-circle';
+    errorStyle: 'danger' | 'warning' | 'info' = 'danger';
     isLoading: boolean = false;
     isLockoutActive: boolean = false;
     lockoutRemainingSeconds: number = 0;
     private lockoutIntervalId: any = null;
+    readonly errorCardAutoDismissMs = DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS;
     returnUrl: string = '/admin';
     currentYear = new Date().getFullYear();
 
@@ -53,7 +57,8 @@ export class LoginComponent
         this.clearLockoutCountdown();
         this.lockoutRemainingSeconds = seconds;
         this.isLockoutActive = true;
-        this.cdr.markForCheck();
+
+        this.setError('Cuenta bloqueada', `Cuenta bloqueada temporalmente. Intenta de nuevo en ${seconds} segundos.`, 'lock-closed');
 
         this.lockoutIntervalId = setInterval(() => {
             this.lockoutRemainingSeconds = Math.max(this.lockoutRemainingSeconds - 1, 0);
@@ -87,15 +92,11 @@ export class LoginComponent
 
         const msg = state?.message || '';
         const shouldShow = !!msg && state?.showOnce === true;
-        if (shouldShow)
-        {
-            this.errorMessage = msg;
-            this.showToast(msg, 'Acceso requerido');
+        if (shouldShow) {
+            this.setError('Acceso requerido', msg, 'information-circle');
             window.history.replaceState({}, '', this.router.url);
-        }
-        else
-        {
-            this.errorMessage = '';
+        } else {
+            this.resetError();
         }
         this.returnUrl =
             state?.returnUrl ||
@@ -105,22 +106,22 @@ export class LoginComponent
         sessionStorage.removeItem('returnUrl');
     }
 
-    private async showToast(message: string, header: string = 'Acceso requerido')
-    {
-        const toast = await this.toastCtrl.create({
-            header,
-            message,
-            duration: 4500,
-            position: 'top',
-            cssClass: 'login-toast',
-            icon: 'information-circle',
-            animated: true,
-            keyboardClose: true
-        });
-        await toast.present();
+    private setError(title: string, message: string, icon: string = 'alert-circle', styleType: 'danger' | 'warning' | 'info' = 'danger') {
+        this.errorTitle = title;
+        this.errorMessage = message;
+        this.errorIcon = icon;
+        this.errorStyle = styleType;
+        this.cdr.markForCheck();
     }
 
-    private parseLoginError(err: any): { message: string; title: string; lockoutSeconds?: number } {
+    resetError() {
+        this.errorTitle = '';
+        this.errorMessage = '';
+        this.errorIcon = 'alert-circle';
+        this.cdr.markForCheck();
+    }
+
+    private parseLoginError(err: any): { message: string; title: string; style: 'danger' | 'warning' | 'info'; lockoutSeconds?: number } {
         const gqlErr = err?.graphQLErrors?.[0];
         const networkErr = err?.networkError;
         const message = gqlErr?.message?.toString?.() || err?.message?.toString?.() || '';
@@ -133,8 +134,9 @@ export class LoginComponent
             if (lockoutMatch) {
                 const lockoutSeconds = Number(lockoutMatch[1]);
                 return {
-                    message: `Cuenta bloqueada temporalmente. Intenta de nuevo en ${lockoutSeconds} segundos.`,
+                    message: 'Cuenta bloqueada temporalmente.',
                     title: 'Cuenta bloqueada',
+                    style: 'danger',
                     lockoutSeconds,
                 };
             }
@@ -142,26 +144,30 @@ export class LoginComponent
             if (code === 'UNAUTHENTICATED' || code === 'UNAUTHORIZED' || message.toLowerCase().includes('credenciales')) {
                 return {
                     message: 'Verifica tu correo y contraseña.',
-                    title: 'Credenciales inválidas'
+                    title: 'Credenciales inválidas',
+                    style: 'warning'
                 };
             }
 
             return {
                 message: message || 'Error en el inicio de sesión. Intenta de nuevo.',
-                title: 'Error de autenticación'
+                title: 'Error de autenticación',
+                style: 'danger'
             };
         }
 
         if (networkErr) {
             return {
                 message: 'No se pudo conectar al backend. Comprueba tu red o el servidor e intenta de nuevo.',
-                title: 'Error de conexión'
+                title: 'Error de conexión',
+                style: 'danger'
             };
         }
 
         return {
             message: 'Revisa tus datos e intenta nuevamente.',
-            title: 'Error de inicio de sesión'
+            title: 'Error de inicio de sesión',
+            style: 'warning'
         };
     }
 
@@ -193,14 +199,12 @@ export class LoginComponent
             {
                 this.isLoading = false;
                 const parsed = this.parseLoginError(err);
-                this.errorMessage = parsed.message;
 
                 if (parsed.lockoutSeconds && parsed.lockoutSeconds > 0) {
                     this.startLockoutCountdown(parsed.lockoutSeconds);
                 }
 
-                this.showToast(this.errorMessage, parsed.title);
-                this.cdr.markForCheck();
+                this.setError(parsed.title, parsed.message, parsed.lockoutSeconds ? 'lock-closed' : 'alert-circle', parsed.style);
             }
         });
     }

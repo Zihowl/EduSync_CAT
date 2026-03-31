@@ -1,0 +1,88 @@
+.notification-card {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(100%, 400px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  z-index: 100;
+
+  /* CSS Variables for theming */
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  color: var(--card-text);
+}
+
+.notification-card--danger {
+  --card-border: rgba(220, 38, 38, 0.35);
+  --card-bg: rgba(220, 38, 38, 0.18);
+  --card-text: #fee2e2;
+  --card-icon: #f87171;
+  --card-subtext: #ffe4e6;
+}
+
+.notification-card--warning {
+  --card-border: rgba(234, 179, 8, 0.35);
+  --card-bg: rgba(234, 179, 8, 0.18);
+  --card-text: #fffbeb;
+  --card-icon: #facc15;
+  --card-subtext: #fffbeb;
+}
+
+.notification-card--info {
+  --card-border: rgba(56, 189, 248, 0.35);
+  --card-bg: rgba(56, 189, 248, 0.18);
+  --card-text: #e0f2fe;
+  --card-icon: #38bdf8;
+  --card-subtext: #e0f2fe;
+}
+
+
+.notification-card-content {
+  padding: 0.75rem;
+}
+
+.notification-card-body {
+  display: flex;
+  align-items: start;
+  gap: 0.55rem;
+}
+
+.notification-card-icon {
+  color: var(--card-icon);
+  font-size: 1.2rem;
+  margin-top: 0.12rem;
+}
+
+.notification-card-text {
+  flex: 1;
+  line-height: 1.25;
+}
+
+.notification-card-text strong {
+  display: block;
+  font-size: 0.95rem;
+  margin-bottom: 0.2rem;
+}
+
+.notification-card-text p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--card-subtext);
+}
+
+.notification-card-close {
+  --color: #fff;
+  --padding-start: 0;
+  --padding-end: 0;
+  --min-width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 999px;
+}
+
+@media (max-width: 600px) {
+  .notification-card {
+    width: calc(100% - 1.5rem);
+    top: 0.75rem;
+  }
+}

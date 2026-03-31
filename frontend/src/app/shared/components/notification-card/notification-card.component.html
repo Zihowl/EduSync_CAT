@@ -1,0 +1,15 @@
+<ion-card [ngClass]="['notification-card', 'notification-card--' + styleType]" role="alert" aria-live="assertive">
+  <ion-card-content class="notification-card-content">
+    <div class="notification-card-body">
+      <ion-icon class="notification-card-icon" [name]="icon"></ion-icon>
+      <div class="notification-card-text">
+        <strong>{{ title }}</strong>
+        <p>
+          {{ message }}
+          <span *ngIf="countdown !== undefined" class="notification-card-countdown"><br/>Intenta de nuevo en {{ countdown }} segundos.</span>
+        </p>
+      </div>
+      <ion-button *ngIf="showClose" fill="clear" class="notification-card-close" aria-label="Cerrar mensaje de error" (click)="close()">×</ion-button>
+    </div>
+  </ion-card-content>
+</ion-card>

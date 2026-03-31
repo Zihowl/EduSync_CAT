@@ -6,12 +6,24 @@
 
 <ion-content class="ion-padding login-content">
     <div class="login-container">
+        <app-notification-card
+            *ngIf="errorMessage"
+            [title]="errorTitle || 'Error'"
+            [message]="errorMessage"
+            [icon]="errorIcon"
+            [styleType]="errorStyle"
+            [autoDismissMs]="errorCardAutoDismissMs"
+            [countdown]="isLockoutActive ? lockoutRemainingSeconds : undefined"
+            (closed)="resetError()"
+        ></app-notification-card>
+
         <ion-card class="login-card">
             <ion-card-content>
                 <div class="text-center">
                     <h1>Hola!</h1>
                     <p class="text-muted">Ingresa tus credenciales de administrador</p>
                 </div>
+
                 <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" autocomplete="on">
                     <div class="form-group">
                         <label class="field-label" [class.error]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched" for="login-email">
@@ -45,15 +57,8 @@
                             enterkeyhint="go" />
                     </div>
 
-                    <div *ngIf="isLockoutActive" class="lockout-info">
-                        <p>
-                            Acceso bloqueado temporalmente.<br>
-                            Intenta de nuevo en {{ lockoutRemainingSeconds }} segundos.
-                        </p>
-                    </div>
-
                     <ion-button expand="block" type="submit" [disabled]="loginForm.invalid || isLoading || isLockoutActive">
-                        Iniciar Sesión
+                        {{ isLockoutActive ? ('Iniciar Sesión (' + lockoutRemainingSeconds + 's)') : 'Iniciar Sesión' }}
                     </ion-button>
                 </form>
             </ion-card-content>
