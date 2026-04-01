@@ -120,6 +120,6 @@ export class DashboardComponent implements OnInit
 
     Logout() 
     { 
-        this.authService.Logout(); 
+        this.authService.logout(); 
     }
 }

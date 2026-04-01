@@ -1,139 +1,343 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal, computed } from '@angular/core';
 import { Apollo, gql } from 'apollo-angular';
-import { map, Observable, BehaviorSubject } from 'rxjs';
 import { Router } from '@angular/router';
+import { BehaviorSubject, Observable, catchError, map, of, throwError } from 'rxjs';
+
+import {
+  User,
+  AuthToken,
+  LoginResponse,
+  ChangeCredentialsPayload,
+} from '../models/auth.model';
 
 const LOGIN_MUTATION = gql`
-    mutation Login($email: String!, $password: String!)
-    {
-        Login(
-            loginInput:
-            {
-                email: $email,
-                password: $password
-            })
-            {
-                accessToken
-                user
-                {
-                    id
-                    email
-                    role
-                    isActive
-                }
-            }
+  mutation Login($email: String!, $password: String!) {
+    Login(
+      loginInput: {
+        email: $email
+        password: $password
+      }
+    ) {
+      accessToken
+      refreshToken
+      expiresIn
+      user {
+        id
+        email
+        role
+        isActive
+      }
     }
+  }
+`;
+
+const REFRESH_TOKEN_MUTATION = gql`
+  mutation RefreshToken($refreshToken: String!) {
+    RefreshToken(refreshToken: $refreshToken) {
+      accessToken
+      refreshToken
+      expiresIn
+      user {
+        id
+        email
+        role
+        isActive
+      }
+    }
+  }
 `;
 
 const CHANGE_CREDENTIALS_MUTATION = gql`
-    mutation ChangeCredentials($currentEmail: String!, $currentPassword: String!, $newEmail: String!, $newPassword: String!) {
-        ChangeCredentials(
-            input: {
-                currentEmail: $currentEmail,
-                currentPassword: $currentPassword,
-                newEmail: $newEmail,
-                newPassword: $newPassword
-            }
-        ) {
-            id
-            email
-            role
-            isActive
-        }
+  mutation ChangeCredentials(
+    $currentEmail: String!
+    $currentPassword: String!
+    $newEmail: String!
+    $newPassword: String!
+  ) {
+    ChangeCredentials(
+      input: {
+        currentEmail: $currentEmail
+        currentPassword: $currentPassword
+        newEmail: $newEmail
+        newPassword: $newPassword
+      }
+    ) {
+      id
+      email
+      role
+      isActive
     }
+  }
 `;
 
-@Injectable
-({
-    providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
+export class AuthService {
+  private readonly TOKEN_KEY = 'auth_token';
+  private readonly REFRESH_TOKEN_KEY = 'auth_refresh_token';
+  private readonly USER_KEY = 'user_data';
 
-export class AuthService 
-{
-    private readonly TOKEN_KEY = 'auth_token';
-    private readonly USER_KEY = 'user_data';
+  private router = inject(Router);
+  private apollo = inject(Apollo);
 
-    private apollo = inject(Apollo);
-    private router = inject(Router);
+  private userSignal = signal<User | null>(null);
+  private userSubject = new BehaviorSubject<User | null>(null);
+  private accessTokenSignal = signal<string | null>(null);
+  private refreshTokenSignal = signal<string | null>(null);
+  private tokenExpirySignal = signal<number | null>(null);
 
-    private userSubject = new BehaviorSubject<any>
-    (
-        JSON.parse(localStorage.getItem(this.USER_KEY) || 'null')
-    );
-    user$ = this.userSubject.asObservable();
+  user$ = this.userSubject.asObservable();
+  isAuthenticated = computed(() => {
+    const token = this.accessTokenSignal();
+    return !!token && !this.isTokenExpired(token);
+  });
 
-    Login(email: string, password: string): Observable<boolean> 
-    {
-        // Ensure stale tokens do not interfere with a fresh login attempt.
-        localStorage.removeItem(this.TOKEN_KEY);
-        localStorage.removeItem(this.USER_KEY);
-        this.userSubject.next(null);
+  constructor() {
+    this.loadSessionFromStorage();
+  }
 
-        return this.apollo.mutate<any>({
-            mutation: LOGIN_MUTATION,
-            variables: { email, password }
-        }).pipe(
-            map(result => {
-                console.log('[AuthService] Full response from backend:', result);
+  login(email: string, password: string): Observable<User> {
+    this.clearSession();
 
-                const data = result.data?.Login || result.data?.login; 
-                
-                if (data && data.accessToken) 
-                {
-                    console.log('[AuthService] Guardando Usuario:', data.user);
-                    this.SaveSession(data.accessToken, data.user);
-                    return true;
-                }
-                return false;
-            })
-        );
+    return this.apollo
+      .mutate<{ Login: LoginResponse }>({
+        mutation: LOGIN_MUTATION,
+        variables: { email, password },
+      })
+      .pipe(
+        map((result) => {
+          const data = result.data?.Login;
+          if (!data || !data.accessToken || !data.user) {
+            throw new Error('Credenciales inválidas');
+          }
+
+          const tokenData: AuthToken = {
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken,
+            expiresAt: this.getTokenExpiry(data.accessToken, data.expiresIn),
+          };
+
+          this.saveSession(tokenData, data.user);
+          return data.user;
+        }),
+        catchError((err) => throwError(() => err))
+      );
+  }
+
+  logout(): void {
+    this.clearSession();
+    this.router.navigate(['/auth/login']);
+  }
+
+  changeCredentials(payload: ChangeCredentialsPayload): Observable<User> {
+    return this.apollo
+      .mutate<{ ChangeCredentials: User }>({
+        mutation: CHANGE_CREDENTIALS_MUTATION,
+        variables: payload,
+      })
+      .pipe(
+        map((result) => {
+          const data = result.data?.ChangeCredentials;
+          if (!data) {
+            throw new Error('No se pudo actualizar credenciales');
+          }
+          this.logout();
+          return data;
+        }),
+        catchError((err) => throwError(() => err))
+      );
+  }
+
+  getAccessToken(): string | null {
+    return this.accessTokenSignal();
+  }
+
+  getRefreshToken(): string | null {
+    return this.refreshTokenSignal();
+  }
+
+  refreshAccessToken(): Observable<string> {
+    const refreshToken = this.getRefreshToken();
+
+    if (!refreshToken) {
+      this.logout();
+      return throwError(() => new Error('No hay refresh token disponible'));
     }
 
-    Logout() 
-    {
-        localStorage.removeItem(this.TOKEN_KEY);
-        localStorage.removeItem(this.USER_KEY);
-        this.userSubject.next(null);
-        this.router.navigate(['/auth/login']);
-    }
+    return this.apollo
+      .mutate<{ RefreshToken: LoginResponse }>({
+        mutation: REFRESH_TOKEN_MUTATION,
+        variables: { refreshToken },
+      })
+      .pipe(
+        map((result) => {
+          const data = result.data?.RefreshToken;
+          if (!data?.accessToken || !data?.user) {
+            throw new Error('Errores en refresh token');
+          }
 
-    private SaveSession(token: string, user: any) 
-    {
-        localStorage.setItem(this.TOKEN_KEY, token);
-        localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+          const tokenData: AuthToken = {
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken,
+            expiresAt: this.getTokenExpiry(data.accessToken, data.expiresIn),
+          };
+
+          this.saveSession(tokenData, data.user);
+          return data.accessToken;
+        }),
+        catchError((err) => {
+          this.logout();
+          return throwError(() => err);
+        })
+      );
+  }
+
+  getCurrentUser(): User | null {
+    return this.userSignal();
+  }
+
+  private saveSession(token: AuthToken, user: User): void {
+    try {
+      localStorage.setItem(this.TOKEN_KEY, token.accessToken);
+      if (token.refreshToken) {
+        localStorage.setItem(this.REFRESH_TOKEN_KEY, token.refreshToken);
+      }
+      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+      localStorage.setItem('token_expiry', token.expiresAt.toString());
+
+      this.accessTokenSignal.set(token.accessToken);
+      this.refreshTokenSignal.set(token.refreshToken || null);
+      this.tokenExpirySignal.set(token.expiresAt);
+      this.userSignal.set(user);
+      this.userSubject.next(user);
+    } catch {
+      this.clearSession();
+    }
+  }
+
+  private clearSession(): void {
+    localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem(this.REFRESH_TOKEN_KEY);
+    localStorage.removeItem(this.USER_KEY);
+    localStorage.removeItem('token_expiry');
+
+    this.accessTokenSignal.set(null);
+    this.refreshTokenSignal.set(null);
+    this.tokenExpirySignal.set(null);
+    this.userSignal.set(null);
+    this.userSubject.next(null);
+  }
+
+  private loadSessionFromStorage(): void {
+    const storedUser = localStorage.getItem(this.USER_KEY);
+    const storedToken = localStorage.getItem(this.TOKEN_KEY);
+    const storedRefresh = localStorage.getItem(this.REFRESH_TOKEN_KEY);
+    const storedExpiry = Number(localStorage.getItem('token_expiry')) || null;
+
+    if (storedUser && storedToken) {
+      try {
+        const user: User = JSON.parse(storedUser);
+        const isExpired = storedExpiry ? Date.now() / 1000 >= storedExpiry : this.isTokenExpired(storedToken);
+
+        this.userSignal.set(user);
         this.userSubject.next(user);
-    }
-    
-    GetUserRole(): string | null
-    {
-        const userStr = localStorage.getItem(this.USER_KEY);
-        if (!userStr) return null;
-        try {
-            return JSON.parse(userStr).role;
-        } catch {
-            return null;
+        this.accessTokenSignal.set(storedToken);
+        this.refreshTokenSignal.set(storedRefresh || null);
+        this.tokenExpirySignal.set(storedExpiry ?? null);
+
+        if (isExpired) {
+          this.refreshAccessToken().subscribe({
+            next: () => undefined,
+            error: () => undefined,
+          });
         }
+      } catch {
+        this.clearSession();
+      }
+    }
+  }
+
+  private getTokenExpiry(token: string, expiresIn?: number): number {
+    const payload = this.getJwtPayload(token);
+    if (payload && payload['exp']) {
+      return Number(payload['exp']);
     }
 
-    IsAuthenticated(): boolean 
-    {
-        return !!localStorage.getItem(this.TOKEN_KEY);
+    const defaultExpiry = Math.floor(Date.now() / 1000) + (expiresIn ?? 3600);
+    return defaultExpiry;
+  }
+
+  private getJwtPayload(token: string): { [key: string]: any } | null {
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      return null;
     }
 
-    changeCredentials(currentEmail: string, currentPassword: string, newEmail: string, newPassword: string): Observable<boolean> {
-        return this.apollo.mutate<any>({
-            mutation: CHANGE_CREDENTIALS_MUTATION,
-            variables: { currentEmail, currentPassword, newEmail, newPassword }
-        }).pipe(
-            map(result => {
-                const data = result.data?.ChangeCredentials || result.data?.changeCredentials;
-                if (data) {
-                    // after successful change re-route to login page and keep session cleared
-                    this.Logout();
-                    return true;
-                }
-                return false;
-            })
-        );
+    try {
+      const payload = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
+      return JSON.parse(decodeURIComponent(escape(payload)));
+    } catch {
+      return null;
     }
+  }
+
+  private isTokenExpired(token: string): boolean {
+    const payload = this.getJwtPayload(token);
+    if (!payload || !payload['exp']) {
+      return true;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    return Number(payload['exp']) <= now;
+  }
+
+  parseAuthError(error: unknown): {
+    message: string;
+    title: string;
+    style: 'danger' | 'warning' | 'info';
+    lockoutSeconds?: number;
+  } {
+    const gqlErr = (error as any)?.graphQLErrors?.[0];
+    const networkErr = (error as any)?.networkError;
+    const message = gqlErr?.message?.toString?.() || (error as any)?.message?.toString?.() || '';
+
+    if (gqlErr || message) {
+      const code = gqlErr?.extensions?.code?.toString?.().toUpperCase() || '';
+      const lockoutMatch = message.match(/(?:en\s+)?(\d+)\s+segundos?(?:[.!?]*|$)/i);
+      if (lockoutMatch) {
+        return {
+          message: 'Cuenta bloqueada temporalmente.',
+          title: 'Cuenta bloqueada',
+          style: 'danger',
+          lockoutSeconds: Number(lockoutMatch[1]),
+        };
+      }
+      if (code === 'UNAUTHENTICATED' || code === 'UNAUTHORIZED' || message.toLowerCase().includes('credenciales')) {
+        return {
+          message: 'Verifica tu correo y contraseña.',
+          title: 'Credenciales inválidas',
+          style: 'warning',
+        };
+      }
+
+      return {
+        message: message || 'Error en el proceso de autenticación. Intenta de nuevo.',
+        title: 'Error de autenticación',
+        style: 'danger',
+      };
+    }
+
+    if (networkErr) {
+      return {
+        message: 'No se pudo conectar al backend. Comprueba tu red o el servidor e intenta de nuevo.',
+        title: 'Error de conexión',
+        style: 'danger',
+      };
+    }
+
+    return {
+      message: 'Revisa tus datos e intenta nuevamente.',
+      title: 'Error de autenticación',
+      style: 'warning',
+    };
+  }
 }

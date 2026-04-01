@@ -11,7 +11,7 @@ export class AuthGuard implements CanActivate
 
     canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean 
     {
-        if (this.auth.IsAuthenticated()) return true;
+        if (this.auth.isAuthenticated()) return true;
         const msg = 'Inicia sesión para ver esta página';
         sessionStorage.setItem('returnUrl', state.url);
         this.router.navigateByUrl('/auth/login',

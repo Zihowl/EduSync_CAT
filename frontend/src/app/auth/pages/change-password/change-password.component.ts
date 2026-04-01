@@ -1,8 +1,9 @@
-import { Component, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, ChangeDetectorRef, signal, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormGroup, Validators, NonNullableFormBuilder, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router } from '@angular/router';
 import { IonContent, IonHeader, IonTitle, IonToolbar, IonButton, IonIcon } from '@ionic/angular/standalone';
+import { Subject, takeUntil } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationCardComponent, DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS } from '../../../shared/components/notification-card/notification-card.component';
@@ -10,113 +11,151 @@ import { AuthCardComponent } from '../../components/auth-card/auth-card.componen
 
 const STRICT_EMAIL_WITH_TLD_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+type ChangePasswordForm = {
+  current_email: string;
+  current_password: string;
+  new_email: string;
+  new_password: string;
+  confirm_password: string;
+};
+
 @Component({
-    selector: 'app-change-password',
-    standalone: true,
-    imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        IonContent,
-        IonHeader,
-        IonTitle,
-        IonToolbar,
-        IonButton,
-        NotificationCardComponent,
-        AuthCardComponent
-    ],
-    templateUrl: './change-password.component.html',
-    styleUrls: ['./change-password.component.scss']
+  selector: 'app-change-password',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    IonContent,
+    IonHeader,
+    IonTitle,
+    IonToolbar,
+    IonButton,
+    NotificationCardComponent,
+    AuthCardComponent,
+  ],
+  templateUrl: './change-password.component.html',
+  styleUrls: ['./change-password.component.scss'],
 })
 export class ChangePasswordComponent {
-    private fb = inject(FormBuilder);
-    private authService = inject(AuthService);
-    private router = inject(Router);
-    private cdr = inject(ChangeDetectorRef);
+  private fb = inject(NonNullableFormBuilder);
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
+  private destroy$ = new Subject<void>();
 
-    form: FormGroup = this.fb.group({
-        current_email: ['', [Validators.required, Validators.pattern(STRICT_EMAIL_WITH_TLD_REGEX)]],
-        current_password: ['', [Validators.required, Validators.minLength(8)]],
-        new_email: ['', [Validators.required, Validators.pattern(STRICT_EMAIL_WITH_TLD_REGEX)]],
-        new_password: ['', [Validators.required, Validators.minLength(8)]],
-        confirm_password: ['', [Validators.required]]
-    }, { validators: this.passwordsMatchValidator });
+  form = this.fb.group({
+    current_email: ['', [Validators.required, Validators.pattern(STRICT_EMAIL_WITH_TLD_REGEX)]],
+    current_password: ['', [Validators.required, Validators.minLength(8)]],
+    new_email: ['', [Validators.required, Validators.pattern(STRICT_EMAIL_WITH_TLD_REGEX)]],
+    new_password: ['', [Validators.required, Validators.minLength(8)]],
+    confirm_password: ['', [Validators.required]],
+  }, { validators: this.passwordsMatchValidator });
 
-    errorMessage = '';
-    errorTitle = '';
-    errorIcon = 'alert-circle';
-    errorStyle: 'danger' | 'warning' | 'info' = 'danger';
-    isLoading = false;
-    readonly errorCardAutoDismissMs = DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS;
+  private errorTitleSignal = signal('');
+  private errorMessageSignal = signal('');
+  private errorIconSignal = signal('alert-circle');
+  private errorStyleSignal = signal<'danger' | 'warning' | 'info'>('danger');
+  private isLoadingSignal = signal(false);
+  readonly errorCardAutoDismissMs = DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS;
 
-    private setError(title: string, message: string, icon: string = 'alert-circle', style: 'danger' | 'warning' | 'info' = 'danger') {
-        this.errorTitle = title;
-        this.errorMessage = message;
-        this.errorIcon = icon;
-        this.errorStyle = style;
-        this.cdr.markForCheck();
+  get errorTitle(): string {
+    return this.errorTitleSignal();
+  }
+
+  get errorMessage(): string {
+    return this.errorMessageSignal();
+  }
+
+  get errorIcon(): string {
+    return this.errorIconSignal();
+  }
+
+  get errorStyle(): 'danger' | 'warning' | 'info' {
+    return this.errorStyleSignal();
+  }
+
+  get isLoading(): boolean {
+    return this.isLoadingSignal();
+  }
+
+  private setError(title: string, message: string, icon: string = 'alert-circle', style: 'danger' | 'warning' | 'info' = 'danger'): void {
+    this.errorTitleSignal.set(title);
+    this.errorMessageSignal.set(message);
+    this.errorIconSignal.set(icon);
+    this.errorStyleSignal.set(style);
+    this.cdr.markForCheck();
+  }
+
+  ngOnInit(): void {
+    const email = this.router.getCurrentNavigation()?.extras?.state as { email?: string } | undefined;
+    if (email?.email) {
+      this.form.patchValue({ current_email: email.email, new_email: email.email });
+    }
+  }
+
+  resetError(): void {
+    this.errorTitleSignal.set('');
+    this.errorMessageSignal.set('');
+    this.errorIconSignal.set('alert-circle');
+    this.cdr.markForCheck();
+  }
+
+private passwordsMatchValidator(control: AbstractControl): ValidationErrors | null {
+        const group = control as FormGroup;
+    const newPassword = group.get('new_password')?.value;
+    const confirmPassword = group.get('confirm_password')?.value;
+    return newPassword === confirmPassword ? null : { passwordMismatch: true };
+  }
+
+  private meetsComplexity(password: string): boolean {
+    const upper = /[A-Z]/.test(password);
+    const lower = /[a-z]/.test(password);
+    const number = /[0-9]/.test(password);
+    const symbol = /[!@#$%^&*()\-_=+\[\]{}<>?]/.test(password);
+    return [upper, lower, number, symbol].filter(Boolean).length >= 3;
+  }
+
+  onSubmit(): void {
+    if (this.form.invalid) {
+      this.setError('Formulario inválido', 'Revisa los datos e intenta de nuevo.', 'alert-circle', 'warning');
+      return;
     }
 
-    ngOnInit() {
-        const nav = this.router.getCurrentNavigation();
-        const state = nav?.extras?.state as { email?: string } | undefined;
-        const email = state?.email || '';
-        if (email) {
-            this.form.patchValue({ current_email: email, new_email: email });
-        }
+    this.isLoadingSignal.set(true);
+    this.resetError();
+
+    const { current_email, current_password, new_email, new_password } = this.form.value as {
+      current_email: string;
+      current_password: string;
+      new_email: string;
+      new_password: string;
+      confirm_password: string;
+    };
+
+    if (!this.meetsComplexity(new_password)) {
+      this.isLoadingSignal.set(false);
+      this.setError('Contraseña débil', 'La contraseña debe tener al menos 8 caracteres e incluir al menos 3 categorías: mayúsculas, minúsculas, números y símbolos.', 'shield-checkmark', 'warning');
+      return;
     }
 
-    public resetError() {
-        this.errorTitle = '';
-        this.errorMessage = '';
-        this.errorIcon = 'alert-circle';
-        this.cdr.markForCheck();
-    }
+    this.authService
+      .changeCredentials({ currentEmail: current_email, currentPassword: current_password, newEmail: new_email, newPassword: new_password })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.isLoadingSignal.set(false);
+          this.router.navigateByUrl('/auth/login');
+        },
+        error: (err: unknown) => {
+          this.isLoadingSignal.set(false);
+          const parsed = this.authService.parseAuthError(err);
+          this.setError(parsed.title, parsed.message, 'alert-circle', parsed.style);
+        },
+      });
+  }
 
-    private passwordsMatchValidator(group: FormGroup) {
-        const newPassword = group.get('new_password')?.value;
-        const confirmPassword = group.get('confirm_password')?.value;
-        return newPassword === confirmPassword ? null : { passwordMismatch: true };
-    }
-
-    private meetsComplexity(password: string): boolean {
-        const upper = /[A-Z]/.test(password);
-        const lower = /[a-z]/.test(password);
-        const number = /[0-9]/.test(password);
-        const symbol = /[!@#$%^&*()\-_=+\[\]{}<>?]/.test(password);
-        return [upper, lower, number, symbol].filter(Boolean).length >= 3;
-    }
-
-    onSubmit() {
-        if (this.form.invalid) {
-            this.setError('Formulario inválido', 'Revisa los datos e intenta de nuevo.', 'alert-circle', 'warning');
-            return;
-        }
-
-        this.isLoading = true;
-        this.resetError();
-
-        const { current_email, current_password, new_email, new_password } = this.form.value;
-
-        if (!this.meetsComplexity(new_password)) {
-            this.isLoading = false;
-            this.setError('Contraseña débil', 'La contraseña debe tener al menos 8 caracteres e incluir al menos 3 categorías: mayúsculas, minúsculas, números y símbolos.', 'shield-checkmark', 'warning');
-            return;
-        }
-
-        this.authService.changeCredentials(current_email, current_password, new_email, new_password).subscribe({
-            next: success => {
-                this.isLoading = false;
-                if (success) {
-                    this.router.navigateByUrl('/auth/login');
-                } else {
-                    this.setError('Error', 'No se pudo cambiar credenciales.', 'alert-circle', 'danger');
-                }
-            },
-            error: err => {
-                this.isLoading = false;
-                const message = err?.graphQLErrors?.[0]?.message || err?.message || 'Error de servidor';
-                this.setError('Error al actualizar credenciales', message, 'alert-circle', 'danger');
-            }
-        });
-    }
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 }

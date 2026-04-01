@@ -1,9 +1,9 @@
-import { Component, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, inject, ChangeDetectorRef, signal, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ReactiveFormsModule, FormGroup, Validators, NonNullableFormBuilder } from '@angular/forms';
+import { Router, ActivatedRoute } from '@angular/router';
 import { IonContent, IonHeader, IonTitle, IonToolbar, IonButton, IonIcon } from '@ionic/angular/standalone';
-import { ActivatedRoute } from '@angular/router';
+import { Subject, takeUntil } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationCardComponent, DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS } from '../../../shared/components/notification-card/notification-card.component';
@@ -11,208 +11,173 @@ import { AuthCardComponent } from '../../components/auth-card/auth-card.componen
 
 const STRICT_EMAIL_WITH_TLD_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+type LoginForm = {
+  email: string;
+  password: string;
+};
+
 @Component({
-    selector: 'app-login',
-    standalone: true,
-    imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        IonContent,
-        IonHeader,
-        IonTitle,
-        IonToolbar,
-        IonButton,
-        NotificationCardComponent,
-        AuthCardComponent
-    ],
-    templateUrl: './login.component.html',
-    styleUrls: ['./login.component.scss']
+  selector: 'app-login',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    IonContent,
+    IonHeader,
+    IonTitle,
+    IonToolbar,
+    IonButton,
+    NotificationCardComponent,
+    AuthCardComponent,
+  ],
+  templateUrl: './login.component.html',
+  styleUrls: ['./login.component.scss'],
 })
-export class LoginComponent
-{
-    private fb = inject(FormBuilder);
-    private authService = inject(AuthService);
-    private router = inject(Router);
-    private route = inject(ActivatedRoute);
-    private cdr = inject(ChangeDetectorRef);
+export class LoginComponent {
+  private fb = inject(NonNullableFormBuilder);
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private cdr = inject(ChangeDetectorRef);
+  private destroy$ = new Subject<void>();
 
-    loginForm: FormGroup = this.fb.group({
-        email: ['', [Validators.required, Validators.email, Validators.pattern(STRICT_EMAIL_WITH_TLD_REGEX)]],
-        password: ['', [Validators.required]]
-    });
+  loginForm = this.fb.group({
+    email: ['', [Validators.required, Validators.email, Validators.pattern(STRICT_EMAIL_WITH_TLD_REGEX)]],
+    password: ['', [Validators.required]],
+  });
 
-    errorMessage: string = '';
-    errorTitle: string = '';
-    errorIcon: string = 'alert-circle';
-    errorStyle: 'danger' | 'warning' | 'info' = 'danger';
-    isLoading: boolean = false;
-    isLockoutActive: boolean = false;
-    lockoutRemainingSeconds: number = 0;
-    private lockoutIntervalId: any = null;
+  private errorTitleSignal = signal('');
+  private errorMessageSignal = signal('');
+  private errorIconSignal = signal('alert-circle');
+  private errorStyleSignal = signal<'danger' | 'warning' | 'info'>('danger');
+  private isLoadingSignal = signal(false);
+  private isLockoutActiveSignal = signal(false);
+  private lockoutRemainingSecondsSignal = signal(0);
 
-    readonly errorCardAutoDismissMs = DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS;
-    returnUrl: string = '/admin';
-    currentYear = new Date().getFullYear();
+  readonly errorCardAutoDismissMs = DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS;
+  private returnUrlSignal = signal('/admin');
+  currentYear = new Date().getFullYear();
 
-    private startLockoutCountdown(seconds: number) {
-        this.clearLockoutCountdown();
-        this.lockoutRemainingSeconds = seconds;
-        this.isLockoutActive = true;
+  get errorTitle(): string { return this.errorTitleSignal(); }
+  get errorMessage(): string { return this.errorMessageSignal(); }
+  get errorIcon(): string { return this.errorIconSignal(); }
+  get errorStyle(): 'danger' | 'warning' | 'info' { return this.errorStyleSignal(); }
+  get isLoading(): boolean { return this.isLoadingSignal(); }
+  get isLockoutActive(): boolean { return this.isLockoutActiveSignal(); }
+  get lockoutRemainingSeconds(): number { return this.lockoutRemainingSecondsSignal(); }
+  get returnUrl(): string { return this.returnUrlSignal(); }
 
-        this.setError('Cuenta bloqueada', `Cuenta bloqueada temporalmente. Intenta de nuevo en ${seconds} segundos.`, 'lock-closed');
 
-        this.lockoutIntervalId = setInterval(() => {
-            this.lockoutRemainingSeconds = Math.max(this.lockoutRemainingSeconds - 1, 0);
-            this.cdr.markForCheck();
-            if (this.lockoutRemainingSeconds <= 0) {
-                this.resetLockoutState();
-            }
-        }, 1000);
+  private lockoutIntervalId: number | null = null;
+
+  private startLockoutCountdown(seconds: number): void {
+    this.clearLockoutCountdown();
+    this.lockoutRemainingSecondsSignal.set(seconds);
+    this.isLockoutActiveSignal.set(true);
+
+    this.setError('Cuenta bloqueada', `Cuenta bloqueada temporalmente. Intenta de nuevo en ${seconds} segundos.`, 'lock-closed');
+
+    this.lockoutIntervalId = window.setInterval(() => {
+      const next = Math.max(this.lockoutRemainingSeconds, 0) - 1;
+      this.lockoutRemainingSecondsSignal.set(next);
+      this.cdr.markForCheck();
+
+      if (next <= 0) {
+        this.resetLockoutState();
+      }
+    }, 1000);
+  }
+
+  private clearLockoutCountdown() {
+    if (this.lockoutIntervalId !== null) {
+      clearInterval(this.lockoutIntervalId);
+      this.lockoutIntervalId = null;
+    }
+  }
+
+  private resetLockoutState() {
+    this.clearLockoutCountdown();
+    this.isLockoutActiveSignal.set(false);
+    this.lockoutRemainingSecondsSignal.set(0);
+    this.resetError();
+  }
+
+  ngOnInit(): void {
+    const state = (this.router.getCurrentNavigation()?.extras?.state as
+      | { message?: string; returnUrl?: string; showOnce?: boolean }
+      | undefined) ?? undefined;
+
+    const msg = state?.message ?? '';
+    const shouldShow = !!msg && state?.showOnce === true;
+
+    if (shouldShow) {
+      this.setError('Acceso requerido', msg, 'information-circle', 'info');
+      window.history.replaceState({}, '', this.router.url);
+    } else {
+      this.resetError();
     }
 
-    private clearLockoutCountdown() {
-        if (this.lockoutIntervalId) {
-            clearInterval(this.lockoutIntervalId);
-            this.lockoutIntervalId = null;
-        }
+    const fromReturnUrl = state?.returnUrl || sessionStorage.getItem('returnUrl') || '/admin';
+    this.returnUrlSignal.set(fromReturnUrl);
+    sessionStorage.removeItem('returnUrl');
+  }
+
+  private setError(title: string, message: string, icon: string = 'alert-circle', style: 'danger' | 'warning' | 'info' = 'danger'): void {
+    this.errorTitleSignal.set(title);
+    this.errorMessageSignal.set(message);
+    this.errorIconSignal.set(icon);
+    this.errorStyleSignal.set(style);
+    this.cdr.markForCheck();
+  }
+
+  resetError(): void {
+    this.errorTitleSignal.set('');
+    this.errorMessageSignal.set('');
+    this.errorIconSignal.set('alert-circle');
+    this.cdr.markForCheck();
+  }
+
+  onSubmit(): void {
+    if (this.loginForm.invalid || this.isLockoutActive) {
+      return;
     }
 
-    private resetLockoutState() {
-        this.clearLockoutCountdown();
-        this.isLockoutActive = false;
-        this.lockoutRemainingSeconds = 0;
-        this.errorMessage = '';
-        this.cdr.markForCheck();
-    }
+    this.isLoadingSignal.set(true);
+    this.resetError();
 
-    ngOnInit()
-    {
-        const nav = this.router.currentNavigation();
-        const state = nav?.extras?.state as
-            { message?: string, returnUrl?: string, showOnce?: boolean } | undefined;
+    const { email, password } = this.loginForm.value as { email: string; password: string };
 
-        const msg = state?.message || '';
-        const shouldShow = !!msg && state?.showOnce === true;
-        if (shouldShow) {
-            this.setError('Acceso requerido', msg, 'information-circle');
-            window.history.replaceState({}, '', this.router.url);
-        } else {
-            this.resetError();
-        }
-        this.returnUrl =
-            state?.returnUrl ||
-            sessionStorage.getItem('returnUrl') ||
-            '/admin';
+    this.authService
+      .login(email, password)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.isLoadingSignal.set(false);
+          this.resetLockoutState();
+          sessionStorage.removeItem('returnUrl');
+          this.router.navigateByUrl(this.returnUrl);
+        },
+        error: (err: unknown) => {
+          this.isLoadingSignal.set(false);
+          const parsed = this.authService.parseAuthError(err);
 
-        sessionStorage.removeItem('returnUrl');
-    }
-
-    private setError(title: string, message: string, icon: string = 'alert-circle', styleType: 'danger' | 'warning' | 'info' = 'danger') {
-        this.errorTitle = title;
-        this.errorMessage = message;
-        this.errorIcon = icon;
-        this.errorStyle = styleType;
-        this.cdr.markForCheck();
-    }
-
-    resetError() {
-        this.errorTitle = '';
-        this.errorMessage = '';
-        this.errorIcon = 'alert-circle';
-        this.cdr.markForCheck();
-    }
-
-    private parseLoginError(err: any): { message: string; title: string; style: 'danger' | 'warning' | 'info'; lockoutSeconds?: number } {
-        const gqlErr = err?.graphQLErrors?.[0];
-        const networkErr = err?.networkError;
-        const message = gqlErr?.message?.toString?.() || err?.message?.toString?.() || '';
-
-        if (gqlErr || message) {
-            const code = gqlErr?.extensions?.code?.toString?.().toUpperCase() || '';
-
-            // Check for lockout message
-            const lockoutMatch = message.match(/(?:en\s+)?(\d+)\s+segundos?(?:[.!?]*|$)/i);
-            if (lockoutMatch) {
-                const lockoutSeconds = Number(lockoutMatch[1]);
-                return {
-                    message: 'Cuenta bloqueada temporalmente.',
-                    title: 'Cuenta bloqueada',
-                    style: 'danger',
-                    lockoutSeconds,
-                };
-            }
-
-            if (code === 'UNAUTHENTICATED' || code === 'UNAUTHORIZED' || message.toLowerCase().includes('credenciales')) {
-                return {
-                    message: 'Verifica tu correo y contraseña.',
-                    title: 'Credenciales inválidas',
-                    style: 'warning'
-                };
-            }
-
-            return {
-                message: message || 'Error en el inicio de sesión. Intenta de nuevo.',
-                title: 'Error de autenticación',
-                style: 'danger'
-            };
-        }
-
-        if (networkErr) {
-            return {
-                message: 'No se pudo conectar al backend. Comprueba tu red o el servidor e intenta de nuevo.',
-                title: 'Error de conexión',
-                style: 'danger'
-            };
-        }
-
-        return {
-            message: 'Revisa tus datos e intenta nuevamente.',
-            title: 'Error de inicio de sesión',
-            style: 'warning'
-        };
-    }
-
-    onSubmit()
-    {
-        if (this.loginForm.invalid || this.isLockoutActive)
-        {
+          if (parsed.message.toLowerCase().includes('temporal')) {
+            this.setError('Contraseña temporal', 'Tu contraseña actual es temporal; por favor actualiza tus credenciales.', 'shield-half', 'info');
+            this.router.navigateByUrl('/auth/change-credentials', { state: { email: this.loginForm.value.email } });
             return;
-        }
+          }
 
-        this.isLoading = true;
-        this.errorMessage = '';
+          if (parsed.lockoutSeconds && parsed.lockoutSeconds > 0) {
+            this.startLockoutCountdown(parsed.lockoutSeconds);
+          }
 
-        const { email, password } = this.loginForm.value;
+          this.setError(parsed.title, parsed.message, parsed.lockoutSeconds ? 'lock-closed' : 'alert-circle', parsed.style);
+        },
+      });
+  }
 
-        this.authService.Login(email, password).subscribe({
-            next: (success) =>
-            {
-                this.isLoading = false;
-                const returnUrl = this.returnUrl;
-                if (success)
-                {
-                    this.resetLockoutState();
-                    sessionStorage.removeItem('returnUrl');
-                    this.router.navigateByUrl(returnUrl);
-                }
-            },
-            error: (err) =>
-            {
-                this.isLoading = false;
-                const parsed = this.parseLoginError(err);
-
-                if (parsed.message.toLowerCase().includes('temporal')) {
-                    this.setError('Contraseña temporal', 'Tu contraseña actual es temporal; por favor actualiza tus credenciales.', 'shield-half', 'info');
-                    this.router.navigateByUrl('/auth/change-credentials', { state: { email: this.loginForm.value.email } });
-                    return;
-                }
-
-                if (parsed.lockoutSeconds && parsed.lockoutSeconds > 0) {
-                    this.startLockoutCountdown(parsed.lockoutSeconds);
-                }
-
-                this.setError(parsed.title, parsed.message, parsed.lockoutSeconds ? 'lock-closed' : 'alert-circle', parsed.style);
-            }
-        });
-    }
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 }
