@@ -1,11 +1,26 @@
+app-auth-card {
+    display: block;
+    width: 100%;
+    max-width: 400px;
+    box-sizing: border-box;
+}
+
 .auth-card {
     max-width: 400px;
     width: 100%;
+    margin: 0;
     background: rgba(15, 23, 42, 0.72);
     border: 1px solid rgba(148, 163, 184, 0.4);
     border-radius: 1rem;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
     color: var(--ion-text-color, #f8fafc);
+    overflow: visible;
+    contain: none;
+}
+
+.auth-card ion-card-content {
+    overflow: visible;
+    contain: none;
 }
 
 .text-center {
@@ -22,6 +37,7 @@
 }
 
 .form-group {
+    position: relative;
     margin-bottom: 1rem;
 }
 
@@ -42,28 +58,29 @@
     transition: opacity 140ms ease;
 }
 
-.email-validation-container {
+.field-validation-container {
     position: relative;
     display: inline-flex;
     align-items: center;
     cursor: pointer;
 }
 
-.email-validation-container .popover-message {
+.field-validation-container .popover-message {
     position: absolute;
     top: calc(100% + 0.35rem);
-    left: 50%;
-    transform: translateX(-50%) translateY(-8px);
-    min-width: max-content;
-    max-width: 260px;
-    width: auto;
+    left: 0;
+    right: auto;
+    transform: translateY(-8px);
+    min-width: auto;
+    max-width: 320px;
+    width: max-content;
     background: rgba(15, 23, 42, 0.98);
     border: 1px solid rgba(148, 163, 184, 0.4);
     border-radius: 0.45rem;
     color: #f8fafc;
     padding: 0.45rem 0.6rem;
     font-size: 0.78rem;
-    text-align: center;
+    text-align: left;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
     opacity: 0;
     visibility: hidden;
@@ -74,7 +91,30 @@
     word-break: break-word;
 }
 
-.email-validation-container .popover-message::after {
+@media (max-width: 600px) {
+    .field-validation-container {
+        position: static;
+    }
+
+    .field-validation-container .popover-message {
+        position: absolute;
+        left: 0 !important;
+        right: 0 !important;
+        width: auto !important;
+        max-width: none !important;
+        top: auto !important;
+        bottom: 0;
+        transform: translateY(100%) !important;
+        margin-top: 0;
+        padding: 0.4rem 0.6rem;
+    }
+
+    .field-validation-container .popover-message::after {
+        display: none;
+    }
+}
+
+.field-validation-container .popover-message::after {
     content: '';
     position: absolute;
     width: 0.52rem;
@@ -82,29 +122,29 @@
     background: rgba(15, 23, 42, 0.98);
     border-left: 1px solid rgba(148, 163, 184, 0.4);
     border-top: 1px solid rgba(148, 163, 184, 0.4);
-    left: 50%;
+    left: 0.7rem;
     top: -0.26rem;
-    transform: translateX(-50%) rotate(45deg);
+    transform: rotate(45deg);
     z-index: -1;
 }
 
 @media (hover: hover) and (pointer: fine) {
-    .email-validation-container .popover-message {
+    .field-validation-container .popover-message {
         pointer-events: none;
     }
 
-    .email-validation-container:hover .popover-message {
+    .field-validation-container:hover .popover-message {
         opacity: 1;
         visibility: visible;
-        transform: translateX(-50%) translateY(0);
+        transform: translateY(0);
     }
 }
 
-.email-validation-container.popover-visible .popover-message {
+.field-validation-container.popover-visible .popover-message {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
 }
 
 .field-label.error .field-icon {

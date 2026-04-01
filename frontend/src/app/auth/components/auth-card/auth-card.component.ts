@@ -18,7 +18,7 @@ export class AuthCardComponent {
     @Input() subtitle = '';
     @Input() cardClass = '';
 
-    isEmailPopoverVisible: boolean = false;
+    activePopoverField: string | null = null;
 
     get isTouchMode(): boolean {
         return window.matchMedia('(hover: none), (pointer: coarse)').matches;
@@ -26,13 +26,13 @@ export class AuthCardComponent {
 
     @HostListener('document:click', ['$event'])
     onDocumentClick(event: Event): void {
-        if (!this.isTouchMode || !this.isEmailPopoverVisible) {
+        if (!this.isTouchMode || !this.activePopoverField) {
             return;
         }
 
         const target = event.target as HTMLElement | null;
-        if (!target || !target.closest('.email-validation-container')) {
-            this.isEmailPopoverVisible = false;
+        if (!target || !target.closest('.field-validation-container')) {
+            this.activePopoverField = null;
         }
     }
 
@@ -80,29 +80,53 @@ export class AuthCardComponent {
         this.cdr.markForCheck();
     }
 
-    toggleEmailPopover(event: Event): void {
+    getPopoverVisible(field: string): boolean {
+        if (!this.isTouchMode) {
+            return false;
+        }
+        return this.activePopoverField === field;
+    }
+
+    toggleFieldPopover(event: Event, field: string): void {
         if (!this.isTouchMode) {
             return;
         }
 
         event.stopPropagation();
         event.preventDefault();
-        this.isEmailPopoverVisible = !this.isEmailPopoverVisible;
+        this.activePopoverField = this.activePopoverField === field ? null : field;
     }
 
-    public getEmailValidationMessage(emailControl: AbstractControl | null): string {
-        if (!emailControl) {
-            return 'Formato inválido';
+    public getFieldValidationMessage(control: AbstractControl | null, type: 'email' | 'password' | 'confirm_password' = 'password'): string {
+        if (!control) {
+            return '';
         }
 
-        if (emailControl.hasError('required')) {
+        if (control.hasError('required')) {
             return 'Campo vacío';
         }
 
-        if (emailControl.hasError('email') || emailControl.hasError('pattern')) {
-            return 'Formato inválido';
+        if (type === 'email') {
+            if (control.hasError('email') || control.hasError('pattern')) {
+                return 'Formato inválido';
+            }
         }
 
-        return 'Correo válido';
+        if (type === 'password') {
+            if (control.hasError('minlength')) {
+                return 'La contraseña debe tener al menos 8 caracteres.';
+            }
+            if (control.hasError('weakPassword')) {
+                return 'Debe incluir al menos 3 de: mayúsculas, minúsculas, números, símbolos.';
+            }
+        }
+
+        if (type === 'confirm_password') {
+            if (control.parent?.hasError('passwordMismatch')) {
+                return 'Las contraseñas no coinciden.';
+            }
+        }
+
+        return '';
     }
 }

@@ -66,6 +66,22 @@ export class LoginComponent {
   get isLoading(): boolean { return this.isLoadingSignal(); }
   get returnUrl(): string { return this.returnUrlSignal(); }
 
+  get emailControl() {
+    return this.loginForm.get('email');
+  }
+
+  get passwordControl() {
+    return this.loginForm.get('password');
+  }
+
+  getEmailFieldMessage(): string {
+    return this.authCard.getFieldValidationMessage(this.emailControl, 'email');
+  }
+
+  getPasswordFieldMessage(): string {
+    return this.authCard.getFieldValidationMessage(this.passwordControl, 'password');
+  }
+
   ngOnInit(): void {
     const state = (this.router.getCurrentNavigation()?.extras?.state as
       | { message?: string; returnUrl?: string; showOnce?: boolean }

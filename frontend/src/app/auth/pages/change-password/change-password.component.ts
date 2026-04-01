@@ -36,7 +36,7 @@ type ChangePasswordForm = {
   templateUrl: './change-password.component.html',
   styleUrls: ['./change-password.component.scss'],
 })
-export class ChangePasswordComponent {
+export class ChangePasswordComponent implements OnDestroy {
   @ViewChild('authCard', { static: true })
   authCard!: AuthCardComponent;
 
@@ -50,7 +50,7 @@ export class ChangePasswordComponent {
     current_email: ['', [Validators.required, Validators.pattern(STRICT_EMAIL_WITH_TLD_REGEX)]],
     current_password: ['', [Validators.required, Validators.minLength(8)]],
     new_email: ['', [Validators.required, Validators.pattern(STRICT_EMAIL_WITH_TLD_REGEX)]],
-    new_password: ['', [Validators.required, Validators.minLength(8)]],
+    new_password: ['', [Validators.required, Validators.minLength(8), this.complexityValidator]],
     confirm_password: ['', [Validators.required]],
   }, { validators: this.passwordsMatchValidator });
 
@@ -81,6 +81,22 @@ export class ChangePasswordComponent {
     return this.isLoadingSignal();
   }
 
+  get currentPasswordControl() {
+    return this.form.get('current_password');
+  }
+
+  get newPasswordControl() {
+    return this.form.get('new_password');
+  }
+
+  get newEmailControl() {
+    return this.form.get('new_email');
+  }
+
+  get confirmPasswordControl() {
+    return this.form.get('confirm_password');
+  }
+
   private setError(title: string, message: string, icon: string = 'alert-circle', style: 'danger' | 'warning' | 'info' = 'danger'): void {
     this.errorTitleSignal.set(title);
     this.errorMessageSignal.set(message);
@@ -103,24 +119,35 @@ export class ChangePasswordComponent {
     this.cdr.markForCheck();
   }
 
-private passwordsMatchValidator(control: AbstractControl): ValidationErrors | null {
-        const group = control as FormGroup;
+  private passwordsMatchValidator(control: AbstractControl): ValidationErrors | null {
+    const group = control as FormGroup;
     const newPassword = group.get('new_password')?.value;
     const confirmPassword = group.get('confirm_password')?.value;
     return newPassword === confirmPassword ? null : { passwordMismatch: true };
   }
 
-  private meetsComplexity(password: string): boolean {
+  private complexityValidator(control: AbstractControl): ValidationErrors | null {
+    const password = control.value as string;
+    if (!password) {
+      return null;
+    }
     const upper = /[A-Z]/.test(password);
     const lower = /[a-z]/.test(password);
     const number = /[0-9]/.test(password);
     const symbol = /[!@#$%^&*()\-_=+\[\]{}<>?]/.test(password);
-    return [upper, lower, number, symbol].filter(Boolean).length >= 3;
+    const categories = [upper, lower, number, symbol].filter(Boolean).length;
+    return categories >= 3 ? null : { weakPassword: true };
   }
 
   onSubmit(): void {
+    this.form.markAllAsTouched();
+
     if (this.form.invalid) {
-      this.setError('Formulario inválido', 'Revisa los datos e intenta de nuevo.', 'alert-circle', 'warning');
+      if (this.form.hasError('passwordMismatch')) {
+        this.setError('Contraseñas no coinciden', 'La nueva contraseña y la confirmación deben ser idénticas.', 'alert-circle', 'warning');
+      } else {
+        this.setError('Formulario inválido', 'Revisa los campos señalados e intenta de nuevo.', 'alert-circle', 'warning');
+      }
       return;
     }
 
@@ -134,12 +161,6 @@ private passwordsMatchValidator(control: AbstractControl): ValidationErrors | nu
       new_password: string;
       confirm_password: string;
     };
-
-    if (!this.meetsComplexity(new_password)) {
-      this.isLoadingSignal.set(false);
-      this.setError('Contraseña débil', 'La contraseña debe tener al menos 8 caracteres e incluir al menos 3 categorías: mayúsculas, minúsculas, números y símbolos.', 'shield-checkmark', 'warning');
-      return;
-    }
 
     this.authService
       .changeCredentials({ currentEmail: current_email, currentPassword: current_password, newEmail: new_email, newPassword: new_password })
