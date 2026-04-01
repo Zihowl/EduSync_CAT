@@ -49,6 +49,7 @@ export class LoginComponent
     isLockoutActive: boolean = false;
     lockoutRemainingSeconds: number = 0;
     private lockoutIntervalId: any = null;
+
     readonly errorCardAutoDismissMs = DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS;
     returnUrl: string = '/admin';
     currentYear = new Date().getFullYear();

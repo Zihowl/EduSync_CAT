@@ -42,6 +42,71 @@
     transition: opacity 140ms ease;
 }
 
+.email-validation-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.email-validation-container .popover-message {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    min-width: max-content;
+    max-width: 260px;
+    width: auto;
+    background: rgba(15, 23, 42, 0.98);
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    border-radius: 0.45rem;
+    color: #f8fafc;
+    padding: 0.45rem 0.6rem;
+    font-size: 0.78rem;
+    text-align: center;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+    z-index: 10;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.email-validation-container .popover-message::after {
+    content: '';
+    position: absolute;
+    width: 0.52rem;
+    height: 0.52rem;
+    background: rgba(15, 23, 42, 0.98);
+    border-left: 1px solid rgba(148, 163, 184, 0.4);
+    border-top: 1px solid rgba(148, 163, 184, 0.4);
+    left: 50%;
+    top: -0.26rem;
+    transform: translateX(-50%) rotate(45deg);
+    z-index: -1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .email-validation-container .popover-message {
+        pointer-events: none;
+    }
+
+    .email-validation-container:hover .popover-message {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.email-validation-container.popover-visible .popover-message {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+}
+
 .field-label.error .field-icon {
     opacity: 1;
 }

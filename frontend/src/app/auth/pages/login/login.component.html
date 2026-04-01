@@ -17,12 +17,21 @@
             (closed)="resetError()"
         ></app-notification-card>
 
-        <app-auth-card title="Hola!" subtitle="Ingresa tus credenciales de administrador" cardClass="login-card">
+        <app-auth-card #authCard="appAuthCard" cardTitle="Hola!" subtitle="Ingresa tus credenciales de administrador" cardClass="login-card">
             <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" autocomplete="on">
                 <div class="form-group">
                     <label class="field-label" [class.error]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched" for="login-email">
                         Correo Institucional
-                        <span class="field-icon" [attr.title]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched ? 'Formato invalido: usuario@dominio.extensión' : ''">⚠</span>
+                        <span
+                            class="email-validation-container"
+                            [class.popover-visible]="authCard.isEmailPopoverVisible"
+                            (click)="authCard.toggleEmailPopover($event)"
+                            (touchstart)="authCard.toggleEmailPopover($event)"
+                            [attr.aria-label]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched ? 'Formato inválido' : 'Icono de información'"
+                            >
+                            <span class="field-icon">⚠</span>
+                            <span class="popover-message" role="tooltip">Formato inválido</span>
+                        </span>
                     </label>
                     <input
                         id="login-email"
