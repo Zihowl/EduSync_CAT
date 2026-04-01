@@ -99,10 +99,25 @@ impl AuthService {
             }
         }
 
+        self.verify_user_password(&user, password, false).await?;
+        Ok(user)
+    }
+
+    async fn verify_user_password(&self, user: &User, password: &str, allow_temp_password: bool) -> Result<(), DomainError> {
+        if let Some(lockout_until) = user.lockout_until {
+            if lockout_until > Utc::now() {
+                let remaining = lockout_until.signed_duration_since(Utc::now()).num_seconds().max(0);
+                return Err(DomainError::Unauthorized(format!(
+                    "Cuenta bloqueada temporalmente. Intenta de nuevo en {} segundos",
+                    remaining
+                )));
+            }
+        }
+
         let parsed = PasswordHash::new(&user.password_hash)
             .map_err(|_| DomainError::Unauthorized("Credenciales invalidas".to_string()))?;
 
-        if let Err(_) = Argon2::default().verify_password(password.as_bytes(), &parsed) {
+        if Argon2::default().verify_password(password.as_bytes(), &parsed).is_err() {
             self.repo.increment_failed_login_attempts(user.id).await?;
 
             let updated_user = self
@@ -134,11 +149,11 @@ impl AuthService {
         self.repo.reset_failed_login_attempts(user.id).await?;
         self.repo.set_lockout_until(user.id, None).await?;
 
-        if user.is_temp_password {
+        if !allow_temp_password && user.is_temp_password {
             return Err(DomainError::Unauthorized("Contraseña temporal. Cambia tu contraseña antes de continuar".to_string()));
         }
 
-        Ok(user)
+        Ok(())
     }
 
     pub fn login(&self, user: User) -> Result<LoginResult, DomainError> {
@@ -195,12 +210,7 @@ impl AuthService {
             return Err(DomainError::Unauthorized("Cuenta inactiva".to_string()));
         }
 
-        let parsed = PasswordHash::new(&user.password_hash)
-            .map_err(|_| DomainError::Unauthorized("Credenciales invalidas".to_string()))?;
-
-        if Argon2::default().verify_password(current_password.as_bytes(), &parsed).is_err() {
-            return Err(DomainError::Unauthorized("Credenciales invalidas".to_string()));
-        }
+        self.verify_user_password(&user, current_password, true).await?;
 
         if !is_valid_email(new_email) {
             return Err(DomainError::BadRequest("Nuevo correo invalido".to_string()));

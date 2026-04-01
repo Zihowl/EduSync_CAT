@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectorRef, signal, OnDestroy } from '@angular/core';
+import { Component, inject, ChangeDetectorRef, signal, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, Validators, NonNullableFormBuilder } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -34,6 +34,9 @@ type LoginForm = {
   styleUrls: ['./login.component.scss'],
 })
 export class LoginComponent {
+  @ViewChild('authCard', { static: true })
+  authCard!: AuthCardComponent;
+
   private fb = inject(NonNullableFormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
@@ -51,8 +54,6 @@ export class LoginComponent {
   private errorIconSignal = signal('alert-circle');
   private errorStyleSignal = signal<'danger' | 'warning' | 'info'>('danger');
   private isLoadingSignal = signal(false);
-  private isLockoutActiveSignal = signal(false);
-  private lockoutRemainingSecondsSignal = signal(0);
 
   readonly errorCardAutoDismissMs = DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS;
   private returnUrlSignal = signal('/admin');
@@ -63,44 +64,7 @@ export class LoginComponent {
   get errorIcon(): string { return this.errorIconSignal(); }
   get errorStyle(): 'danger' | 'warning' | 'info' { return this.errorStyleSignal(); }
   get isLoading(): boolean { return this.isLoadingSignal(); }
-  get isLockoutActive(): boolean { return this.isLockoutActiveSignal(); }
-  get lockoutRemainingSeconds(): number { return this.lockoutRemainingSecondsSignal(); }
   get returnUrl(): string { return this.returnUrlSignal(); }
-
-
-  private lockoutIntervalId: number | null = null;
-
-  private startLockoutCountdown(seconds: number): void {
-    this.clearLockoutCountdown();
-    this.lockoutRemainingSecondsSignal.set(seconds);
-    this.isLockoutActiveSignal.set(true);
-
-    this.setError('Cuenta bloqueada', `Cuenta bloqueada temporalmente. Intenta de nuevo en ${seconds} segundos.`, 'lock-closed');
-
-    this.lockoutIntervalId = window.setInterval(() => {
-      const next = Math.max(this.lockoutRemainingSeconds, 0) - 1;
-      this.lockoutRemainingSecondsSignal.set(next);
-      this.cdr.markForCheck();
-
-      if (next <= 0) {
-        this.resetLockoutState();
-      }
-    }, 1000);
-  }
-
-  private clearLockoutCountdown() {
-    if (this.lockoutIntervalId !== null) {
-      clearInterval(this.lockoutIntervalId);
-      this.lockoutIntervalId = null;
-    }
-  }
-
-  private resetLockoutState() {
-    this.clearLockoutCountdown();
-    this.isLockoutActiveSignal.set(false);
-    this.lockoutRemainingSecondsSignal.set(0);
-    this.resetError();
-  }
 
   ngOnInit(): void {
     const state = (this.router.getCurrentNavigation()?.extras?.state as
@@ -139,7 +103,7 @@ export class LoginComponent {
 
 
   onSubmit(): void {
-    if (this.loginForm.invalid || this.isLockoutActive) {
+    if (this.loginForm.invalid || this.authCard?.isLockoutActive) {
       return;
     }
 
@@ -154,7 +118,7 @@ export class LoginComponent {
       .subscribe({
         next: () => {
           this.isLoadingSignal.set(false);
-          this.resetLockoutState();
+          this.authCard.clearLockoutCountdown();
           sessionStorage.removeItem('returnUrl');
           this.router.navigateByUrl(this.returnUrl);
         },
@@ -162,14 +126,15 @@ export class LoginComponent {
           this.isLoadingSignal.set(false);
           const parsed = this.authService.parseAuthError(err);
 
-          if (parsed.message.toLowerCase().includes('temporal')) {
+          const messageLower = parsed.message.toLowerCase();
+          if (messageLower.includes('contraseña temporal') || messageLower.includes('contraseña temporalmente')) {
             this.setError('Contraseña temporal', 'Tu contraseña actual es temporal; por favor actualiza tus credenciales.', 'shield-half', 'info');
             this.router.navigateByUrl('/auth/change-credentials', { state: { email: this.loginForm.value.email } });
             return;
           }
 
           if (parsed.lockoutSeconds && parsed.lockoutSeconds > 0) {
-            this.startLockoutCountdown(parsed.lockoutSeconds);
+            this.authCard.startLockoutCountdown(parsed.lockoutSeconds);
           }
 
           this.setError(parsed.title, parsed.message, parsed.lockoutSeconds ? 'lock-closed' : 'alert-circle', parsed.style);

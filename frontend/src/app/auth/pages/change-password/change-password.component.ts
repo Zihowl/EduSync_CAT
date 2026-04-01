@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectorRef, signal, OnDestroy } from '@angular/core';
+import { Component, inject, ChangeDetectorRef, signal, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, Validators, NonNullableFormBuilder, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -37,6 +37,9 @@ type ChangePasswordForm = {
   styleUrls: ['./change-password.component.scss'],
 })
 export class ChangePasswordComponent {
+  @ViewChild('authCard', { static: true })
+  authCard!: AuthCardComponent;
+
   private fb = inject(NonNullableFormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
@@ -149,6 +152,11 @@ private passwordsMatchValidator(control: AbstractControl): ValidationErrors | nu
         error: (err: unknown) => {
           this.isLoadingSignal.set(false);
           const parsed = this.authService.parseAuthError(err);
+
+          if (parsed.lockoutSeconds && parsed.lockoutSeconds > 0) {
+            this.authCard.startLockoutCountdown(parsed.lockoutSeconds);
+          }
+
           this.setError(parsed.title, parsed.message, 'alert-circle', parsed.style);
         },
       });

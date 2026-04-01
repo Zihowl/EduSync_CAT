@@ -133,6 +133,15 @@
     box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
 }
 
+.native-login-input[readonly],
+.native-login-input[disabled] {
+    background: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.25);
+    color: var(--ion-color-medium);
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
 .native-login-input.ng-invalid.ng-touched,
 .email-input.ng-invalid.ng-touched,
 .password-input.ng-invalid.ng-touched {

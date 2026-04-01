@@ -13,7 +13,7 @@
             [icon]="errorIcon"
             [styleType]="errorStyle"
             [autoDismissMs]="errorCardAutoDismissMs"
-            [countdown]="isLockoutActive ? lockoutRemainingSeconds : undefined"
+            [countdown]="authCard.isLockoutActive ? authCard.lockoutRemainingSeconds : undefined"
             (closed)="resetError()"
         ></app-notification-card>
 
@@ -61,8 +61,8 @@
                         enterkeyhint="go" />
                 </div>
 
-                <ion-button expand="block" type="submit" [disabled]="loginForm.invalid || isLoading || isLockoutActive">
-                    {{ isLockoutActive ? ('Iniciar Sesión (' + lockoutRemainingSeconds + 's)') : 'Iniciar Sesión' }}
+                <ion-button expand="block" type="submit" [disabled]="loginForm.invalid || isLoading || authCard.isLockoutActive">
+                    {{ authCard.getActionButtonLabel('Iniciar Sesión', isLoading) }}
                 </ion-button>
             </form>
         </app-auth-card>
