@@ -148,6 +148,27 @@ impl UserRepository for PgUserRepository {
         Ok(())
     }
 
+    async fn update_credentials(&self, user_id: Uuid, email: &str, password_hash: &str, is_temp_password: bool) -> Result<User, DomainError> {
+        let row = sqlx::query_as::<_, UserRow>(
+            "UPDATE users
+             SET email = $2,
+                 password_hash = $3,
+                 is_temp_password = $4,
+                 updated_at = NOW()
+             WHERE id = $1
+             RETURNING id, email, full_name, password_hash, role::text AS role, is_active, is_temp_password, failed_login_attempts, lockout_until, created_at, updated_at",
+        )
+        .bind(user_id)
+        .bind(email)
+        .bind(password_hash)
+        .bind(is_temp_password)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+
+        Ok(row.into())
+    }
+
     async fn count_all(&self) -> Result<i64, DomainError> {
         let total: (i64,) = sqlx::query_as("SELECT COUNT(*)::bigint FROM users")
             .fetch_one(&self.pool)

@@ -25,6 +25,24 @@ const LOGIN_MUTATION = gql`
     }
 `;
 
+const CHANGE_CREDENTIALS_MUTATION = gql`
+    mutation ChangeCredentials($currentEmail: String!, $currentPassword: String!, $newEmail: String!, $newPassword: String!) {
+        ChangeCredentials(
+            input: {
+                currentEmail: $currentEmail,
+                currentPassword: $currentPassword,
+                newEmail: $newEmail,
+                newPassword: $newPassword
+            }
+        ) {
+            id
+            email
+            role
+            isActive
+        }
+    }
+`;
+
 @Injectable
 ({
     providedIn: 'root'
@@ -100,5 +118,22 @@ export class AuthService
     IsAuthenticated(): boolean 
     {
         return !!localStorage.getItem(this.TOKEN_KEY);
+    }
+
+    changeCredentials(currentEmail: string, currentPassword: string, newEmail: string, newPassword: string): Observable<boolean> {
+        return this.apollo.mutate<any>({
+            mutation: CHANGE_CREDENTIALS_MUTATION,
+            variables: { currentEmail, currentPassword, newEmail, newPassword }
+        }).pipe(
+            map(result => {
+                const data = result.data?.ChangeCredentials || result.data?.changeCredentials;
+                if (data) {
+                    // after successful change re-route to login page and keep session cleared
+                    this.Logout();
+                    return true;
+                }
+                return false;
+            })
+        );
     }
 }

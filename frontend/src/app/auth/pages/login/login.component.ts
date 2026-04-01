@@ -200,6 +200,12 @@ export class LoginComponent
                 this.isLoading = false;
                 const parsed = this.parseLoginError(err);
 
+                if (parsed.message.toLowerCase().includes('temporal')) {
+                    this.setError('Contraseña temporal', 'Tu contraseña actual es temporal; por favor actualiza tus credenciales.', 'shield-half', 'info');
+                    this.router.navigateByUrl('/auth/change-credentials', { state: { email: this.loginForm.value.email } });
+                    return;
+                }
+
                 if (parsed.lockoutSeconds && parsed.lockoutSeconds > 0) {
                     this.startLockoutCountdown(parsed.lockoutSeconds);
                 }

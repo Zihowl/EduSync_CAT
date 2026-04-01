@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use argon2::{Argon2, PasswordHash, PasswordVerifier};
+use argon2::{Argon2, password_hash::{PasswordHash, PasswordHasher, SaltString, rand_core::OsRng}, PasswordVerifier};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
@@ -30,6 +30,32 @@ pub struct Claims {
 pub struct LoginResult {
     pub access_token: String,
     pub user: User,
+}
+
+fn is_valid_email(email: &str) -> bool {
+    let parts: Vec<&str> = email.split('@').collect();
+    if parts.len() != 2 {
+        return false;
+    }
+    let domain = parts[1];
+    domain.contains('.') && !domain.starts_with('.') && !domain.ends_with('.')
+}
+
+fn password_meets_complexity(password: &str) -> bool {
+    let mut categories = 0;
+    if password.chars().any(|c| c.is_ascii_lowercase()) {
+        categories += 1;
+    }
+    if password.chars().any(|c| c.is_ascii_uppercase()) {
+        categories += 1;
+    }
+    if password.chars().any(|c| c.is_ascii_digit()) {
+        categories += 1;
+    }
+    if password.chars().any(|c| "!@#$%^&*()-_=+[]{}<>?".contains(c)) {
+        categories += 1;
+    }
+    categories >= 3
 }
 
 impl AuthService {
@@ -134,6 +160,83 @@ impl AuthService {
             user,
         })
     }
+
+    pub async fn change_credentials(
+        &self,
+        current_email: &str,
+        current_password: &str,
+        new_email: &str,
+        new_password: &str,
+    ) -> Result<User, DomainError> {
+        let current_email = current_email.trim();
+        let current_password = current_password.trim();
+        let new_email = new_email.trim();
+        let new_password = new_password.trim();
+
+        if current_email.is_empty() || current_password.is_empty() {
+            return Err(DomainError::BadRequest("Correo y contraseña actual son requeridos".to_string()));
+        }
+
+        if new_email.is_empty() || new_password.is_empty() {
+            return Err(DomainError::BadRequest("Correo y nueva contraseña son requeridos".to_string()));
+        }
+
+        let user = self
+            .repo
+            .find_by_email(current_email)
+            .await?
+            .ok_or_else(|| DomainError::Unauthorized("Credenciales invalidas".to_string()))?;
+
+        if !user.is_active {
+            return Err(DomainError::Unauthorized("Cuenta inactiva".to_string()));
+        }
+
+        let parsed = PasswordHash::new(&user.password_hash)
+            .map_err(|_| DomainError::Unauthorized("Credenciales invalidas".to_string()))?;
+
+        if Argon2::default().verify_password(current_password.as_bytes(), &parsed).is_err() {
+            return Err(DomainError::Unauthorized("Credenciales invalidas".to_string()));
+        }
+
+        if !is_valid_email(new_email) {
+            return Err(DomainError::BadRequest("Nuevo correo invalido".to_string()));
+        }
+
+        if new_email.ends_with("@setup.local") {
+            return Err(DomainError::BadRequest("El dominio @setup.local no está permitido".to_string()));
+        }
+
+        if new_email != current_email {
+            if self.repo.find_by_email(new_email).await?.is_some() {
+                return Err(DomainError::Conflict("El correo ya esta registrado".to_string()));
+            }
+        }
+
+        if new_password.len() < 8 {
+            return Err(DomainError::BadRequest("La contraseña debe tener al menos 8 caracteres".to_string()));
+        }
+
+        if !password_meets_complexity(new_password) {
+            return Err(DomainError::BadRequest("La contraseña debe incluir al menos 3 de 4 categorias: mayusculas, minusculas, numeros y simbolos".to_string()));
+        }
+
+        let mut rng = OsRng;
+        let new_password_hash = Argon2::default()
+            .hash_password(new_password.as_bytes(), &SaltString::generate(&mut rng))
+            .map_err(|e| DomainError::Internal(format!("No se pudo hashear contraseña: {e}")))?
+            .to_string();
+
+        if new_password_hash == user.password_hash {
+            return Err(DomainError::BadRequest("La nueva contraseña no puede ser igual a la actual".to_string()));
+        }
+
+        let updated_user = self
+            .repo
+            .update_credentials(user.id, new_email, &new_password_hash, false)
+            .await?;
+
+        Ok(updated_user)
+    }
 }
 
 #[cfg(test)]
@@ -230,6 +333,19 @@ mod tests {
             }
         }
 
+        async fn update_credentials(&self, user_id: Uuid, email: &str, password_hash: &str, is_temp_password: bool) -> Result<User, DomainError> {
+            let mut user = self.user.lock().unwrap();
+            if user.id == user_id {
+                user.email = email.to_string();
+                user.password_hash = password_hash.to_string();
+                user.is_temp_password = is_temp_password;
+                user.updated_at = Utc::now();
+                Ok(user.clone())
+            } else {
+                Err(DomainError::NotFound("User not found".into()))
+            }
+        }
+
         async fn count_all(&self) -> Result<i64, DomainError> {
             Ok(1)
         }
@@ -311,6 +427,39 @@ mod tests {
         let result = auth_service.validate_user("admin@example.com", "CorrectHorseBatteryStaple").await;
 
         assert!(matches!(result, Err(DomainError::Unauthorized(msg)) if msg.contains("temporal")));
+    }
+
+    #[tokio::test]
+    async fn test_change_credentials_transitions_from_temp_password() {
+        let (auth_service, repo) = setup_auth_service().await;
+
+        {
+            let mut user = repo.user.lock().unwrap();
+            user.is_temp_password = true;
+        }
+
+        let result = auth_service
+            .change_credentials(
+                "admin@example.com",
+                "CorrectHorseBatteryStaple",
+                "admin2@example.com",
+                "NewStrongPass1!",
+            )
+            .await;
+
+        assert!(result.is_ok());
+        let updated_user = result.unwrap();
+
+        assert_eq!(updated_user.email, "admin2@example.com");
+        assert!(!updated_user.is_temp_password);
+
+        let validate = auth_service
+            .validate_user("admin2@example.com", "NewStrongPass1!")
+            .await;
+        assert!(validate.is_ok());
+
+        let login_result = auth_service.login(validate.unwrap()).unwrap();
+        assert!(!login_result.access_token.is_empty());
     }
 }
 
