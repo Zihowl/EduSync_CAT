@@ -1,0 +1,10 @@
+<ion-card [class]="['auth-card', cardClass].join(' ')">
+    <ion-card-content>
+        <div *ngIf="title || subtitle" class="text-center">
+            <h1 *ngIf="title">{{ title }}</h1>
+            <p *ngIf="subtitle" class="text-muted">{{ subtitle }}</p>
+        </div>
+
+        <ng-content></ng-content>
+    </ion-card-content>
+</ion-card>

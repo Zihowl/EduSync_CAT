@@ -17,52 +17,45 @@
             (closed)="resetError()"
         ></app-notification-card>
 
-        <ion-card class="login-card">
-            <ion-card-content>
-                <div class="text-center">
-                    <h1>Hola!</h1>
-                    <p class="text-muted">Ingresa tus credenciales de administrador</p>
+        <app-auth-card title="Hola!" subtitle="Ingresa tus credenciales de administrador" cardClass="login-card">
+            <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" autocomplete="on">
+                <div class="form-group">
+                    <label class="field-label" [class.error]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched" for="login-email">
+                        Correo Institucional
+                        <span class="field-icon" [attr.title]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched ? 'Formato invalido: usuario@dominio.extensión' : ''">⚠</span>
+                    </label>
+                    <input
+                        id="login-email"
+                        class="native-login-input email-input"
+                        formControlName="email"
+                        name="username"
+                        type="email"
+                        inputmode="email"
+                        autocomplete="username"
+                        autocapitalize="off"
+                        autocorrect="off"
+                        spellcheck="false"
+                        placeholder="usuario@dominio.extensión" />
                 </div>
 
-                <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" autocomplete="on">
-                    <div class="form-group">
-                        <label class="field-label" [class.error]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched" for="login-email">
-                            Correo Institucional
-                            <span class="field-icon" [attr.title]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched ? 'Formato invalido: usuario@dominio.extensión' : ''">⚠</span>
-                        </label>
-                        <input
-                            id="login-email"
-                            class="native-login-input email-input"
-                            formControlName="email"
-                            name="username"
-                            type="email"
-                            inputmode="email"
-                            autocomplete="username"
-                            autocapitalize="off"
-                            autocorrect="off"
-                            spellcheck="false"
-                            placeholder="usuario@dominio.extensión" />
-                    </div>
+                <div class="form-group">
+                    <label class="field-label" for="login-password">Contraseña</label>
+                    <input
+                        id="login-password"
+                        class="native-login-input password-input"
+                        formControlName="password"
+                        name="password"
+                        type="password"
+                        autocomplete="current-password"
+                        spellcheck="false"
+                        enterkeyhint="go" />
+                </div>
 
-                    <div class="form-group">
-                        <label class="field-label" for="login-password">Contraseña</label>
-                        <input
-                            id="login-password"
-                            class="native-login-input password-input"
-                            formControlName="password"
-                            name="password"
-                            type="password"
-                            autocomplete="current-password"
-                            spellcheck="false"
-                            enterkeyhint="go" />
-                    </div>
-
-                    <ion-button expand="block" type="submit" [disabled]="loginForm.invalid || isLoading || isLockoutActive">
-                        {{ isLockoutActive ? ('Iniciar Sesión (' + lockoutRemainingSeconds + 's)') : 'Iniciar Sesión' }}
-                    </ion-button>
-                </form>
-            </ion-card-content>
-        </ion-card>
+                <ion-button expand="block" type="submit" [disabled]="loginForm.invalid || isLoading || isLockoutActive">
+                    {{ isLockoutActive ? ('Iniciar Sesión (' + lockoutRemainingSeconds + 's)') : 'Iniciar Sesión' }}
+                </ion-button>
+            </form>
+        </app-auth-card>
     </div>
     <footer class="login-footer">
         <p>© {{ currentYear }} Zihowl • GPLv3+</p>

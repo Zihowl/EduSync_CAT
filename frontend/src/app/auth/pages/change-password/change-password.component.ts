@@ -2,10 +2,11 @@ import { Component, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { IonContent, IonHeader, IonTitle, IonToolbar, IonCard, IonCardContent, IonButton, IonIcon } from '@ionic/angular/standalone';
+import { IonContent, IonHeader, IonTitle, IonToolbar, IonButton, IonIcon } from '@ionic/angular/standalone';
 
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationCardComponent, DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS } from '../../../shared/components/notification-card/notification-card.component';
+import { AuthCardComponent } from '../../components/auth-card/auth-card.component';
 
 const STRICT_EMAIL_WITH_TLD_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -19,10 +20,9 @@ const STRICT_EMAIL_WITH_TLD_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
         IonHeader,
         IonTitle,
         IonToolbar,
-        IonCard,
-        IonCardContent,
         IonButton,
-        NotificationCardComponent
+        NotificationCardComponent,
+        AuthCardComponent
     ],
     templateUrl: './change-password.component.html',
     styleUrls: ['./change-password.component.scss']
