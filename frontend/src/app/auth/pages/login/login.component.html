@@ -30,7 +30,7 @@
                             [attr.aria-label]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched ? 'Formato inválido' : 'Icono de información'"
                             >
                             <span class="field-icon">⚠</span>
-                            <span class="popover-message" role="tooltip">Formato inválido</span>
+                            <span class="popover-message" role="tooltip">{{ authCard.getEmailValidationMessage(loginForm.get('email')) }}</span>
                         </span>
                     </label>
                     <input
@@ -45,6 +45,7 @@
                         autocorrect="off"
                         spellcheck="false"
                         placeholder="usuario@dominio.extensión" />
+                    <div *ngIf="loginForm.get('email')?.hasError('required') && loginForm.get('email')?.touched" class="validation-message">Campo vacío</div>
                 </div>
 
                 <div class="form-group">

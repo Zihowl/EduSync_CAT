@@ -1,4 +1,5 @@
 import { Component, Input, ViewEncapsulation, HostListener } from '@angular/core';
+import { AbstractControl } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { IonCard, IonCardContent } from '@ionic/angular/standalone';
 
@@ -42,5 +43,21 @@ export class AuthCardComponent {
         event.stopPropagation();
         event.preventDefault();
         this.isEmailPopoverVisible = !this.isEmailPopoverVisible;
+    }
+
+    public getEmailValidationMessage(emailControl: AbstractControl | null): string {
+        if (!emailControl) {
+            return 'Formato inválido';
+        }
+
+        if (emailControl.hasError('required')) {
+            return 'Campo vacío';
+        }
+
+        if (emailControl.hasError('email') || emailControl.hasError('pattern')) {
+            return 'Formato inválido';
+        }
+
+        return 'Correo válido';
     }
 }

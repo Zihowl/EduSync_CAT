@@ -27,6 +27,8 @@ impl AuthMutation {
 
         Ok(LoginResponseType {
             access_token: res.access_token,
+            refresh_token: res.refresh_token,
+            expires_in: res.expires_in,
             user: res.user.into(),
         })
     }

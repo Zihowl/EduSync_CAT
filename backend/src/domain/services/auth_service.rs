@@ -29,6 +29,8 @@ pub struct Claims {
 #[derive(Clone)]
 pub struct LoginResult {
     pub access_token: String,
+    pub refresh_token: Option<String>,
+    pub expires_in: i64,
     pub user: User,
 }
 
@@ -157,6 +159,8 @@ impl AuthService {
 
         Ok(LoginResult {
             access_token: token,
+            refresh_token: None,
+            expires_in: self.jwt_expires_in_secs,
             user,
         })
     }
