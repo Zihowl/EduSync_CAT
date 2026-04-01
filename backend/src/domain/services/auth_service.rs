@@ -345,10 +345,6 @@ mod tests {
                 Err(DomainError::NotFound("User not found".into()))
             }
         }
-
-        async fn count_all(&self) -> Result<i64, DomainError> {
-            Ok(1)
-        }
     }
 
     async fn setup_auth_service() -> (AuthService, std::sync::Arc<MockUserRepository>) {

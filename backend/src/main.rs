@@ -3,7 +3,7 @@ mod config;
 mod domain;
 mod infrastructure;
 
-use std::{fs, net::SocketAddr, path::Path, sync::Arc};
+use std::{net::SocketAddr, sync::Arc};
 
 use adapters::{
     auth::middleware::read_auth_user_from_headers,
@@ -21,7 +21,6 @@ use axum::{
     Extension, Router,
 };
 use config::AppConfig;
-use chrono::Utc;
 use rand::prelude::{IndexedRandom, SliceRandom};
 use rand::RngExt;
 use domain::{
@@ -62,8 +61,6 @@ use infrastructure::persistence::{
 };
 use sqlx::PgPool;
 use tower_http::cors::{Any, CorsLayer};
-
-const GENESIS_CREDENTIALS_FILE: &str = ".genesis-super-admin.json";
 
 #[derive(Clone)]
 pub struct AppState {
@@ -183,73 +180,44 @@ async fn graphql_playground() -> impl IntoResponse {
 }
 
 async fn genesis_protocol(user_repo: Arc<dyn UserRepository>) -> anyhow::Result<()> {
-    let count = user_repo.count_all().await.map_err(anyhow::Error::msg)?;
-    if count > 0 {
-        if Path::new(GENESIS_CREDENTIALS_FILE).exists() {
-            tracing::warn!(
-                "Genesis Protocol already executed. You can recover temporary credentials from {}",
-                GENESIS_CREDENTIALS_FILE
-            );
-        } else {
-            tracing::warn!(
-                "Genesis Protocol already executed. Credentials file not found ({}).",
-                GENESIS_CREDENTIALS_FILE
-            );
-        }
+    let users = user_repo.find_all().await.map_err(anyhow::Error::msg)?;
+
+    let mut replace_existing_user_id: Option<uuid::Uuid> = None;
+
+    if users.is_empty() {
+        tracing::warn!("Empty database detected. Starting Genesis Protocol...");
+    } else if users.len() == 1 && users[0].email.ends_with("@setup.local") {
+        tracing::warn!("Single setup.local user detected. Regenerating Genesis credentials...");
+        replace_existing_user_id = Some(users[0].id);
+    } else {
+        tracing::warn!("Genesis Protocol already executed. No regeneration needed.");
         return Ok(());
     }
 
-    tracing::warn!("Empty database detected. Starting Genesis Protocol...");
-
-    // Generate random email: admin-{randomHex}@setup.local
+    // Random generator instance
     let mut rng = rand::rng();
-    let random_hex: String = (0..8)
-        .map(|_| format!("{:x}", rng.random_range(0..16)))
-        .collect();
-    let email = format!("admin-{}@setup.local", random_hex);
 
-    // Generate complex password (32 chars): uppercase, lowercase, number, symbol + random fill
-    let uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".chars().collect::<Vec<_>>();
-    let lowercase = "abcdefghijklmnopqrstuvwxyz".chars().collect::<Vec<_>>();
-    let numbers = "0123456789".chars().collect::<Vec<_>>();
-    let symbols = "!@#$%^&*()-_=+[]{}<>?".chars().collect::<Vec<_>>();
+    // Generate credentials once and hash password
+    let email = generate_genesis_email(&mut rng);
+    let password = generate_genesis_password(&mut rng);
+    let hash = hash_password(&password)?;
 
-    let mut password_chars = vec![
-        uppercase.choose(&mut rng).copied().unwrap_or('A'),
-        lowercase.choose(&mut rng).copied().unwrap_or('a'),
-        numbers.choose(&mut rng).copied().unwrap_or('0'),
-        symbols.choose(&mut rng).copied().unwrap_or('!'),
-    ];
-
-    let all_chars: Vec<char> = uppercase
-        .iter()
-        .chain(lowercase.iter())
-        .chain(numbers.iter())
-        .chain(symbols.iter())
-        .copied()
-        .collect();
-
-    // Fill remainder with random characters
-    for _ in 4..32 {
-        password_chars.push(*all_chars.choose(&mut rng).unwrap());
+    if let Some(user_id) = replace_existing_user_id {
+        user_repo
+            .update_credentials(user_id, &email, &hash, true)
+            .await
+            .map_err(anyhow::Error::msg)?;
+        tracing::warn!("Genesis Protocol: Existing @setup.local user updated.");
+    } else {
+        user_repo
+            .create_admin(&email, "Super Administrator", &hash, true)
+            .await
+            .map_err(anyhow::Error::msg)?;
+        tracing::warn!(
+            "Genesis Protocol: Super Administrator created. Email: {}",
+            email
+        );
     }
-
-    // Shuffle to avoid predictable pattern
-    password_chars.shuffle(&mut rng);
-    let password: String = password_chars.iter().collect();
-
-    // Hash password with Argon2
-    let salt = SaltString::generate(&mut argon2::password_hash::rand_core::OsRng);
-    let hash = Argon2::default()
-        .hash_password(password.as_bytes(), &salt)
-        .map(|h| h.to_string())
-        .map_err(|e| anyhow::Error::msg(format!("Failed to hash genesis password: {e}")))?;
-
-    // Create super admin user
-    user_repo
-        .create_admin(&email, "Super Administrator", &hash, true)
-        .await
-        .map_err(anyhow::Error::msg)?;
 
     // Print credentials in formatted output
     println!("===============================================");
@@ -259,39 +227,50 @@ async fn genesis_protocol(user_repo: Arc<dyn UserRepository>) -> anyhow::Result<
     println!(" Password: {}", password);
     println!("===============================================");
 
-    persist_genesis_credentials(&email, &password)?;
-
-    tracing::warn!(
-        "Genesis Protocol: Super Administrator created. Email: {}. Credentials persisted at {}",
-        email,
-        GENESIS_CREDENTIALS_FILE
-    );
+    tracing::warn!("Genesis Protocol completed. Credentials are valid for one-time use.");
 
     Ok(())
 }
 
-fn persist_genesis_credentials(email: &str, password: &str) -> anyhow::Result<()> {
-    let payload = serde_json::json!({
-        "email": email,
-        "password": password,
-        "generatedAtUtc": Utc::now().to_rfc3339(),
-    });
+fn generate_genesis_email(rng: &mut impl rand::Rng) -> String {
+    let random_hex: String = (0..8)
+        .map(|_| format!("{:x}", rng.random_range(0..16)))
+        .collect();
+    format!("admin-{}@setup.local", random_hex)
+}
 
-    fs::write(
-        GENESIS_CREDENTIALS_FILE,
-        serde_json::to_string_pretty(&payload)
-            .map_err(|e| anyhow::Error::msg(format!("Failed to encode genesis credentials: {e}")))?,
-    )
-    .map_err(|e| anyhow::Error::msg(format!("Failed to persist genesis credentials file: {e}")))?;
+fn generate_genesis_password(rng: &mut impl rand::Rng) -> String {
+    let uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".chars().collect::<Vec<_>>();
+    let lowercase = "abcdefghijklmnopqrstuvwxyz".chars().collect::<Vec<_>>();
+    let numbers = "0123456789".chars().collect::<Vec<_>>();
+    let symbols = "!@#$%^&*()-_=+[]{}<>?".chars().collect::<Vec<_>>();
 
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let perms = fs::Permissions::from_mode(0o600);
-        let _ = fs::set_permissions(GENESIS_CREDENTIALS_FILE, perms);
+    let mut password_chars = vec![
+        *uppercase.choose(rng).unwrap_or(&'A'),
+        *lowercase.choose(rng).unwrap_or(&'a'),
+        *numbers.choose(rng).unwrap_or(&'0'),
+        *symbols.choose(rng).unwrap_or(&'!'),
+    ];
+
+    let mut all_chars: Vec<char> = uppercase;
+    all_chars.extend(lowercase);
+    all_chars.extend(numbers);
+    all_chars.extend(symbols);
+
+    for _ in 4..32 {
+        password_chars.push(*all_chars.choose(rng).unwrap());
     }
 
-    Ok(())
+    password_chars.shuffle(rng);
+    password_chars.iter().collect()
+}
+
+fn hash_password(password: &str) -> anyhow::Result<String> {
+    let salt = SaltString::generate(&mut argon2::password_hash::rand_core::OsRng);
+    Argon2::default()
+        .hash_password(password.as_bytes(), &salt)
+        .map(|h| h.to_string())
+        .map_err(|e| anyhow::Error::msg(format!("Failed to hash genesis password: {e}")))
 }
 
 fn build_cors_layer(cors_origin: &str) -> anyhow::Result<CorsLayer> {

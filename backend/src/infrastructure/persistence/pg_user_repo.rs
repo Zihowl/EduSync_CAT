@@ -168,12 +168,4 @@ impl UserRepository for PgUserRepository {
 
         Ok(row.into())
     }
-
-    async fn count_all(&self) -> Result<i64, DomainError> {
-        let total: (i64,) = sqlx::query_as("SELECT COUNT(*)::bigint FROM users")
-            .fetch_one(&self.pool)
-            .await
-            .map_err(map_sqlx)?;
-        Ok(total.0)
-    }
 }

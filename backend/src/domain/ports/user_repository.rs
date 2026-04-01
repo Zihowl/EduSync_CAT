@@ -21,5 +21,4 @@ pub trait UserRepository: Send + Sync {
     async fn reset_failed_login_attempts(&self, user_id: Uuid) -> Result<(), DomainError>;
     async fn set_lockout_until(&self, user_id: Uuid, until: Option<chrono::DateTime<Utc>>) -> Result<(), DomainError>;
     async fn update_credentials(&self, user_id: Uuid, email: &str, password_hash: &str, is_temp_password: bool) -> Result<User, DomainError>;
-    async fn count_all(&self) -> Result<i64, DomainError>;
 }
