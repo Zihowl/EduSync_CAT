@@ -144,8 +144,12 @@ export class LoginComponent {
 
           const messageLower = parsed.message.toLowerCase();
           if (messageLower.includes('contraseña temporal') || messageLower.includes('contraseña temporalmente')) {
-            this.setError('Contraseña temporal', 'Tu contraseña actual es temporal; por favor actualiza tus credenciales.', 'shield-half', 'info');
-            this.router.navigateByUrl('/auth/change-credentials', { state: { email: this.loginForm.value.email } });
+            this.router.navigateByUrl('/auth/change-credentials', {
+              state: {
+                email: this.loginForm.value.email,
+                message: 'Tu contraseña actual es temporal; por favor actualiza tus credenciales.',
+              },
+            });
             return;
           }
 

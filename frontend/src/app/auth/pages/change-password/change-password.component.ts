@@ -106,9 +106,17 @@ export class ChangePasswordComponent implements OnDestroy {
   }
 
   ngOnInit(): void {
-    const email = this.router.getCurrentNavigation()?.extras?.state as { email?: string } | undefined;
-    if (email?.email) {
-      this.form.patchValue({ current_email: email.email, new_email: email.email });
+    const state = this.router.getCurrentNavigation()?.extras?.state as
+      | { email?: string; message?: string }
+      | undefined;
+
+    if (state?.email) {
+      this.form.patchValue({ current_email: state.email, new_email: state.email });
+    }
+
+    if (state?.message) {
+      this.setError('Contraseña temporal', state.message, 'shield-half', 'info');
+      window.history.replaceState({}, '', this.router.url);
     }
   }
 
