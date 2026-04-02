@@ -144,12 +144,14 @@ export class LoginComponent {
 
           const messageLower = parsed.message.toLowerCase();
           if (messageLower.includes('contraseña temporal') || messageLower.includes('contraseña temporalmente')) {
+            const currentUser = this.authService.getCurrentUser();
+            const allowEmailChange = currentUser?.role === 'SUPER_ADMIN';
+
             this.router.navigateByUrl('/auth/change-credentials', {
               state: {
                 email: this.loginForm.value.email,
                 message: 'Tu contraseña actual es temporal; por favor actualiza tus credenciales.',
-                // Este flujo apena ocurre en el primer acceso con contraseña temporal.
-                changeEmailAllowed: true,
+                changeEmailAllowed: allowEmailChange,
               },
             });
             return;

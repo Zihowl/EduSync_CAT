@@ -113,8 +113,7 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
       | { email?: string; message?: string; changeEmailAllowed?: boolean }
       | undefined;
 
-    const isTempPasswordFlow = !!state?.message?.toLowerCase().includes('temporal');
-    this.canChangeEmail = currentUser?.role === 'SUPER_ADMIN' || !!state?.changeEmailAllowed || isTempPasswordFlow;
+    this.canChangeEmail = currentUser?.role === 'SUPER_ADMIN' || !!state?.changeEmailAllowed;
 
     if (currentUser?.email) {
       this.form.patchValue({ current_email: currentUser.email });
