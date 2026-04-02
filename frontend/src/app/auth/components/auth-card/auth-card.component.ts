@@ -107,12 +107,21 @@ export class AuthCardComponent {
         }
 
         if (type === 'email') {
+            if (control.hasError('forbiddenDomain')) {
+                return 'El dominio @setup.local no está permitido';
+            }
+            if (control.hasError('invalidExtension')) {
+                return 'Extensión inválida';
+            }
             if (control.hasError('email') || control.hasError('pattern')) {
                 return 'Formato inválido';
             }
         }
 
         if (type === 'password') {
+            if (control.hasError('sameAsCurrent')) {
+                return 'La nueva contraseña no puede ser igual a la actual';
+            }
             if (control.hasError('minlength')) {
                 return 'La contraseña debe tener al menos 8 caracteres.';
             }

@@ -234,15 +234,15 @@ impl AuthService {
             return Err(DomainError::BadRequest("La contraseña debe incluir al menos 3 de 4 categorias: mayusculas, minusculas, numeros y simbolos".to_string()));
         }
 
+        if self.verify_user_password(&user, new_password, true).await.is_ok() {
+            return Err(DomainError::BadRequest("La nueva contraseña no puede ser igual a la actual".to_string()));
+        }
+
         let mut rng = OsRng;
         let new_password_hash = Argon2::default()
             .hash_password(new_password.as_bytes(), &SaltString::generate(&mut rng))
             .map_err(|e| DomainError::Internal(format!("No se pudo hashear contraseña: {e}")))?
             .to_string();
-
-        if new_password_hash == user.password_hash {
-            return Err(DomainError::BadRequest("La nueva contraseña no puede ser igual a la actual".to_string()));
-        }
 
         let updated_user = self
             .repo
@@ -257,6 +257,8 @@ impl AuthService {
 mod tests {
     use super::*;
     use crate::domain::errors::DomainError;
+
+    const TEST_PASSWORD: &str = "CorrectHorseBatteryStaple1!";
     use crate::domain::models::user::{User, UserRole};
     use crate::domain::ports::user_repository::UserRepository;
     use argon2::{password_hash::{PasswordHasher, SaltString}, Argon2};
@@ -362,7 +364,7 @@ mod tests {
     }
 
     async fn setup_auth_service() -> (AuthService, std::sync::Arc<MockUserRepository>) {
-        let password = "CorrectHorseBatteryStaple";
+        let password = TEST_PASSWORD;
         let salt = SaltString::from_b64("1234567890123456").unwrap();
         let hash = Argon2::default()
             .hash_password(password.as_bytes(), &salt)
@@ -411,12 +413,12 @@ mod tests {
         assert!(user_after_three.lockout_until.is_some());
 
         // If lockout is in effect, login with correct password is blocked.
-        let res_locked = auth_service.validate_user("admin@example.com", "CorrectHorseBatteryStaple").await;
+        let res_locked = auth_service.validate_user("admin@example.com", TEST_PASSWORD).await;
         assert!(matches!(res_locked, Err(DomainError::Unauthorized(msg)) if msg.contains("Cuenta bloqueada temporalmente")));
 
         // Force unlock and test successful login resets counters.
         repo.set_lockout_until(user_after_three.id, Some(Utc::now() - Duration::seconds(1))).await.unwrap();
-        let success = auth_service.validate_user("admin@example.com", "CorrectHorseBatteryStaple").await;
+        let success = auth_service.validate_user("admin@example.com", TEST_PASSWORD).await;
         assert!(success.is_ok());
 
         let user_after_success = repo.find_by_email("admin@example.com").await.unwrap().unwrap();
@@ -434,7 +436,7 @@ mod tests {
             user.is_temp_password = true;
         }
 
-        let result = auth_service.validate_user("admin@example.com", "CorrectHorseBatteryStaple").await;
+        let result = auth_service.validate_user("admin@example.com", TEST_PASSWORD).await;
 
         assert!(matches!(result, Err(DomainError::Unauthorized(msg)) if msg.contains("temporal")));
     }
@@ -451,7 +453,7 @@ mod tests {
         let result = auth_service
             .change_credentials(
                 "admin@example.com",
-                "CorrectHorseBatteryStaple",
+                TEST_PASSWORD,
                 "admin2@example.com",
                 "NewStrongPass1!",
             )
@@ -470,6 +472,22 @@ mod tests {
 
         let login_result = auth_service.login(validate.unwrap()).unwrap();
         assert!(!login_result.access_token.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_change_credentials_rejects_same_password() {
+        let (auth_service, _repo) = setup_auth_service().await;
+
+        let result = auth_service
+            .change_credentials(
+                "admin@example.com",
+                TEST_PASSWORD,
+                "admin@example.com",
+                TEST_PASSWORD,
+            )
+            .await;
+
+        assert!(matches!(result, Err(DomainError::BadRequest(msg)) if msg.contains("La nueva contraseña no puede ser igual a la actual")));
     }
 }
 
