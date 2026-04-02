@@ -260,6 +260,9 @@ impl AuthService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::AppConfig;
+    use crate::adapters::auth::jwt::decode_jwt;
+    use crate::adapters::auth::middleware::read_auth_user_from_headers;
     use crate::domain::errors::DomainError;
 
     const TEST_PASSWORD: &str = "CorrectHorseBatteryStaple1!";
@@ -542,6 +545,49 @@ mod tests {
 
         assert!(matches!(result, Err(DomainError::Unauthorized(msg)) if msg.contains("Solo el Super Administrador puede cambiar el correo electrónico")));
     }
+
+    #[tokio::test]
+    async fn test_login_token_contains_role_and_valid_signature() {
+    let (auth_service, repo) = setup_auth_service().await;
+    let user = repo.find_by_email("admin@example.com").await.unwrap().unwrap();
+
+    let login_result = auth_service.login(user.clone()).unwrap();
+    let claims = decode_jwt(&login_result.access_token, "secret").expect("JWT debe ser decodificable");
+
+    assert_eq!(claims.email, "admin@example.com");
+    assert_eq!(claims.role, "SUPER_ADMIN");
+    assert!(claims.exp > Utc::now().timestamp());
+}
+
+#[tokio::test]
+async fn test_read_auth_user_from_headers_extracts_claims() {
+    let claims = crate::adapters::auth::jwt::JwtClaims {
+        sub: Uuid::new_v4().to_string(),
+        email: "admin@example.com".to_string(),
+        role: "SUPER_ADMIN".to_string(),
+        exp: (Utc::now() + Duration::seconds(3600)).timestamp(),
+    };
+    let token = crate::adapters::auth::jwt::encode_jwt(&claims, "secret").expect("JWT debe generarse");
+
+    let mut headers = axum::http::HeaderMap::new();
+    headers.insert(axum::http::header::AUTHORIZATION, format!("Bearer {}", token).parse().unwrap());
+
+    let config = AppConfig {
+        app_host: "0.0.0.0".to_string(),
+        app_port: 3000,
+        database_url: "postgres://postgres:postgres@localhost:5432/edusync_db".to_string(),
+        jwt_secret: "secret".to_string(),
+        jwt_expires_in_secs: 3600,
+        cors_origin: "http://localhost:8100".to_string(),
+        genesis_super_admin_email: "superadmin@edusync.edu.mx".to_string(),
+        genesis_super_admin_password: "ChangeMe123!".to_string(),
+        genesis_super_admin_name: "Super Administrador".to_string(),
+    };
+
+    let auth_user = read_auth_user_from_headers(&headers, &config).expect("Debe extraerse sesión");
+    assert_eq!(auth_user.email, "admin@example.com");
+    assert_eq!(auth_user.role, "SUPER_ADMIN");
+}
 }
 
 
