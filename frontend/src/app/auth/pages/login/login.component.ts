@@ -148,6 +148,8 @@ export class LoginComponent {
               state: {
                 email: this.loginForm.value.email,
                 message: 'Tu contraseña actual es temporal; por favor actualiza tus credenciales.',
+                // Este flujo apena ocurre en el primer acceso con contraseña temporal.
+                changeEmailAllowed: true,
               },
             });
             return;

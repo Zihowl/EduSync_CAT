@@ -109,7 +109,12 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const currentUser = this.authService.getCurrentUser();
-    this.canChangeEmail = currentUser?.role === 'SUPER_ADMIN';
+    const state = this.router.getCurrentNavigation()?.extras?.state as
+      | { email?: string; message?: string; changeEmailAllowed?: boolean }
+      | undefined;
+
+    const isTempPasswordFlow = !!state?.message?.toLowerCase().includes('temporal');
+    this.canChangeEmail = currentUser?.role === 'SUPER_ADMIN' || !!state?.changeEmailAllowed || isTempPasswordFlow;
 
     if (currentUser?.email) {
       this.form.patchValue({ current_email: currentUser.email });
@@ -119,10 +124,6 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
         this.form.get('new_email')?.updateValueAndValidity();
       }
     }
-
-    const state = this.router.getCurrentNavigation()?.extras?.state as
-      | { email?: string; message?: string }
-      | undefined;
 
     if (state?.email) {
       this.form.patchValue({ current_email: state.email });
