@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectorRef, signal, OnDestroy, ViewChild } from '@angular/core';
+import { Component, inject, ChangeDetectorRef, signal, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, Validators, NonNullableFormBuilder, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -36,9 +36,11 @@ type ChangePasswordForm = {
   templateUrl: './change-password.component.html',
   styleUrls: ['./change-password.component.scss'],
 })
-export class ChangePasswordComponent implements OnDestroy {
+export class ChangePasswordComponent implements OnInit, OnDestroy {
   @ViewChild('authCard', { static: true })
   authCard!: AuthCardComponent;
+
+  canChangeEmail = false;
 
   private fb = inject(NonNullableFormBuilder);
   private authService = inject(AuthService);
@@ -106,12 +108,27 @@ export class ChangePasswordComponent implements OnDestroy {
   }
 
   ngOnInit(): void {
+    const currentUser = this.authService.getCurrentUser();
+    this.canChangeEmail = currentUser?.role === 'SUPER_ADMIN';
+
+    if (currentUser?.email) {
+      this.form.patchValue({ current_email: currentUser.email });
+      if (!this.canChangeEmail) {
+        this.form.patchValue({ new_email: currentUser.email });
+        this.form.get('new_email')?.clearValidators();
+        this.form.get('new_email')?.updateValueAndValidity();
+      }
+    }
+
     const state = this.router.getCurrentNavigation()?.extras?.state as
       | { email?: string; message?: string }
       | undefined;
 
     if (state?.email) {
       this.form.patchValue({ current_email: state.email });
+      if (!this.canChangeEmail) {
+        this.form.patchValue({ new_email: state.email });
+      }
     }
 
     if (state?.message) {
@@ -228,6 +245,8 @@ export class ChangePasswordComponent implements OnDestroy {
       confirm_password: string;
     };
 
+    const payloadNewEmail = this.canChangeEmail ? new_email : current_email;
+
     if (current_password === new_password) {
       this.isLoadingSignal.set(false);
       this.setError('Contraseña inválida', 'La nueva contraseña debe ser distinta de la actual.', 'alert-circle', 'warning');
@@ -235,7 +254,7 @@ export class ChangePasswordComponent implements OnDestroy {
     }
 
     this.authService
-      .changeCredentials({ currentEmail: current_email, currentPassword: current_password, newEmail: new_email, newPassword: new_password })
+      .changeCredentials({ currentEmail: current_email, currentPassword: current_password, newEmail: payloadNewEmail, newPassword: new_password })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {

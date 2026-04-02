@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::{
     errors::DomainError,
-    models::user::User,
+    models::user::{User, UserRole},
     ports::user_repository::UserRepository,
 };
 
@@ -218,6 +218,10 @@ impl AuthService {
 
         if new_email.ends_with("@setup.local") {
             return Err(DomainError::BadRequest("El dominio @setup.local no está permitido".to_string()));
+        }
+
+        if new_email != current_email && user.role != UserRole::SuperAdmin {
+            return Err(DomainError::Unauthorized("Solo el Super Administrador puede cambiar el correo electrónico".to_string()));
         }
 
         if new_email != current_email {
@@ -489,5 +493,55 @@ mod tests {
 
         assert!(matches!(result, Err(DomainError::BadRequest(msg)) if msg.contains("La nueva contraseña no puede ser igual a la actual")));
     }
+
+    #[tokio::test]
+    async fn test_change_credentials_rejects_email_change_for_non_superadmin() {
+        let (auth_service, repo) = setup_auth_service().await;
+
+        {
+            let mut user = repo.user.lock().unwrap();
+            user.role = UserRole::AdminHorarios;
+        }
+
+        let result = auth_service
+            .change_credentials(
+                "admin@example.com",
+                TEST_PASSWORD,
+                "new-admin@example.com",
+                "NewStrongPass1!",
+            )
+            .await;
+
+        assert!(matches!(result, Err(DomainError::Unauthorized(msg)) if msg.contains("Solo el Super Administrador puede cambiar el correo electrónico")));
+    }
+
+    #[tokio::test]
+    async fn test_change_credentials_with_specific_temp_user_fails_email_change() {
+        let (auth_service, repo) = setup_auth_service().await;
+
+        {
+            let mut user = repo.user.lock().unwrap();
+            user.role = UserRole::AdminHorarios;
+            user.email = "test@test.com".to_string();
+            let salt = SaltString::from_b64("1234567890123456").unwrap();
+            let hash = Argon2::default()
+                .hash_password("4wemEhG1n7MB8lm?".as_bytes(), &salt)
+                .unwrap()
+                .to_string();
+            user.password_hash = hash;
+        }
+
+        let result = auth_service
+            .change_credentials(
+                "test@test.com",
+                "4wemEhG1n7MB8lm?",
+                "target@test.com",
+                "NewStrongPass1!",
+            )
+            .await;
+
+        assert!(matches!(result, Err(DomainError::Unauthorized(msg)) if msg.contains("Solo el Super Administrador puede cambiar el correo electrónico")));
+    }
 }
+
 
