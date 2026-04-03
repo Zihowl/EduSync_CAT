@@ -78,7 +78,7 @@
             "allowedHosts": [
               "all",
               ".trycloudflare.com",
-              "zihowl.dev"
+              "edusync-cat.zihowl.dev"
             ],
             "proxyConfig": "src/proxy.conf.json"
           },
