@@ -9,6 +9,7 @@ pub struct UserType {
     pub full_name: Option<String>,
     pub role: String,
     pub is_active: bool,
+    pub is_temp_password: bool,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
@@ -21,6 +22,7 @@ impl From<User> for UserType {
             full_name: v.full_name,
             role: v.role.as_str().to_string(),
             is_active: v.is_active,
+            is_temp_password: v.is_temp_password,
             created_at: v.created_at,
             updated_at: v.updated_at,
         }

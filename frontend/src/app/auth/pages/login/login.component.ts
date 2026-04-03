@@ -131,30 +131,29 @@ export class LoginComponent {
       .login(email, password)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () => {
+        next: (user) => {
           this.isLoadingSignal.set(false);
           this.authCard.clearLockoutCountdown();
+
+          if (user.isTempPassword) {
+            sessionStorage.setItem('returnUrl', this.returnUrl);
+            this.router.navigateByUrl('/auth/change-credentials', {
+              state: {
+                email,
+                message: 'Tu contraseña actual es temporal; por favor actualiza tus credenciales.',
+                changeEmailAllowed: user.role === 'SUPER_ADMIN',
+                returnUrl: this.returnUrl,
+              },
+            });
+            return;
+          }
+
           sessionStorage.removeItem('returnUrl');
           this.router.navigateByUrl(this.returnUrl);
         },
         error: (err: unknown) => {
           this.isLoadingSignal.set(false);
           const parsed = this.authService.parseAuthError(err);
-
-          const messageLower = parsed.message.toLowerCase();
-          if (messageLower.includes('contraseña temporal') || messageLower.includes('contraseña temporalmente')) {
-            const currentUser = this.authService.getCurrentUser();
-            const allowEmailChange = currentUser?.role === 'SUPER_ADMIN';
-
-            this.router.navigateByUrl('/auth/change-credentials', {
-              state: {
-                email: this.loginForm.value.email,
-                message: 'Tu contraseña actual es temporal; por favor actualiza tus credenciales.',
-                changeEmailAllowed: allowEmailChange,
-              },
-            });
-            return;
-          }
 
           if (parsed.lockoutSeconds && parsed.lockoutSeconds > 0) {
             this.authCard.startLockoutCountdown(parsed.lockoutSeconds);

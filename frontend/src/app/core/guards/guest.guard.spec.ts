@@ -31,6 +31,7 @@ describe('GuestGuard', () => {
       email: 'admin@example.com',
       role: 'SUPER_ADMIN',
       isActive: true,
+      isTempPassword: false,
     } as any));
 
     const can = await firstValueFrom(guard.canActivate({} as any, {} as any));
@@ -45,6 +46,7 @@ describe('GuestGuard', () => {
       email: 'admin@example.com',
       role: 'ADMIN_HORARIOS',
       isActive: true,
+      isTempPassword: false,
     } as any));
 
     const can = await firstValueFrom(guard.canActivate({} as any, {} as any));

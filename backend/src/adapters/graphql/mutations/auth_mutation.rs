@@ -23,6 +23,16 @@ impl AuthMutation {
             .validate_user(&login_input.email, &login_input.password)
             .await
             .map_err(to_gql_error)?;
+
+        if user.is_temp_password {
+            return Ok(LoginResponseType {
+                access_token: String::new(),
+                refresh_token: None,
+                expires_in: 0,
+                user: user.into(),
+            });
+        }
+
         let res = svc.login(user).map_err(to_gql_error)?;
 
         Ok(LoginResponseType {

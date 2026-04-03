@@ -26,6 +26,7 @@ const LOGIN_MUTATION = gql`
         email
         role
         isActive
+        isTempPassword
       }
     }
   }
@@ -42,6 +43,7 @@ const REFRESH_TOKEN_MUTATION = gql`
         email
         role
         isActive
+        isTempPassword
       }
     }
   }
@@ -66,6 +68,7 @@ const CHANGE_CREDENTIALS_MUTATION = gql`
       email
       role
       isActive
+      isTempPassword
     }
   }
 `;
@@ -77,6 +80,7 @@ const VERIFY_SESSION_QUERY = gql`
       email
       role
       isActive
+      isTempPassword
     }
   }
 `;
@@ -117,7 +121,15 @@ export class AuthService {
       .pipe(
         map((result) => {
           const data = result.data?.Login;
-          if (!data || !data.accessToken || !data.user) {
+          if (!data || !data.user) {
+            throw new Error('Credenciales inválidas');
+          }
+
+          if (data.user.isTempPassword) {
+            return data.user;
+          }
+
+          if (!data.accessToken) {
             throw new Error('Credenciales inválidas');
           }
 
@@ -182,7 +194,7 @@ export class AuthService {
         map((result) => {
           const user = result.data?.VerifySession;
 
-          if (!user || !user.isActive) {
+          if (!user || !user.isActive || user.isTempPassword) {
             this.clearSession();
             return null;
           }
@@ -280,6 +292,10 @@ export class AuthService {
     if (storedUser && storedToken) {
       try {
         const user: User = JSON.parse(storedUser);
+        if (user.isTempPassword) {
+          this.clearSession();
+          return;
+        }
         const isExpired = storedExpiry ? Date.now() / 1000 >= storedExpiry : this.isTokenExpired(storedToken);
 
         this.cacheUser(user);
@@ -334,9 +350,14 @@ export class AuthService {
   }
 
   private cacheUser(user: User): void {
-    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-    this.userSignal.set(user);
-    this.userSubject.next(user);
+    const normalizedUser: User = {
+      ...user,
+      isTempPassword: user.isTempPassword ?? false,
+    };
+
+    localStorage.setItem(this.USER_KEY, JSON.stringify(normalizedUser));
+    this.userSignal.set(normalizedUser);
+    this.userSubject.next(normalizedUser);
   }
 
   private isSessionValidationError(error: unknown): boolean {

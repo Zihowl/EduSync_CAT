@@ -35,6 +35,7 @@ describe('AuthGuard', () => {
       email: 'admin@example.com',
       role: 'SUPER_ADMIN',
       isActive: true,
+      isTempPassword: false,
     } as any));
 
     const can = await firstValueFrom(guard.canActivate({} as any, { url: '/admin/dashboard' } as any));

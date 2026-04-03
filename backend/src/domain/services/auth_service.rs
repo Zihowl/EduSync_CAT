@@ -99,7 +99,7 @@ impl AuthService {
             }
         }
 
-        self.verify_user_password(&user, password, false).await?;
+        self.verify_user_password(&user, password, true).await?;
         Ok(user)
     }
 
@@ -434,7 +434,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_temp_password_prevents_jwt_login() {
+    async fn test_temp_password_login_is_allowed_before_change_credentials() {
         let (auth_service, repo) = setup_auth_service().await;
 
         // Mark this user as having temporary password in repo state.
@@ -445,7 +445,11 @@ mod tests {
 
         let result = auth_service.validate_user("admin@example.com", TEST_PASSWORD).await;
 
-        assert!(matches!(result, Err(DomainError::Unauthorized(msg)) if msg.contains("temporal")));
+        assert!(result.is_ok());
+
+        let login_result = auth_service.login(result.unwrap()).unwrap();
+        assert!(!login_result.access_token.is_empty());
+        assert!(login_result.user.is_temp_password);
     }
 
     #[tokio::test]
