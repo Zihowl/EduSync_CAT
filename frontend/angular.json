@@ -77,7 +77,8 @@
           "options": {
             "allowedHosts": [
               "all",
-              ".trycloudflare.com"
+              ".trycloudflare.com",
+              "zihowl.dev"
             ],
             "proxyConfig": "src/proxy.conf.json"
           },

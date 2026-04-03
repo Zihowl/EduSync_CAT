@@ -3,18 +3,9 @@ const resolveApiUrl = () => {
     return 'http://localhost:3000';
   }
 
-  const host = window.location.hostname || 'localhost';
-
-  // En producción, se espera que el backend esté detrás del mismo dominio del frontend.
-  if (host === 'localhost' || host === '127.0.0.1') {
-    return 'http://localhost:3000';
-  }
-
-  if (host.endsWith('.trycloudflare.com')) {
-    return `https://${host}`;
-  }
-
-  return `http://${host}:3000`;
+  // En el navegador usamos el mismo origen del frontend para que Angular y
+  // Cloudflare Tunnel reenvíen las rutas /graphql, /academic y /public al backend local.
+  return '';
 };
 
 export const environment = {

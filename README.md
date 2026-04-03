@@ -10,9 +10,8 @@
 2. Backend (Rust): `cd backend && ./scripts/dev-up.sh`
 3. Frontend (Ionic + Angular):
    - `cd frontend`
-   - `ionic serve --host 0.0.0.0`
+   - `ionic serve --host 0.0.0.0 --port 8100`
    - (o `npm start -- --host 0.0.0.0 --port 8100`)
 
 > Nota: Ionic corre en `http://localhost:8100` y el backend Rust en `http://localhost:3000`.
-4. Crear Tunel para pruebas:
-   -`cloudflared tunnel --url http://localhost:8100`
+> El frontend llama al API por el mismo origen, así que el proxy local puede reenviar las rutas sin exponer el backend aparte.

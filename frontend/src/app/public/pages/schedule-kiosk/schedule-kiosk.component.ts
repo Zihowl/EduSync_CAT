@@ -171,7 +171,7 @@ export class ScheduleKioskComponent implements OnInit
     viewMode: 'list' | 'day' = 'list';
     loading = false;
 
-    private apiUrl = environment.apiUrl || 'http://localhost:3000';
+    private apiUrl = (environment.apiUrl || '').replace(/\/+$/, '');
 
     ngOnInit()
     {
