@@ -70,6 +70,17 @@ const CHANGE_CREDENTIALS_MUTATION = gql`
   }
 `;
 
+const VERIFY_SESSION_QUERY = gql`
+  query VerifySession {
+    VerifySession {
+      id
+      email
+      role
+      isActive
+    }
+  }
+`;
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly TOKEN_KEY = 'auth_token';
@@ -155,6 +166,41 @@ export class AuthService {
     return this.refreshTokenSignal();
   }
 
+  verifySession(): Observable<User | null> {
+    const token = this.getAccessToken();
+
+    if (!token) {
+      return of(null);
+    }
+
+    return this.apollo
+      .query<{ VerifySession: User }>({
+        query: VERIFY_SESSION_QUERY,
+        fetchPolicy: 'no-cache',
+      })
+      .pipe(
+        map((result) => {
+          const user = result.data?.VerifySession;
+
+          if (!user || !user.isActive) {
+            this.clearSession();
+            return null;
+          }
+
+          this.cacheUser(user);
+          return user;
+        }),
+        catchError((err) => {
+          if (this.isSessionValidationError(err)) {
+            this.clearSession();
+            return of(null);
+          }
+
+          return throwError(() => err);
+        })
+      );
+  }
+
   refreshAccessToken(): Observable<string> {
     const refreshToken = this.getRefreshToken();
 
@@ -201,14 +247,12 @@ export class AuthService {
       if (token.refreshToken) {
         localStorage.setItem(this.REFRESH_TOKEN_KEY, token.refreshToken);
       }
-      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+      this.cacheUser(user);
       localStorage.setItem('token_expiry', token.expiresAt.toString());
 
       this.accessTokenSignal.set(token.accessToken);
       this.refreshTokenSignal.set(token.refreshToken || null);
       this.tokenExpirySignal.set(token.expiresAt);
-      this.userSignal.set(user);
-      this.userSubject.next(user);
     } catch {
       this.clearSession();
     }
@@ -238,8 +282,7 @@ export class AuthService {
         const user: User = JSON.parse(storedUser);
         const isExpired = storedExpiry ? Date.now() / 1000 >= storedExpiry : this.isTokenExpired(storedToken);
 
-        this.userSignal.set(user);
-        this.userSubject.next(user);
+        this.cacheUser(user);
         this.accessTokenSignal.set(storedToken);
         this.refreshTokenSignal.set(storedRefresh || null);
         this.tokenExpirySignal.set(storedExpiry ?? null);
@@ -288,6 +331,32 @@ export class AuthService {
 
     const now = Math.floor(Date.now() / 1000);
     return Number(payload['exp']) <= now;
+  }
+
+  private cacheUser(user: User): void {
+    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    this.userSignal.set(user);
+    this.userSubject.next(user);
+  }
+
+  private isSessionValidationError(error: unknown): boolean {
+    const gqlErr = (error as any)?.graphQLErrors?.[0];
+
+    if (!gqlErr) {
+      return false;
+    }
+
+    const code = String(gqlErr?.extensions?.code ?? '').toUpperCase();
+    const message = String(gqlErr?.message ?? '').toLowerCase();
+
+    return (
+      code === 'UNAUTHENTICATED' ||
+      code === 'UNAUTHORIZED' ||
+      message.includes('unauthorized') ||
+      message.includes('token invalido') ||
+      message.includes('credenciales invalidas') ||
+      message.includes('cuenta inactiva')
+    );
   }
 
   parseAuthError(error: unknown): {
