@@ -1,13 +1,9 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import {
-  IonContent,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonButtons,
-  IonBackButton,
+    IonContent,
   IonCard,
   IonCardContent,
   IonButton,
@@ -25,27 +21,16 @@ import { environment } from '../../../../environments/environment';
     imports: [
         CommonModule,
         IonContent,
-        IonHeader,
-        IonToolbar,
-        IonTitle,
-        IonButtons,
-        IonBackButton,
         IonCard,
         IonCardContent,
         IonButton,
         IonIcon,
         IonProgressBar,
-        IonAlert
+        IonAlert,
+        PageHeaderComponent
     ],
     template: `
-        <ion-header>
-            <ion-toolbar color="primary">
-                <ion-buttons slot="start">
-                    <ion-back-button defaultHref="/admin"></ion-back-button>
-                </ion-buttons>
-                <ion-title>Carga de Horarios</ion-title>
-            </ion-toolbar>
-        </ion-header>
+        <app-page-header title="Carga de Horarios" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content class="ion-padding upload-content">
             <div class="upload-container">

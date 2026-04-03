@@ -4,12 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
 import { 
     IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, 
-    IonBackButton, IonList, IonItem, IonLabel, IonSelect, 
+    IonList, IonItem, IonLabel, IonSelect, 
     IonSelectOption, IonButton, IonIcon, IonFab, IonFabButton, 
-    IonModal, IonInput, IonFooter, IonNote
+    IonModal, IonInput, IonFooter
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trashOutline, addOutline, pencilOutline, homeOutline } from 'ionicons/icons';
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 
 const GET_CLASSROOMS = gql`
     query GetClassrooms {
@@ -56,19 +57,12 @@ const REMOVE_CLASSROOM = gql`
     standalone: true,
     imports: [
         CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, 
-        IonTitle, IonButtons, IonBackButton, IonList, IonItem, 
+        IonTitle, IonButtons, IonList, IonItem, 
         IonLabel, IonSelect, IonSelectOption, IonButton, IonIcon, 
-        IonFab, IonFabButton, IonModal, IonInput, IonFooter
+        IonFab, IonFabButton, IonModal, IonInput, IonFooter, PageHeaderComponent
     ],
     template: `
-        <ion-header>
-            <ion-toolbar color="primary">
-                <ion-buttons slot="start">
-                    <ion-back-button defaultHref="/admin"></ion-back-button>
-                </ion-buttons>
-                <ion-title>Aulas</ion-title>
-            </ion-toolbar>
-        </ion-header>
+        <app-page-header title="Aulas" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content>
             <ion-list lines="inset">

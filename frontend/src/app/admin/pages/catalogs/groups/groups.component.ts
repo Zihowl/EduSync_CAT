@@ -4,12 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
 import { 
     IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, 
-    IonBackButton, IonList, IonItem, IonLabel, 
+    IonList, IonItem, IonLabel, 
     IonButton, IonIcon, IonFab, IonFabButton, 
     IonModal, IonInput, IonFooter, IonSearchbar
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trashOutline, addOutline, pencilOutline, peopleOutline, personOutline, searchOutline, returnDownForward, addCircleOutline, people, person } from 'ionicons/icons';
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 
 const GET_GROUPS = gql`
     query GetGroups {
@@ -61,24 +62,17 @@ const REMOVE_GROUP = gql`
     standalone: true,
     imports: [
         CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, 
-        IonTitle, IonButtons, IonBackButton, IonList, IonItem, 
+        IonTitle, IonButtons, IonList, IonItem, 
         IonLabel, IonButton, IonIcon, 
-        IonFab, IonFabButton, IonModal, IonInput, IonFooter, IonSearchbar
+        IonFab, IonFabButton, IonModal, IonInput, IonFooter, IonSearchbar, PageHeaderComponent
     ],
     template: `
-        <ion-header>
-            <ion-toolbar color="primary">
-                <ion-buttons slot="start">
-                    <ion-back-button defaultHref="/admin"></ion-back-button>
-                </ion-buttons>
-                <ion-title>Grupos</ion-title>
-            </ion-toolbar>
-            <ion-toolbar color="primary">
-                <ion-searchbar (ionInput)="Filter($event)" placeholder="Buscar grupo..." show-clear-button="always"></ion-searchbar>
-            </ion-toolbar>
-        </ion-header>
+        <app-page-header title="Grupos" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content>
+            <div class="ion-padding-horizontal ion-padding-top">
+                <ion-searchbar (ionInput)="Filter($event)" placeholder="Buscar grupo..." show-clear-button="always"></ion-searchbar>
+            </div>
             <ion-list lines="inset">
                 <ion-item *ngFor="let g of filteredGroups" [class.groups-subgroup-item]="g.parent">
                     <ion-icon [name]="g.parent ? 'return-down-forward' : 'people-outline'" slot="start" [color]="g.parent ? 'medium' : 'primary'"></ion-icon>

@@ -1,0 +1,97 @@
+<ion-header class="ion-no-border page-header">
+  <ion-toolbar class="page-header__toolbar">
+    <div class="page-header__layout">
+      <div class="page-header__side page-header__side--start">
+        <ion-buttons *ngIf="showBackButton" class="page-header__buttons">
+          <ion-back-button [defaultHref]="backDefaultHref" [text]="backText"></ion-back-button>
+        </ion-buttons>
+        <div class="page-header__slot page-header__slot--start">
+          <ng-content select="[pageHeaderStart]"></ng-content>
+        </div>
+      </div>
+
+      <div class="page-header__titles">
+        <h1 class="page-header__title">{{ title }}</h1>
+        <p *ngIf="subtitle" class="page-header__subtitle">{{ subtitle }}</p>
+      </div>
+
+      <div class="page-header__side page-header__side--end">
+        <div class="page-header__actions" *ngIf="showStatusBadge || showActionButton || showMenuButton">
+          <ion-badge
+            *ngIf="showStatusBadge"
+            class="page-header__status-badge"
+            [class.page-header__status-badge--info]="statusBadgeTone === 'info'"
+            [class.page-header__status-badge--success]="statusBadgeTone === 'success'"
+            [class.page-header__status-badge--warning]="statusBadgeTone === 'warning'"
+            [class.page-header__status-badge--danger]="statusBadgeTone === 'danger'"
+          >
+            <ion-icon *ngIf="statusBadgeIcon" [name]="statusBadgeIcon" class="page-header__status-icon"></ion-icon>
+            <span class="page-header__status-label">{{ statusBadgeText }}</span>
+          </ion-badge>
+
+          <ion-button
+            *ngIf="showActionButton"
+            fill="clear"
+            color="light"
+            class="page-header__action-button"
+            [attr.aria-label]="actionButtonAriaLabel || actionButtonIcon"
+            (click)="actionButtonClick.emit()"
+          >
+            <ion-icon
+              *ngIf="actionButtonIcon"
+              [name]="actionButtonIcon"
+              [slot]="actionButtonText ? 'start' : 'icon-only'"
+              class="page-header__action-icon"
+            ></ion-icon>
+            <span *ngIf="actionButtonText" class="page-header__action-label">{{ actionButtonText }}</span>
+          </ion-button>
+
+          <div *ngIf="showMenuButton && menuItems.length > 0" class="page-header__menu-wrapper">
+            <ion-button
+              fill="clear"
+              color="light"
+              class="page-header__menu-button"
+              id="page-header-menu-button"
+              [attr.aria-label]="menuButtonAriaLabel"
+              [attr.aria-expanded]="isMenuOpen"
+            >
+              <ion-icon [name]="menuButtonIcon" slot="icon-only"></ion-icon>
+            </ion-button>
+
+            <ion-popover
+              #menuPopover
+              class="page-header__menu-popover"
+              trigger="page-header-menu-button"
+              triggerAction="click"
+              side="bottom"
+              alignment="end"
+              size="auto"
+              [showBackdrop]="false"
+              [dismissOnSelect]="true"
+              [arrow]="false"
+              (didPresent)="isMenuOpen = true"
+              (didDismiss)="isMenuOpen = false"
+            >
+              <ng-template>
+                <div class="page-header__menu-panel" role="menu">
+                  <button
+                    *ngFor="let item of menuItems; trackBy: trackByMenuItem"
+                    type="button"
+                    class="page-header__menu-item"
+                    [class.page-header__menu-item--danger]="item.danger"
+                    [disabled]="item.disabled"
+                    (click)="selectMenuItem(item, $event)"
+                  >
+                    <ion-icon *ngIf="item.icon" [name]="item.icon" class="page-header__menu-item-icon"></ion-icon>
+                    <span class="page-header__menu-item-label">{{ item.label }}</span>
+                  </button>
+                </div>
+              </ng-template>
+            </ion-popover>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </ion-toolbar>
+</ion-header>

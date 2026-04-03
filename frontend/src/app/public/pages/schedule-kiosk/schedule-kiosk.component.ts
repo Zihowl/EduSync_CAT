@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import {
-    IonContent, IonHeader, IonToolbar, IonTitle, IonSelect,
+    IonContent, IonSelect,
     IonSelectOption, IonList, IonItem, IonLabel, IonIcon,
     IonCard, IonCardHeader, IonCardTitle, IonCardContent,
     IonGrid, IonRow, IonCol, IonChip, IonSpinner, IonNote,
@@ -14,6 +14,7 @@ import {
     calendarOutline, timeOutline, personOutline, bookOutline,
     businessOutline, layersOutline, schoolOutline
 } from 'ionicons/icons';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { environment } from '../../../../environments/environment';
 
 interface ScheduleSlot {
@@ -34,21 +35,16 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
     selector: 'app-schedule-kiosk',
     standalone: true,
     imports: [
-        CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, IonTitle,
+        CommonModule, FormsModule, IonContent,
         IonSelect, IonSelectOption, IonList, IonItem, IonLabel, IonIcon,
         IonCard, IonCardHeader, IonCardTitle, IonCardContent,
         IonGrid, IonRow, IonCol, IonChip, IonSpinner,
-        IonSegment, IonSegmentButton
+        IonSegment, IonSegmentButton, PageHeaderComponent
     ],
     template: `
-        <ion-header>
-            <ion-toolbar color="primary">
-                <ion-title>
-                    <ion-icon name="school-outline" class="kiosk-title-icon"></ion-icon>
-                    Consulta de Horarios
-                </ion-title>
-            </ion-toolbar>
-        </ion-header>
+        <app-page-header title="Consulta de Horarios">
+            <ion-icon pageHeaderStart name="school-outline" class="kiosk-title-icon"></ion-icon>
+        </app-page-header>
 
         <ion-content class="ion-padding">
             <ion-grid>

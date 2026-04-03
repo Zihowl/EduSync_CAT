@@ -3,13 +3,9 @@ import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../core/services/auth.service';
 import { RouterModule } from '@angular/router';
 import { Observable, map } from 'rxjs';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import {
-    IonHeader,
-    IonToolbar,
-    IonTitle,
     IonContent,
-    IonButtons,
-    IonButton,
     IonIcon,
     IonCard,
     IonCardHeader,
@@ -17,11 +13,10 @@ import {
     IonCardContent,
     IonGrid,
     IonRow,
-    IonCol,
-    IonBadge
+    IonCol
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { settingsOutline, peopleOutline, logOutOutline, cloudUploadOutline, bookOutline, layersOutline, businessOutline, homeOutline, calendarOutline } from 'ionicons/icons';
+import { settingsOutline, peopleOutline, logOutOutline, cloudUploadOutline, bookOutline, layersOutline, businessOutline, homeOutline, calendarOutline, shieldCheckmarkOutline, personCircleOutline } from 'ionicons/icons';
 
 type Role = 'SUPER_ADMIN' | 'ADMIN_HORARIOS';
 interface Card { title: string; icon: string; route: string; color?: string; roles: Role[]; desc: string; }
@@ -32,12 +27,7 @@ interface Card { title: string; icon: string; route: string; color?: string; rol
     imports: [
         CommonModule,
         RouterModule,
-        IonHeader,
-        IonToolbar,
-        IonTitle,
         IonContent,
-        IonButtons,
-        IonButton,
         IonIcon,
         IonCard,
         IonCardHeader,
@@ -46,34 +36,34 @@ interface Card { title: string; icon: string; route: string; color?: string; rol
         IonGrid,
         IonRow,
         IonCol,
-        IonBadge
+        PageHeaderComponent
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <ion-header>
-            <ion-toolbar color="primary">
-                <ion-title>EduSync Admin</ion-title>
-                <ion-buttons slot="end">
-                    <ion-badge color="light" class="dashboard-badge">{{ (role$ | async) }}</ion-badge>
-                    <ion-button (click)="Logout()">
-                        <ion-icon slot="icon-only" name="log-out-outline"></ion-icon>
-                    </ion-button>
-                </ion-buttons>
-            </ion-toolbar>
-        </ion-header>
+        <ng-container *ngIf="role$ | async as currentRole">
+            <app-page-header
+                title="EduSync Admin"
+                [showStatusBadge]="true"
+                [statusBadgeText]="getRoleLabel(currentRole)"
+                [statusBadgeIcon]="getRoleIcon(currentRole)"
+                [statusBadgeTone]="getRoleTone(currentRole)"
+                [showMenuButton]="true"
+                [menuItems]="headerMenuItems"
+                menuButtonAriaLabel="Abrir menú"
+                (menuItemSelected)="onHeaderMenuItem($event)"
+            ></app-page-header>
 
-        <ion-content class="ion-padding">
-            <ion-grid class="ion-margin-top">
-                <ion-row>
-                    <ion-col size="12" size-md="6">
-                        <h1 class="dashboard-title">Panel de Control</h1>
-                    </ion-col>
-                </ion-row>
+            <ion-content class="ion-padding">
+                <ion-grid class="ion-margin-top">
+                    <ion-row>
+                        <ion-col size="12" size-md="6">
+                            <h1 class="dashboard-title">Panel de Control</h1>
+                        </ion-col>
+                    </ion-row>
 
-                <ng-container *ngIf="(role$ | async) as currentRole">
                     <ion-row>
                         <ng-container *ngFor="let card of cards; trackBy: trackByTitle">
-                            <ion-col *ngIf="currentRole && card.roles.includes(currentRole)" size="12" size-md="6">
+                            <ion-col *ngIf="card.roles.includes(currentRole)" size="12" size-md="6">
                                 <ion-card button [routerLink]="card.route" class="dashboard-card" [color]="card.color">
                                     <ion-card-header>
                                         <ion-card-title>
@@ -88,9 +78,9 @@ interface Card { title: string; icon: string; route: string; color?: string; rol
                             </ion-col>
                         </ng-container>
                     </ion-row>
-                </ng-container>
-            </ion-grid>
-        </ion-content>
+                </ion-grid>
+            </ion-content>
+        </ng-container>
     `
 })
 export class DashboardComponent implements OnInit
@@ -98,6 +88,9 @@ export class DashboardComponent implements OnInit
     private authService = inject(AuthService);
 
     role$: Observable<Role | null> = this.authService.user$.pipe(map(u => (u?.role ?? null) as Role | null));
+    readonly headerMenuItems = [
+        { label: 'Cerrar sesión', value: 'logout', icon: 'log-out-outline', danger: true },
+    ];
 
     cards: Card[] = [
         { title: 'Configuración', icon: 'settings-outline', route: '/admin/config', roles: ['SUPER_ADMIN'], desc: 'Gestionar ciclo escolar y dominios.' },
@@ -113,7 +106,46 @@ export class DashboardComponent implements OnInit
 
     ngOnInit() 
     {
-        addIcons({ settingsOutline, peopleOutline, logOutOutline, cloudUploadOutline, bookOutline, layersOutline, businessOutline, homeOutline, calendarOutline });
+        addIcons({ settingsOutline, peopleOutline, logOutOutline, cloudUploadOutline, bookOutline, layersOutline, businessOutline, homeOutline, calendarOutline, shieldCheckmarkOutline, personCircleOutline });
+    }
+
+    getRoleLabel(role: Role | null): string {
+        switch (role) {
+            case 'SUPER_ADMIN':
+                return 'Super Admin';
+            case 'ADMIN_HORARIOS':
+                return 'Admin Horarios';
+            default:
+                return 'Sin rol';
+        }
+    }
+
+    getRoleIcon(role: Role | null): string {
+        switch (role) {
+            case 'SUPER_ADMIN':
+                return 'shield-checkmark-outline';
+            case 'ADMIN_HORARIOS':
+                return 'calendar-outline';
+            default:
+                return 'person-circle-outline';
+        }
+    }
+
+    getRoleTone(role: Role | null): 'info' | 'success' | 'warning' {
+        switch (role) {
+            case 'SUPER_ADMIN':
+                return 'info';
+            case 'ADMIN_HORARIOS':
+                return 'success';
+            default:
+                return 'warning';
+        }
+    }
+
+    onHeaderMenuItem(item: { value: string }): void {
+        if (item.value === 'logout') {
+            this.Logout();
+        }
     }
 
     trackByTitle(index: number, card: Card) { return card.title; }

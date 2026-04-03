@@ -8,7 +8,6 @@ import {
     IonToolbar,
     IonTitle,
     IonButtons,
-    IonBackButton,
     IonList,
     IonItem,
     IonLabel,
@@ -23,6 +22,7 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { personAddOutline, trashOutline, shieldCheckmarkOutline } from 'ionicons/icons';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 
 const GET_USERS = gql`
     query GetUsers {
@@ -64,7 +64,6 @@ const GET_ALLOWED_DOMAINS = gql`
         IonToolbar,
         IonTitle,
         IonButtons,
-        IonBackButton,
         IonList,
         IonItem,
         IonLabel,
@@ -75,17 +74,11 @@ const GET_ALLOWED_DOMAINS = gql`
         IonNote,
         IonBadge,
         IonFab,
-        IonFabButton
+        IonFabButton,
+        PageHeaderComponent
     ],
     template: `
-        <ion-header>
-            <ion-toolbar color="primary">
-                <ion-buttons slot="start">
-                    <ion-back-button defaultHref="/admin"></ion-back-button>
-                </ion-buttons>
-                <ion-title>Gestión de Usuarios</ion-title>
-            </ion-toolbar>
-        </ion-header>
+        <app-page-header title="Gestión de Usuarios" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content class="ion-padding users-content">
             <div class="users-container">

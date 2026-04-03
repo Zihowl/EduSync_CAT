@@ -4,12 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
 import {
     IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, 
-    IonBackButton, IonList, IonItem, IonLabel, IonAvatar, 
+    IonList, IonItem, IonLabel, IonAvatar, 
     IonIcon, IonSearchbar, IonFab, IonFabButton, IonModal, 
     IonInput, IonFooter, IonButton
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { personOutline, trashOutline, addOutline, pencilOutline, mailOutline, cardOutline } from 'ionicons/icons';
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 
 const GET_TEACHERS = gql`
     query GetTeachers {
@@ -53,24 +54,17 @@ const REMOVE_TEACHER = gql`
     standalone: true,
     imports: [
         CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, 
-        IonTitle, IonButtons, IonBackButton, IonList, IonItem, 
+        IonTitle, IonButtons, IonList, IonItem, 
         IonLabel, IonAvatar, IonIcon, IonSearchbar, IonFab, 
-        IonFabButton, IonModal, IonInput, IonFooter, IonButton
+        IonFabButton, IonModal, IonInput, IonFooter, IonButton, PageHeaderComponent
     ],
     template: `
-        <ion-header>
-            <ion-toolbar color="primary">
-                <ion-buttons slot="start">
-                    <ion-back-button defaultHref="/admin"></ion-back-button>
-                </ion-buttons>
-                <ion-title>Docentes</ion-title>
-            </ion-toolbar>
-            <ion-toolbar color="primary">
-                <ion-searchbar placeholder="Buscar docente..." (ionInput)="Filter($event)"></ion-searchbar>
-            </ion-toolbar>
-        </ion-header>
+        <app-page-header title="Docentes" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content>
+            <div class="ion-padding-horizontal ion-padding-top">
+                <ion-searchbar placeholder="Buscar docente..." (ionInput)="Filter($event)"></ion-searchbar>
+            </div>
             <ion-list lines="inset">
                 <ion-item *ngFor="let t of filteredTeachers">
                     <ion-avatar slot="start" class="teacher-avatar">

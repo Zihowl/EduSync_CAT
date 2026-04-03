@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
 import {
     IonContent, IonHeader, IonToolbar, IonTitle, IonButtons,
-    IonBackButton, IonList, IonItem, IonLabel, IonSelect,
+    IonList, IonItem, IonLabel, IonSelect,
     IonSelectOption, IonButton, IonIcon, IonFab, IonFabButton,
     IonModal, IonInput, IonFooter, IonChip,
     IonSegment, IonSegmentButton, IonBadge, IonToggle, IonNote,
@@ -17,6 +17,7 @@ import {
     layersOutline, checkmarkCircleOutline, closeCircleOutline,
     eyeOutline, eyeOffOutline, gitBranchOutline
 } from 'ionicons/icons';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 
 const GET_SCHEDULES = gql`
     query GetSchedules($filter: ScheduleFilterInput) {
@@ -88,48 +89,46 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
     standalone: true,
     imports: [
         CommonModule, FormsModule, IonContent, IonHeader, IonToolbar,
-        IonTitle, IonButtons, IonBackButton, IonList, IonItem, IonLabel,
+        IonTitle, IonButtons, IonList, IonItem, IonLabel,
         IonSelect, IonSelectOption, IonButton, IonIcon, IonFab, IonFabButton,
         IonModal, IonFooter,
         IonSegment, IonSegmentButton, IonBadge, IonToggle,
-        IonDatetime, IonDatetimeButton, IonPopover
+        IonDatetime, IonDatetimeButton, IonPopover, PageHeaderComponent
     ],
     template: `
-        <ion-header>
-            <ion-toolbar color="primary">
-                <ion-buttons slot="start">
-                    <ion-back-button defaultHref="/admin"></ion-back-button>
-                </ion-buttons>
-                <ion-title>Horarios</ion-title>
-                <ion-buttons slot="end">
-                    <ion-button (click)="PublishSelected()" [disabled]="selectedIds.size === 0">
-                        <ion-icon name="eye-outline" slot="start"></ion-icon>
-                        Publicar
-                    </ion-button>
-                </ion-buttons>
-            </ion-toolbar>
-            <ion-toolbar>
-                <ion-segment [(ngModel)]="filterPublished" (ionChange)="LoadSchedules()">
+        <app-page-header
+            title="Horarios"
+            [showBackButton]="true"
+            backDefaultHref="/admin"
+            [showActionButton]="true"
+            actionButtonIcon="eye-outline"
+            actionButtonText="Publicar"
+            actionButtonAriaLabel="Publicar horarios seleccionados"
+            (actionButtonClick)="PublishSelected()"
+        ></app-page-header>
+
+        <ion-content>
+            <div class="schedule-controls ion-padding-horizontal ion-padding-top">
+                <ion-segment [(ngModel)]="filterPublished" (ionChange)="LoadSchedules()" class="schedule-segment">
                     <ion-segment-button value="all">Todos</ion-segment-button>
                     <ion-segment-button value="published">Publicados</ion-segment-button>
                     <ion-segment-button value="draft">Borradores</ion-segment-button>
                 </ion-segment>
-            </ion-toolbar>
-            <ion-toolbar>
-                <ion-select [(ngModel)]="filterGroupId" (ionChange)="LoadSchedules()" placeholder="Filtrar por grupo" interface="popover" class="schedule-filter">
-                    <ion-select-option [value]="null">Todos los grupos</ion-select-option>
-                    <ion-select-option *ngFor="let g of groups" [value]="g.id">
-                        {{ g.parent ? g.parent.name + '-' : '' }}{{ g.name }}
-                    </ion-select-option>
-                </ion-select>
-                <ion-select [(ngModel)]="filterDay" (ionChange)="LoadSchedules()" placeholder="Día" interface="popover">
-                    <ion-select-option [value]="null">Todos los días</ion-select-option>
-                    <ion-select-option *ngFor="let d of [1,2,3,4,5,6,7]" [value]="d">{{ getDayName(d) }}</ion-select-option>
-                </ion-select>
-            </ion-toolbar>
-        </ion-header>
 
-        <ion-content>
+                <div class="schedule-filter-row">
+                    <ion-select [(ngModel)]="filterGroupId" (ionChange)="LoadSchedules()" placeholder="Filtrar por grupo" interface="popover" class="schedule-filter">
+                        <ion-select-option [value]="null">Todos los grupos</ion-select-option>
+                        <ion-select-option *ngFor="let g of groups" [value]="g.id">
+                            {{ g.parent ? g.parent.name + '-' : '' }}{{ g.name }}
+                        </ion-select-option>
+                    </ion-select>
+                    <ion-select [(ngModel)]="filterDay" (ionChange)="LoadSchedules()" placeholder="Día" interface="popover" class="schedule-filter">
+                        <ion-select-option [value]="null">Todos los días</ion-select-option>
+                        <ion-select-option *ngFor="let d of [1,2,3,4,5,6,7]" [value]="d">{{ getDayName(d) }}</ion-select-option>
+                    </ion-select>
+                </div>
+            </div>
+
             <ion-list lines="full">
                 <ion-item *ngFor="let s of schedules; trackBy: trackById" 
                           [class.schedule-published]="s.isPublished"

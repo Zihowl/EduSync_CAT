@@ -2,8 +2,26 @@ ion-item {
     --padding-start: 16px;
 }
 
+.schedule-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.schedule-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.schedule-filter-row ion-select {
+    flex: 1 1 220px;
+    min-width: 220px;
+}
+
 .schedule-filter {
-    margin-start: 1rem;
+    width: 100%;
 }
 
 .schedule-subject-title {

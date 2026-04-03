@@ -2,9 +2,10 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule, NgForOf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
-import { IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, IonBackButton, IonList, IonItem, IonLabel, IonInput, IonButton, IonIcon, IonCard, IonCardContent } from '@ionic/angular/standalone';
+import { IonContent, IonList, IonItem, IonLabel, IonInput, IonButton, IonIcon, IonCard, IonCardContent } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { alertCircleOutline, calendarOutline, checkmarkOutline, globeOutline, informationCircleOutline, trashOutline } from 'ionicons/icons';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 
 const GET_DOMAINS = gql`
     query GetAllowedDomains {
@@ -59,11 +60,6 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
         NgForOf,
         FormsModule,
         IonContent,
-        IonHeader,
-        IonToolbar,
-        IonTitle,
-        IonButtons,
-        IonBackButton,
         IonList,
         IonItem,
         IonLabel,
@@ -71,17 +67,11 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
         IonButton,
         IonIcon,
         IonCard,
-        IonCardContent
+        IonCardContent,
+        PageHeaderComponent
     ],
     template: `
-        <ion-header>
-            <ion-toolbar color="primary">
-                <ion-buttons slot="start">
-                    <ion-back-button defaultHref="/admin"></ion-back-button>
-                </ion-buttons>
-                <ion-title>Configuración Global</ion-title>
-            </ion-toolbar>
-        </ion-header>
+        <app-page-header title="Configuración Global" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content class="ion-padding config-content">
             <div class="config-wrapper">

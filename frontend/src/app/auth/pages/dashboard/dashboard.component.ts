@@ -1,20 +1,20 @@
 import { Component, inject, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { AuthService } from '../../../core/services/auth.service';
+import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 
 @Component({
     selector: 'app-dashboard',
     schemas: [CUSTOM_ELEMENTS_SCHEMA],
+    standalone: true,
+    imports: [PageHeaderComponent],
     template: `
-        <ion-header>
-            <ion-toolbar color="primary">
-                <ion-title>EduSync Admin</ion-title>
-                <ion-buttons slot="end">
-                    <ion-button (click)="Logout()">
-                        <ion-icon name="log-out-outline" slot="icon-only"></ion-icon>
-                    </ion-button>
-                </ion-buttons>
-            </ion-toolbar>
-        </ion-header>
+        <app-page-header
+            title="EduSync Admin"
+            [showMenuButton]="true"
+            [menuItems]="headerMenuItems"
+            menuButtonAriaLabel="Abrir menú"
+            (menuItemSelected)="onHeaderMenuItem($event)"
+        ></app-page-header>
 
         <ion-content class="ion-padding">
             <div class="container">
@@ -38,9 +38,18 @@ import { AuthService } from '../../../core/services/auth.service';
 export class DashboardComponent
 {
     private authService = inject(AuthService);
+    readonly headerMenuItems = [
+        { label: 'Cerrar sesión', value: 'logout', icon: 'log-out-outline', danger: true },
+    ];
+
+    onHeaderMenuItem(item: { value: string }): void {
+        if (item.value === 'logout') {
+            this.Logout();
+        }
+    }
 
     Logout() 
     {
-        this.authService.Logout();
+        this.authService.logout();
     }
 }

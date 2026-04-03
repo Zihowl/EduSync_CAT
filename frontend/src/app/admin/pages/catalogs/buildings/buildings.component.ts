@@ -4,12 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
 import { 
     IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, 
-    IonBackButton, IonList, IonItem, IonLabel, IonButton, 
+    IonList, IonItem, IonLabel, IonButton, 
     IonIcon, IonFab, IonFabButton, IonModal, IonInput, 
     IonTextarea, IonFooter
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trashOutline, addOutline, pencilOutline, businessOutline } from 'ionicons/icons';
+import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 
 const GET_BUILDINGS = gql`
     query GetBuildings {
@@ -51,19 +52,12 @@ const REMOVE_BUILDING = gql`
     standalone: true,
     imports: [
         CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, 
-        IonTitle, IonButtons, IonBackButton, IonList, IonItem, 
+        IonTitle, IonButtons, IonList, IonItem, 
         IonLabel, IonButton, IonIcon, IonFab, IonFabButton, 
-        IonModal, IonInput, IonTextarea, IonFooter
+        IonModal, IonInput, IonTextarea, IonFooter, PageHeaderComponent
     ],
     template: `
-        <ion-header>
-            <ion-toolbar color="primary">
-                <ion-buttons slot="start">
-                    <ion-back-button defaultHref="/admin"></ion-back-button>
-                </ion-buttons>
-                <ion-title>Edificios</ion-title>
-            </ion-toolbar>
-        </ion-header>
+        <app-page-header title="Edificios" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content>
             <ion-list lines="inset">
