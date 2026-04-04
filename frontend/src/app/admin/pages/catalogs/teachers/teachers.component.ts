@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
@@ -10,7 +10,9 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { personOutline, trashOutline, addOutline, pencilOutline, mailOutline, cardOutline } from 'ionicons/icons';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
 const GET_TEACHERS = gql`
     query GetTeachers {
@@ -142,9 +144,12 @@ const REMOVE_TEACHER = gql`
 export class TeachersComponent implements OnInit
 {
     private apollo = inject(Apollo);
+    private realtimeSync = inject(RealtimeSyncService);
+    private destroyRef = inject(DestroyRef);
 
     teachers: any[] = [];
     filteredTeachers: any[] = [];
+    searchQuery: string = '';
     isModalOpen = false;
     editingItem: any = null;
     formData = {
@@ -155,14 +160,18 @@ export class TeachersComponent implements OnInit
 
     ngOnInit() {
         addIcons({ personOutline, trashOutline, addOutline, pencilOutline, mailOutline, cardOutline });
+        this.setupRealtimeRefresh();
+    }
+
+    ionViewWillEnter(): void {
         this.LoadTeachers();
     }
 
     LoadTeachers() {
-        this.apollo.watchQuery<any>({ query: GET_TEACHERS, fetchPolicy: 'network-only' }).valueChanges.subscribe({
+        this.apollo.query<any>({ query: GET_TEACHERS, fetchPolicy: 'network-only' }).subscribe({
             next: (res: any) => {
                 this.teachers = res?.data?.GetTeachers ?? [];
-                this.filteredTeachers = [...this.teachers];
+                this.ApplyFilter();
             },
             error: (err) => {
                 console.error('Error loading teachers:', err);
@@ -171,11 +180,26 @@ export class TeachersComponent implements OnInit
     }
 
     Filter(event: any) {
-        const query = event.detail.value?.toLowerCase() || '';
+        this.searchQuery = event.detail.value?.toLowerCase() || '';
+        this.ApplyFilter();
+    }
+
+    ApplyFilter() {
+        if (!this.searchQuery) {
+            this.filteredTeachers = [...this.teachers];
+            return;
+        }
+
         this.filteredTeachers = this.teachers.filter(t => 
-            t.name.toLowerCase().includes(query) || 
-            t.employeeNumber.toLowerCase().includes(query)
+            t.name.toLowerCase().includes(this.searchQuery) || 
+            t.employeeNumber.toLowerCase().includes(this.searchQuery)
         );
+    }
+
+    private setupRealtimeRefresh(): void {
+        this.realtimeSync.watchScopes([RealtimeScope.Teachers])
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe(() => this.LoadTeachers());
     }
 
     GetInitials(name: string): string {
@@ -227,12 +251,12 @@ export class TeachersComponent implements OnInit
                         id: Number(this.editingItem.id), 
                         ...teacherInput 
                     } 
-                },
-                refetchQueries: [{ query: GET_TEACHERS }]
+                }
             }).subscribe({
                 next: () => { 
                     this.isModalOpen = false;
                     this.editingItem = null;
+                    this.LoadTeachers();
                 },
                 error: (err) => {
                     console.error('Update teacher error:', err);
@@ -243,10 +267,10 @@ export class TeachersComponent implements OnInit
             this.apollo.mutate({
                 mutation: CREATE_TEACHER,
                 variables: { input: teacherInput },
-                refetchQueries: [{ query: GET_TEACHERS }]
             }).subscribe({
                 next: () => { 
                     this.isModalOpen = false; 
+                    this.LoadTeachers();
                 },
                 error: (err) => {
                     console.error('Create teacher error:', err);
@@ -261,8 +285,8 @@ export class TeachersComponent implements OnInit
         this.apollo.mutate({
             mutation: REMOVE_TEACHER,
             variables: { id: parseInt(id.toString()) },
-            refetchQueries: [{ query: GET_TEACHERS }]
         }).subscribe({
+            next: () => this.LoadTeachers(),
             error: (err) => alert('Error al eliminar: ' + err.message)
         });
     }

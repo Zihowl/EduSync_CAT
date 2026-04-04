@@ -7,17 +7,17 @@ use std::{net::SocketAddr, sync::Arc};
 
 use adapters::{
     auth::middleware::read_auth_user_from_headers,
-    graphql::schema::{build_schema, AppSchema},
+    graphql::{realtime::RealtimeBroadcaster, schema::{build_schema, AppSchema}},
     rest::{public_handler::public_schedules, upload_handler::upload_schedule},
 };
 use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
-use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
+use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
 use axum::{
     extract::State,
     http::HeaderValue,
     response::{Html, IntoResponse},
-    routing::{get, post},
+    routing::{get, get_service, post},
     Extension, Router,
 };
 use config::AppConfig;
@@ -66,6 +66,7 @@ use tower_http::cors::{Any, CorsLayer};
 pub struct AppState {
     pub config: Arc<AppConfig>,
     pub schema: AppSchema,
+    pub realtime: Arc<RealtimeBroadcaster>,
     pub schedule_service: Arc<ScheduleService>,
     pub excel_service: Arc<ExcelService>,
 }
@@ -122,6 +123,7 @@ async fn main() -> anyhow::Result<()> {
         group_service.clone(),
         schedule_service.clone(),
     ));
+    let realtime = Arc::new(RealtimeBroadcaster::new());
 
     let schema = build_schema()
         .data(auth_service.clone())
@@ -134,11 +136,13 @@ async fn main() -> anyhow::Result<()> {
         .data(group_service.clone())
         .data(schedule_service.clone())
         .data(config.clone())
+        .data(realtime.clone())
         .finish();
 
     let state = AppState {
         config: config.clone(),
         schema,
+        realtime,
         schedule_service,
         excel_service,
     };
@@ -147,6 +151,10 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Router::new()
         .route("/graphql", post(graphql_handler).get(graphql_playground))
+        .route(
+            "/graphql/ws",
+            get_service(GraphQLSubscription::new(state.schema.clone())),
+        )
         .route("/academic/upload-schedule", post(upload_schedule))
         .route("/public/schedules", get(public_schedules))
         .layer(Extension(config.clone()))

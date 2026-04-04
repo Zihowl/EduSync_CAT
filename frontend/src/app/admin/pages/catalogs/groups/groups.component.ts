@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
@@ -10,7 +10,9 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trashOutline, addOutline, pencilOutline, peopleOutline, personOutline, searchOutline, returnDownForward, addCircleOutline, people, person } from 'ionicons/icons';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
 const GET_GROUPS = gql`
     query GetGroups {
@@ -143,6 +145,8 @@ const REMOVE_GROUP = gql`
 export class GroupsComponent implements OnInit
 {
     private apollo = inject(Apollo);
+    private realtimeSync = inject(RealtimeSyncService);
+    private destroyRef = inject(DestroyRef);
 
     allGroups: any[] = [];
     groups: any[] = [];
@@ -211,11 +215,15 @@ export class GroupsComponent implements OnInit
 
     ngOnInit() {
         addIcons({ trashOutline, addOutline, pencilOutline, peopleOutline, personOutline, searchOutline, returnDownForward, addCircleOutline, people, person });
+        this.setupRealtimeRefresh();
+    }
+
+    ionViewWillEnter(): void {
         this.LoadGroups();
     }
 
     LoadGroups() {
-        this.apollo.watchQuery<any>({ query: GET_GROUPS, fetchPolicy: 'network-only' }).valueChanges.subscribe({
+        this.apollo.query<any>({ query: GET_GROUPS, fetchPolicy: 'network-only' }).subscribe({
             next: (res: any) => {
                 console.log('GetGroups response:', res);
                 const rawGroups = res?.data?.GetGroups ?? [];
@@ -231,6 +239,12 @@ export class GroupsComponent implements OnInit
                 alert('Error al cargar grupos: ' + err.message);
             }
         });
+    }
+
+    private setupRealtimeRefresh(): void {
+        this.realtimeSync.watchScopes([RealtimeScope.Groups])
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe(() => this.LoadGroups());
     }
 
     Filter(event: any) {
@@ -323,12 +337,12 @@ export class GroupsComponent implements OnInit
                         id: Number(this.editingItem.id),
                         ...groupInput
                     } 
-                },
-                refetchQueries: [{ query: GET_GROUPS }]
+                }
             }).subscribe({
                 next: () => { 
                     this.isModalOpen = false;
                     this.editingItem = null;
+                    this.LoadGroups();
                 },
                 error: (err) => {
                     console.error('Update group error:', err);
@@ -339,9 +353,11 @@ export class GroupsComponent implements OnInit
             this.apollo.mutate({
                 mutation: CREATE_GROUP,
                 variables: { input: groupInput },
-                refetchQueries: [{ query: GET_GROUPS }]
             }).subscribe({
-                next: () => { this.isModalOpen = false; },
+                next: () => {
+                    this.isModalOpen = false;
+                    this.LoadGroups();
+                },
                 error: (err) => {
                     console.error('Create group error:', err);
                     alert('Error al crear: ' + err.message);
@@ -361,9 +377,12 @@ export class GroupsComponent implements OnInit
         this.apollo.mutate({
             mutation: REMOVE_GROUP,
             variables: { id: Number(group.id) },
-            refetchQueries: [{ query: GET_GROUPS }]
         }).subscribe({
-            error: (err) => alert('Error al eliminar: ' + err.message)
+            next: () => this.LoadGroups(),
+            error: (err) => {
+                console.error('Delete group error:', err);
+                alert('Error al eliminar: ' + err.message);
+            }
         });
     }
 }

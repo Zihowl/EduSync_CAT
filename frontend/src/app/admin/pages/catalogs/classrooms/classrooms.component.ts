@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
@@ -10,7 +10,9 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trashOutline, addOutline, pencilOutline, homeOutline } from 'ionicons/icons';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
 const GET_CLASSROOMS = gql`
     query GetClassrooms {
@@ -137,6 +139,8 @@ const REMOVE_CLASSROOM = gql`
 export class ClassroomsComponent implements OnInit
 {
     private apollo = inject(Apollo);
+    private realtimeSync = inject(RealtimeSyncService);
+    private destroyRef = inject(DestroyRef);
 
     classrooms: any[] = [];
     buildings: any[] = [];
@@ -149,12 +153,16 @@ export class ClassroomsComponent implements OnInit
 
     ngOnInit() {
         addIcons({ trashOutline, addOutline, pencilOutline, homeOutline });
+        this.setupRealtimeRefresh();
+    }
+
+    ionViewWillEnter(): void {
         this.LoadBuildings();
         this.LoadClassrooms();
     }
 
     LoadBuildings() {
-        this.apollo.watchQuery<any>({ query: GET_BUILDINGS, fetchPolicy: 'network-only' }).valueChanges.subscribe({
+        this.apollo.query<any>({ query: GET_BUILDINGS, fetchPolicy: 'network-only' }).subscribe({
             next: (res: any) => {
                 this.buildings = res?.data?.GetBuildings ?? [];
             }
@@ -162,11 +170,20 @@ export class ClassroomsComponent implements OnInit
     }
 
     LoadClassrooms() {
-        this.apollo.watchQuery<any>({ query: GET_CLASSROOMS, fetchPolicy: 'network-only' }).valueChanges.subscribe({
+        this.apollo.query<any>({ query: GET_CLASSROOMS, fetchPolicy: 'network-only' }).subscribe({
             next: (res: any) => {
                 this.classrooms = res?.data?.GetClassrooms ?? [];
             }
         });
+    }
+
+    private setupRealtimeRefresh(): void {
+        this.realtimeSync.watchScopes([RealtimeScope.Buildings, RealtimeScope.Classrooms])
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe(() => {
+                this.LoadBuildings();
+                this.LoadClassrooms();
+            });
     }
 
     OpenModal(item: any = null) {
@@ -200,12 +217,13 @@ export class ClassroomsComponent implements OnInit
                         id: Number(this.editingItem.id),
                         ...classroomInput
                     } 
-                },
-                refetchQueries: [{ query: GET_CLASSROOMS }]
+                }
             }).subscribe({
                 next: () => { 
                     this.isModalOpen = false;
                     this.editingItem = null;
+                    this.LoadBuildings();
+                    this.LoadClassrooms();
                 },
                 error: (err) => {
                     console.error('Update classroom error:', err);
@@ -216,9 +234,12 @@ export class ClassroomsComponent implements OnInit
             this.apollo.mutate({
                 mutation: CREATE_CLASSROOM,
                 variables: { input: classroomInput },
-                refetchQueries: [{ query: GET_CLASSROOMS }]
             }).subscribe({
-                next: () => { this.isModalOpen = false; },
+                next: () => {
+                    this.isModalOpen = false;
+                    this.LoadBuildings();
+                    this.LoadClassrooms();
+                },
                 error: (err) => {
                     console.error('Create classroom error:', err);
                     alert('Error al crear: ' + err.message);
@@ -232,8 +253,11 @@ export class ClassroomsComponent implements OnInit
         this.apollo.mutate({
             mutation: REMOVE_CLASSROOM,
             variables: { id: parseInt(id.toString()) },
-            refetchQueries: [{ query: GET_CLASSROOMS }]
         }).subscribe({
+            next: () => {
+                this.LoadBuildings();
+                this.LoadClassrooms();
+            },
             error: (err) => alert('Error al eliminar: ' + err.message)
         });
     }

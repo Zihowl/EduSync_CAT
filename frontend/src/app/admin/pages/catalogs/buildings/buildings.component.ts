@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
@@ -10,7 +10,9 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trashOutline, addOutline, pencilOutline, businessOutline } from 'ionicons/icons';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
 const GET_BUILDINGS = gql`
     query GetBuildings {
@@ -126,6 +128,8 @@ const REMOVE_BUILDING = gql`
 export class BuildingsComponent implements OnInit
 {
     private apollo = inject(Apollo);
+    private realtimeSync = inject(RealtimeSyncService);
+    private destroyRef = inject(DestroyRef);
 
     buildings: any[] = [];
     isModalOpen = false;
@@ -137,11 +141,15 @@ export class BuildingsComponent implements OnInit
 
     ngOnInit() {
         addIcons({ trashOutline, addOutline, pencilOutline, businessOutline });
+        this.setupRealtimeRefresh();
+    }
+
+    ionViewWillEnter(): void {
         this.LoadBuildings();
     }
 
     LoadBuildings() {
-        this.apollo.watchQuery<any>({ query: GET_BUILDINGS, fetchPolicy: 'network-only' }).valueChanges.subscribe({
+        this.apollo.query<any>({ query: GET_BUILDINGS, fetchPolicy: 'network-only' }).subscribe({
             next: (res: any) => {
                 this.buildings = res?.data?.GetBuildings ?? [];
             },
@@ -149,6 +157,12 @@ export class BuildingsComponent implements OnInit
                 console.error('Error loading buildings:', err);
             }
         });
+    }
+
+    private setupRealtimeRefresh(): void {
+        this.realtimeSync.watchScopes([RealtimeScope.Buildings])
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe(() => this.LoadBuildings());
     }
 
     OpenModal(item: any = null) {
@@ -177,12 +191,12 @@ export class BuildingsComponent implements OnInit
                         id: Number(this.editingItem.id), 
                         ...buildingInput
                     } 
-                },
-                refetchQueries: [{ query: GET_BUILDINGS }]
+                }
             }).subscribe({
                 next: () => { 
                     this.isModalOpen = false;
                     this.editingItem = null;
+                    this.LoadBuildings();
                 },
                 error: (err) => {
                     console.error('Update building error:', err);
@@ -193,9 +207,11 @@ export class BuildingsComponent implements OnInit
             this.apollo.mutate({
                 mutation: CREATE_BUILDING,
                 variables: { input: buildingInput },
-                refetchQueries: [{ query: GET_BUILDINGS }]
             }).subscribe({
-                next: () => { this.isModalOpen = false; },
+                next: () => {
+                    this.isModalOpen = false;
+                    this.LoadBuildings();
+                },
                 error: (err) => {
                     console.error('Create building error:', err);
                     alert('Error al crear: ' + err.message);
@@ -209,8 +225,8 @@ export class BuildingsComponent implements OnInit
         this.apollo.mutate({
             mutation: REMOVE_BUILDING,
             variables: { id: parseInt(id.toString()) },
-            refetchQueries: [{ query: GET_BUILDINGS }]
         }).subscribe({
+            next: () => this.LoadBuildings(),
             error: (err) => alert('Error al eliminar: ' + err.message)
         });
     }

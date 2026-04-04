@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
@@ -10,7 +10,9 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trashOutline, addOutline, pencilOutline, bookOutline } from 'ionicons/icons';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
 const GET_SUBJECTS = gql`
     query GetSubjects {
@@ -126,6 +128,8 @@ const REMOVE_SUBJECT = gql`
 export class SubjectsComponent implements OnInit
 {
     private apollo = inject(Apollo);
+    private realtimeSync = inject(RealtimeSyncService);
+    private destroyRef = inject(DestroyRef);
 
     subjects: any[] = [];
     isModalOpen = false;
@@ -137,11 +141,15 @@ export class SubjectsComponent implements OnInit
 
     ngOnInit() {
         addIcons({ trashOutline, addOutline, pencilOutline, bookOutline });
+        this.setupRealtimeRefresh();
+    }
+
+    ionViewWillEnter(): void {
         this.LoadSubjects();
     }
 
     LoadSubjects() {
-        this.apollo.watchQuery<any>({ query: GET_SUBJECTS, fetchPolicy: 'network-only' }).valueChanges.subscribe({
+        this.apollo.query<any>({ query: GET_SUBJECTS, fetchPolicy: 'network-only' }).subscribe({
             next: (res: any) => {
                 this.subjects = res?.data?.GetSubjects ?? [];
             },
@@ -149,6 +157,12 @@ export class SubjectsComponent implements OnInit
                 console.error('Error loading subjects:', err);
             }
         });
+    }
+
+    private setupRealtimeRefresh(): void {
+        this.realtimeSync.watchScopes([RealtimeScope.Subjects])
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe(() => this.LoadSubjects());
     }
 
     OpenModal(item: any = null) {
@@ -177,12 +191,12 @@ export class SubjectsComponent implements OnInit
                         id: Number(this.editingItem.id), 
                         ...subjectInput 
                     } 
-                },
-                refetchQueries: [{ query: GET_SUBJECTS }]
+                }
             }).subscribe({
                 next: () => { 
                     this.isModalOpen = false;
                     this.editingItem = null;
+                    this.LoadSubjects();
                 },
                 error: (err) => {
                     console.error('Update subject error:', err);
@@ -193,9 +207,11 @@ export class SubjectsComponent implements OnInit
             this.apollo.mutate({
                 mutation: CREATE_SUBJECT,
                 variables: { input: subjectInput },
-                refetchQueries: [{ query: GET_SUBJECTS }]
             }).subscribe({
-                next: () => { this.isModalOpen = false; },
+                next: () => {
+                    this.isModalOpen = false;
+                    this.LoadSubjects();
+                },
                 error: (err) => {
                     console.error('Create subject error:', err);
                     alert('Error al crear: ' + err.message);
@@ -209,8 +225,8 @@ export class SubjectsComponent implements OnInit
         this.apollo.mutate({
             mutation: REMOVE_SUBJECT,
             variables: { id: parseInt(id.toString()) },
-            refetchQueries: [{ query: GET_SUBJECTS }]
         }).subscribe({
+            next: () => this.LoadSubjects(),
             error: (err) => alert('Error al eliminar: ' + err.message)
         });
     }

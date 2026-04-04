@@ -7,6 +7,7 @@ use crate::{
         auth::middleware::require_admin,
         graphql::{
             inputs::group_input::{CreateGroupInput, UpdateGroupInput},
+            realtime::{publish_realtime_event, RealtimeScope},
             schema::to_gql_error,
             types::group_type::GroupType,
         },
@@ -23,26 +24,38 @@ impl GroupMutation {
     async fn create_group(&self, ctx: &Context<'_>, input: CreateGroupInput) -> async_graphql::Result<GroupType> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<GroupService>>()?;
-        svc.create(&input.name, input.parent_id)
+        let result = svc.create(&input.name, input.parent_id)
             .await
             .map(Into::into)
-            .map_err(to_gql_error)
+            .map_err(to_gql_error);
+        if result.is_ok() {
+            publish_realtime_event(ctx, &[RealtimeScope::Groups, RealtimeScope::Schedules]);
+        }
+        result
     }
 
     #[graphql(name = "UpdateGroup")]
     async fn update_group(&self, ctx: &Context<'_>, input: UpdateGroupInput) -> async_graphql::Result<GroupType> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<GroupService>>()?;
-        svc.update(input.id, input.name.as_deref(), Some(input.parent_id))
+        let result = svc.update(input.id, input.name.as_deref(), Some(input.parent_id))
             .await
             .map(Into::into)
-            .map_err(to_gql_error)
+            .map_err(to_gql_error);
+        if result.is_ok() {
+            publish_realtime_event(ctx, &[RealtimeScope::Groups, RealtimeScope::Schedules]);
+        }
+        result
     }
 
     #[graphql(name = "RemoveGroup")]
     async fn remove_group(&self, ctx: &Context<'_>, id: i32) -> async_graphql::Result<bool> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<GroupService>>()?;
-        svc.delete(id).await.map_err(to_gql_error)
+        let result = svc.delete(id).await.map_err(to_gql_error);
+        if result.is_ok() {
+            publish_realtime_event(ctx, &[RealtimeScope::Groups, RealtimeScope::Schedules]);
+        }
+        result
     }
 }

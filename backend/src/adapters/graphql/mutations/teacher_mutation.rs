@@ -7,6 +7,7 @@ use crate::{
         auth::middleware::require_admin,
         graphql::{
             inputs::teacher_input::{CreateTeacherInput, UpdateTeacherInput},
+            realtime::{publish_realtime_event, RealtimeScope},
             schema::to_gql_error,
             types::teacher_type::TeacherType,
         },
@@ -23,17 +24,21 @@ impl TeacherMutation {
     async fn create_teacher(&self, ctx: &Context<'_>, input: CreateTeacherInput) -> async_graphql::Result<TeacherType> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<TeacherService>>()?;
-        svc.create(&input.employee_number, &input.name, input.email.as_deref())
+        let result = svc.create(&input.employee_number, &input.name, input.email.as_deref())
             .await
             .map(Into::into)
-            .map_err(to_gql_error)
+            .map_err(to_gql_error);
+        if result.is_ok() {
+            publish_realtime_event(ctx, &[RealtimeScope::Teachers, RealtimeScope::Schedules]);
+        }
+        result
     }
 
     #[graphql(name = "UpdateTeacher")]
     async fn update_teacher(&self, ctx: &Context<'_>, input: UpdateTeacherInput) -> async_graphql::Result<TeacherType> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<TeacherService>>()?;
-        svc.update(
+        let result = svc.update(
             input.id,
             input.employee_number.as_deref(),
             input.name.as_deref(),
@@ -41,13 +46,21 @@ impl TeacherMutation {
         )
         .await
         .map(Into::into)
-        .map_err(to_gql_error)
+        .map_err(to_gql_error);
+        if result.is_ok() {
+            publish_realtime_event(ctx, &[RealtimeScope::Teachers, RealtimeScope::Schedules]);
+        }
+        result
     }
 
     #[graphql(name = "RemoveTeacher")]
     async fn remove_teacher(&self, ctx: &Context<'_>, id: i32) -> async_graphql::Result<bool> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<TeacherService>>()?;
-        svc.delete(id).await.map_err(to_gql_error)
+        let result = svc.delete(id).await.map_err(to_gql_error);
+        if result.is_ok() {
+            publish_realtime_event(ctx, &[RealtimeScope::Teachers, RealtimeScope::Schedules]);
+        }
+        result
     }
 }

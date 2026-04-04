@@ -1,11 +1,14 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, NgZone, inject } from '@angular/core';
 import { CommonModule, NgForOf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { IonContent, IonList, IonItem, IonLabel, IonInput, IonButton, IonIcon, IonCard, IonCardContent } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { alertCircleOutline, calendarOutline, checkmarkOutline, globeOutline, informationCircleOutline, trashOutline } from 'ionicons/icons';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { DestroyRef } from '@angular/core';
+import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realtime-sync.service';
 
 const GET_DOMAINS = gql`
     query GetAllowedDomains {
@@ -213,12 +216,21 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
 export class ConfigComponent implements OnInit
 {
     private apollo = inject(Apollo);
+    private cdr = inject(ChangeDetectorRef);
+    private ngZone = inject(NgZone);
+    private destroyRef = inject(DestroyRef);
+    private realtimeSync = inject(RealtimeSyncService);
 
     domains: any[] = [];
     currentSchoolYear: any = null;
     newDomain: string = '';
     newSchoolYearStart: string = '';
     newSchoolYearEnd: string = '';
+
+    private runInZone(action: () => void): void
+    {
+        this.ngZone.run(action);
+    }
 
     ngOnInit() 
     {
@@ -230,28 +242,40 @@ export class ConfigComponent implements OnInit
                 alertCircleOutline,
                 informationCircleOutline
             });
+            this.setupRealtimeRefresh();
+    }
+
+    ionViewWillEnter(): void
+    {
         this.LoadDomains();
         this.LoadCurrentSchoolYear();
     }
 
     LoadDomains() 
     {
-        this.apollo.watchQuery<any>({ query: GET_DOMAINS })
-            .valueChanges.subscribe({
+        this.apollo.query<any>({ query: GET_DOMAINS, fetchPolicy: 'network-only' })
+            .subscribe({
                 next: (res: any) => {
-                    const data = res?.data;
-                    if (!data)
-                    {
-                        console.error('GetAllowedDomains returned no data:', res);
-                        this.domains = [];
-                        return;
-                    }
+                    this.runInZone(() => {
+                        const data = res?.data;
+                        if (!data)
+                        {
+                            console.error('GetAllowedDomains returned no data:', res);
+                            this.domains = [];
+                            this.cdr.detectChanges();
+                            return;
+                        }
 
-                    this.domains = data.GetAllowedDomains ?? [];
+                        this.domains = data.GetAllowedDomains ?? [];
+                        this.cdr.detectChanges();
+                    });
                 },
                 error: (err) => {
-                    console.error('GetAllowedDomains network/error:', err);
-                    this.domains = [];
+                    this.runInZone(() => {
+                        console.error('GetAllowedDomains network/error:', err);
+                        this.domains = [];
+                        this.cdr.detectChanges();
+                    });
                 }
             });
     }
@@ -261,17 +285,23 @@ export class ConfigComponent implements OnInit
         this.apollo.query<any>({ query: GET_CURRENT_SCHOOL_YEAR, fetchPolicy: 'network-only' })
             .subscribe({
                 next: (res: any) => {
-                    const data = res?.data;
-                    const errors = res?.errors;
-                    if (errors && errors.length > 0) {
-                        console.error('GetCurrentSchoolYear errors:', errors);
-                    }
-                    console.debug('GetCurrentSchoolYear result:', data);
-                    this.currentSchoolYear = data?.GetCurrentSchoolYear ?? null;
+                    this.runInZone(() => {
+                        const data = res?.data;
+                        const errors = res?.errors;
+                        if (errors && errors.length > 0) {
+                            console.error('GetCurrentSchoolYear errors:', errors);
+                        }
+                        console.debug('GetCurrentSchoolYear result:', data);
+                        this.currentSchoolYear = data?.GetCurrentSchoolYear ?? null;
+                        this.cdr.detectChanges();
+                    });
                 },
                 error: (err) => {
-                    console.error('GetCurrentSchoolYear network/error:', err);
-                    this.currentSchoolYear = null;
+                    this.runInZone(() => {
+                        console.error('GetCurrentSchoolYear network/error:', err);
+                        this.currentSchoolYear = null;
+                        this.cdr.detectChanges();
+                    });
                 }
             });
     }
@@ -286,11 +316,14 @@ export class ConfigComponent implements OnInit
         this.apollo.mutate({
             mutation: ADD_DOMAIN,
             variables: { domain: this.newDomain },
-            refetchQueries: [{ query: GET_DOMAINS }]
         }).subscribe({
         next: () =>
         {
-                this.newDomain = '';
+                this.runInZone(() => {
+                    this.newDomain = '';
+                    this.cdr.detectChanges();
+                });
+                this.LoadDomains();
             },
             error: (err) => alert('Error al agregar dominio: ' + err.message)
         });
@@ -306,14 +339,15 @@ export class ConfigComponent implements OnInit
         this.apollo.mutate({
             mutation: SET_CURRENT_SCHOOL_YEAR,
             variables: { startDate: this.newSchoolYearStart, endDate: this.newSchoolYearEnd },
-            refetchQueries: [{ query: GET_CURRENT_SCHOOL_YEAR }]
         }).subscribe({
             next: (res: any) => {
                 console.debug('SetCurrentSchoolYear response:', res);
-                alert('Ciclo en curso actualizado: ' + this.newSchoolYearStart + ' - ' + this.newSchoolYearEnd);
-                this.newSchoolYearStart = '';
-                this.newSchoolYearEnd = '';
-                // Force reload in case refetchQueries didn't run with auth headers yet
+                this.runInZone(() => {
+                    alert('Ciclo en curso actualizado: ' + this.newSchoolYearStart + ' - ' + this.newSchoolYearEnd);
+                    this.newSchoolYearStart = '';
+                    this.newSchoolYearEnd = '';
+                    this.cdr.detectChanges();
+                });
                 this.LoadCurrentSchoolYear();
             },
             error: (err) => alert('Error al guardar ciclo escolar: ' + err.message)
@@ -330,8 +364,21 @@ export class ConfigComponent implements OnInit
         this.apollo.mutate(
         {
             mutation: REMOVE_DOMAIN,
-            variables: { id: parseInt(id.toString()) },
-            refetchQueries: [{ query: GET_DOMAINS }]
-        }).subscribe();
+            variables: { id: parseInt(id.toString()) }
+        }).subscribe({
+            next: () => {
+                this.LoadDomains();
+            }
+        });
+    }
+
+    private setupRealtimeRefresh(): void
+    {
+        this.realtimeSync.watchScopes([RealtimeScope.AllowedDomains, RealtimeScope.CurrentSchoolYear])
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe(() => {
+                this.LoadDomains();
+                this.LoadCurrentSchoolYear();
+            });
     }
 }

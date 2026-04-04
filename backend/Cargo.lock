@@ -305,6 +305,7 @@ dependencies = [
  "calamine",
  "chrono",
  "dotenvy",
+ "futures-util",
  "jsonwebtoken",
  "rand 0.10.0",
  "regex",

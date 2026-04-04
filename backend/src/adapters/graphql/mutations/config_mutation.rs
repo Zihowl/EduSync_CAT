@@ -6,6 +6,7 @@ use crate::{
     adapters::{
         auth::middleware::require_admin,
         graphql::{
+            realtime::{publish_realtime_event, RealtimeScope},
             schema::to_gql_error,
             types::{allowed_domain_type::AllowedDomainType, school_year_type::SchoolYearType},
         },
@@ -22,14 +23,22 @@ impl ConfigMutation {
     async fn create_allowed_domain(&self, ctx: &Context<'_>, domain: String) -> async_graphql::Result<AllowedDomainType> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<ConfigService>>()?;
-        svc.create_domain(&domain).await.map(Into::into).map_err(to_gql_error)
+        let result = svc.create_domain(&domain).await.map(Into::into).map_err(to_gql_error);
+        if result.is_ok() {
+            publish_realtime_event(ctx, &[RealtimeScope::AllowedDomains, RealtimeScope::Users]);
+        }
+        result
     }
 
     #[graphql(name = "RemoveAllowedDomain")]
     async fn remove_allowed_domain(&self, ctx: &Context<'_>, id: i32) -> async_graphql::Result<bool> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<ConfigService>>()?;
-        svc.remove_domain(id).await.map_err(to_gql_error)
+        let result = svc.remove_domain(id).await.map_err(to_gql_error);
+        if result.is_ok() {
+            publish_realtime_event(ctx, &[RealtimeScope::AllowedDomains, RealtimeScope::Users]);
+        }
+        result
     }
 
     #[graphql(name = "SetCurrentSchoolYear")]
@@ -41,9 +50,13 @@ impl ConfigMutation {
     ) -> async_graphql::Result<SchoolYearType> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<ConfigService>>()?;
-        svc.set_current_school_year(&start_date, &end_date)
+        let result = svc.set_current_school_year(&start_date, &end_date)
             .await
             .map(Into::into)
-            .map_err(to_gql_error)
+            .map_err(to_gql_error);
+        if result.is_ok() {
+            publish_realtime_event(ctx, &[RealtimeScope::CurrentSchoolYear]);
+        }
+        result
     }
 }

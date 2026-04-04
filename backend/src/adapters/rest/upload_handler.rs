@@ -8,7 +8,10 @@ use axum::{
 use serde::Serialize;
 
 use crate::{
-    adapters::auth::middleware::read_auth_user_from_headers,
+    adapters::{
+        auth::middleware::read_auth_user_from_headers,
+        graphql::realtime::RealtimeScope,
+    },
     domain::services::excel_service::ExcelService,
     AppState,
 };
@@ -69,6 +72,17 @@ pub async fn upload_schedule(
         .process_schedule_file(&bytes, Some(auth_user.user_id))
         .await
         .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, e.msg()))?;
+
+    if result.processed > 0 {
+        state.realtime.publish_scopes(&[
+            RealtimeScope::Teachers,
+            RealtimeScope::Subjects,
+            RealtimeScope::Buildings,
+            RealtimeScope::Classrooms,
+            RealtimeScope::Groups,
+            RealtimeScope::Schedules,
+        ]);
+    }
 
     Ok(Json(UploadResponse {
         message: "Procesamiento completado".to_string(),

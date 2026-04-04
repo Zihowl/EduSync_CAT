@@ -7,6 +7,7 @@ use crate::{
         auth::middleware::require_admin,
         graphql::{
             inputs::schedule_input::{CreateScheduleSlotInput, UpdateScheduleSlotInput},
+            realtime::{publish_realtime_event, RealtimeScope},
             schema::to_gql_error,
             types::schedule_slot_type::ScheduleSlotType,
         },
@@ -28,7 +29,7 @@ impl ScheduleMutation {
         let auth_user = require_admin(ctx)?;
         let svc = ctx.data::<Arc<ScheduleService>>()?;
 
-        svc.create(CreateScheduleSlot {
+        let result = svc.create(CreateScheduleSlot {
             teacher_id: input.teacher_id,
             subject_id: input.subject_id,
             classroom_id: input.classroom_id,
@@ -42,7 +43,11 @@ impl ScheduleMutation {
         })
         .await
         .map(Into::into)
-        .map_err(to_gql_error)
+        .map_err(to_gql_error);
+        if result.is_ok() {
+            publish_realtime_event(ctx, &[RealtimeScope::Schedules]);
+        }
+        result
     }
 
     #[graphql(name = "UpdateScheduleSlot")]
@@ -54,7 +59,7 @@ impl ScheduleMutation {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<ScheduleService>>()?;
 
-        svc.update(UpdateScheduleSlot {
+        let result = svc.update(UpdateScheduleSlot {
             id: input.id,
             teacher_id: input.teacher_id,
             subject_id: input.subject_id,
@@ -68,14 +73,22 @@ impl ScheduleMutation {
         })
         .await
         .map(Into::into)
-        .map_err(to_gql_error)
+        .map_err(to_gql_error);
+        if result.is_ok() {
+            publish_realtime_event(ctx, &[RealtimeScope::Schedules]);
+        }
+        result
     }
 
     #[graphql(name = "RemoveScheduleSlot")]
     async fn remove_schedule_slot(&self, ctx: &Context<'_>, id: i32) -> async_graphql::Result<bool> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<ScheduleService>>()?;
-        svc.remove(id).await.map_err(to_gql_error)
+        let result = svc.remove(id).await.map_err(to_gql_error);
+        if result.is_ok() {
+            publish_realtime_event(ctx, &[RealtimeScope::Schedules]);
+        }
+        result
     }
 
     #[graphql(name = "SetSchedulesPublished")]
@@ -87,6 +100,10 @@ impl ScheduleMutation {
     ) -> async_graphql::Result<i64> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<ScheduleService>>()?;
-        svc.set_published(&ids, is_published).await.map_err(to_gql_error)
+        let result = svc.set_published(&ids, is_published).await.map_err(to_gql_error);
+        if result.is_ok() {
+            publish_realtime_event(ctx, &[RealtimeScope::Schedules]);
+        }
+        result
     }
 }

@@ -1,4 +1,4 @@
-use async_graphql::{EmptySubscription, Error as GqlError, MergedObject, Schema};
+use async_graphql::{Error as GqlError, MergedObject, Schema};
 
 use crate::domain::errors::DomainError;
 
@@ -15,6 +15,7 @@ use super::{
         config_query::ConfigQuery, group_query::GroupQuery, schedule_query::ScheduleQuery,
         subject_query::SubjectQuery, teacher_query::TeacherQuery, user_query::UserQuery,
     },
+    realtime::RealtimeSubscription,
 };
 
 #[derive(MergedObject, Default)]
@@ -42,13 +43,17 @@ pub struct MergedMutation(
     ScheduleMutation,
 );
 
-pub type AppSchema = Schema<MergedQuery, MergedMutation, EmptySubscription>;
+pub type AppSchema = Schema<MergedQuery, MergedMutation, RealtimeSubscription>;
 
 pub fn to_gql_error(err: DomainError) -> GqlError {
     GqlError::new(err.msg())
 }
 
 pub fn build_schema(
-) -> async_graphql::SchemaBuilder<MergedQuery, MergedMutation, EmptySubscription> {
-    Schema::build(MergedQuery::default(), MergedMutation::default(), EmptySubscription)
+) -> async_graphql::SchemaBuilder<MergedQuery, MergedMutation, RealtimeSubscription> {
+    Schema::build(
+        MergedQuery::default(),
+        MergedMutation::default(),
+        RealtimeSubscription::default(),
+    )
 }

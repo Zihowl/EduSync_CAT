@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
@@ -17,7 +17,9 @@ import {
     layersOutline, checkmarkCircleOutline, closeCircleOutline,
     eyeOutline, eyeOffOutline, gitBranchOutline
 } from 'ionicons/icons';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realtime-sync.service';
 
 const GET_SCHEDULES = gql`
     query GetSchedules($filter: ScheduleFilterInput) {
@@ -309,6 +311,8 @@ export class SchedulesComponent implements OnInit
 {
     private apollo = inject(Apollo);
     private toastController = inject(ToastController);
+    private realtimeSync = inject(RealtimeSyncService);
+    private destroyRef = inject(DestroyRef);
 
     schedules: any[] = [];
     teachers: any[] = [];
@@ -348,6 +352,11 @@ export class SchedulesComponent implements OnInit
             layersOutline, checkmarkCircleOutline, closeCircleOutline,
             eyeOutline, eyeOffOutline, gitBranchOutline
         });
+        this.setupRealtimeRefresh();
+    }
+
+    ionViewWillEnter(): void
+    {
         this.LoadCatalogs();
         this.LoadSchedules();
     }
@@ -412,6 +421,22 @@ export class SchedulesComponent implements OnInit
                 this.groups = res.data?.GetGroups ?? [];
             }
         });
+    }
+
+    private setupRealtimeRefresh(): void
+    {
+        this.realtimeSync.watchScopes([
+            RealtimeScope.Schedules,
+            RealtimeScope.Teachers,
+            RealtimeScope.Subjects,
+            RealtimeScope.Classrooms,
+            RealtimeScope.Groups,
+        ])
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe(() => {
+                this.LoadCatalogs();
+                this.LoadSchedules();
+            });
     }
 
     LoadSchedules()

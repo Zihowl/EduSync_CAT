@@ -1,7 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
     IonContent, IonSelect,
     IonSelectOption, IonList, IonItem, IonLabel, IonIcon,
@@ -16,6 +17,7 @@ import {
 } from 'ionicons/icons';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { environment } from '../../../../environments/environment';
+import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realtime-sync.service';
 
 interface ScheduleSlot {
     id: number;
@@ -163,6 +165,8 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
 export class ScheduleKioskComponent implements OnInit
 {
     private http = inject(HttpClient);
+    private realtimeSync = inject(RealtimeSyncService);
+    private destroyRef = inject(DestroyRef);
 
     groups: any[] = [];
     schedules: ScheduleSlot[] = [];
@@ -179,7 +183,15 @@ export class ScheduleKioskComponent implements OnInit
             calendarOutline, timeOutline, personOutline, bookOutline,
             businessOutline, layersOutline, schoolOutline
         });
+        this.setupRealtimeRefresh();
+    }
+
+    ionViewWillEnter(): void
+    {
         this.LoadGroups();
+        if (this.selectedGroupId) {
+            this.LoadSchedules();
+        }
     }
 
     getDayName(day: number): string
@@ -217,6 +229,11 @@ export class ScheduleKioskComponent implements OnInit
                     const nameB = (b.parent?.name || '') + b.name;
                     return nameA.localeCompare(nameB);
                 });
+
+                if (this.selectedGroupId && !this.groups.some(g => Number(g.id) === Number(this.selectedGroupId))) {
+                    this.selectedGroupId = null;
+                    this.schedules = [];
+                }
             },
             error: (err) => console.error('Error loading groups:', err)
         });
@@ -244,5 +261,23 @@ export class ScheduleKioskComponent implements OnInit
                 this.loading = false;
             }
         });
+    }
+
+    private setupRealtimeRefresh(): void
+    {
+        this.realtimeSync.watchScopes([
+            RealtimeScope.Schedules,
+            RealtimeScope.Teachers,
+            RealtimeScope.Subjects,
+            RealtimeScope.Classrooms,
+            RealtimeScope.Groups,
+        ])
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe(() => {
+                this.LoadGroups();
+                if (this.selectedGroupId) {
+                    this.LoadSchedules();
+                }
+            });
     }
 }

@@ -1,7 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, NgZone, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
     IonContent,
     IonHeader,
@@ -23,6 +24,8 @@ import {
 import { addIcons } from 'ionicons';
 import { personAddOutline, trashOutline, shieldCheckmarkOutline } from 'ionicons/icons';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { DestroyRef } from '@angular/core';
+import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realtime-sync.service';
 
 const GET_USERS = gql`
     query GetUsers {
@@ -166,6 +169,10 @@ export class UsersComponent implements OnInit
 {
     private apollo = inject(Apollo);
     private fb = inject(FormBuilder);
+    private cdr = inject(ChangeDetectorRef);
+    private ngZone = inject(NgZone);
+    private destroyRef = inject(DestroyRef);
+    private realtimeSync = inject(RealtimeSyncService);
 
     users: any[] = [];
     allowedDomains: string[] = [];
@@ -176,31 +183,48 @@ export class UsersComponent implements OnInit
         email: ['', [Validators.required, Validators.email]]
     });
 
+    private runInZone(action: () => void): void
+    {
+        this.ngZone.run(action);
+    }
+
     ngOnInit() 
     {
         addIcons({ personAddOutline, trashOutline, shieldCheckmarkOutline });
+        this.setupRealtimeRefresh();
+    }
+
+    ionViewWillEnter(): void
+    {
         this.LoadUsers();
         this.LoadAllowedDomains();
     }
 
     LoadAllowedDomains()
     {
-        this.apollo.watchQuery<any>({ query: GET_ALLOWED_DOMAINS, fetchPolicy: 'network-only' })
-        .valueChanges.subscribe({
+        this.apollo.query<any>({ query: GET_ALLOWED_DOMAINS, fetchPolicy: 'network-only' })
+        .subscribe({
             next: (res: any) => {
-                const data = res?.data;
-                if (!data)
-                {
-                    console.error('GetAllowedDomains returned no data for users:', res);
-                    this.allowedDomains = [];
-                    return;
-                }
+                this.runInZone(() => {
+                    const data = res?.data;
+                    if (!data)
+                    {
+                        console.error('GetAllowedDomains returned no data for users:', res);
+                        this.allowedDomains = [];
+                        this.cdr.detectChanges();
+                        return;
+                    }
 
-                this.allowedDomains = (data.GetAllowedDomains ?? []).map((d: any) => d.domain.toLowerCase());
+                    this.allowedDomains = (data.GetAllowedDomains ?? []).map((d: any) => d.domain.toLowerCase());
+                    this.cdr.detectChanges();
+                });
             },
             error: (err) => {
-                console.error('GetAllowedDomains network/error (users):', err);
-                this.allowedDomains = [];
+                this.runInZone(() => {
+                    console.error('GetAllowedDomains network/error (users):', err);
+                    this.allowedDomains = [];
+                    this.cdr.detectChanges();
+                });
             }
         });
     }
@@ -227,22 +251,29 @@ export class UsersComponent implements OnInit
 
     LoadUsers() 
     {
-        this.apollo.watchQuery<any>({ query: GET_USERS, fetchPolicy: 'network-only' })
-        .valueChanges.subscribe({
+        this.apollo.query<any>({ query: GET_USERS, fetchPolicy: 'network-only' })
+        .subscribe({
             next: (res: any) => {
-                const data = res?.data;
-                if (!data)
-                {
-                    console.error('GetUsers returned no data:', res);
-                    this.users = [];
-                    return;
-                }
+                this.runInZone(() => {
+                    const data = res?.data;
+                    if (!data)
+                    {
+                        console.error('GetUsers returned no data:', res);
+                        this.users = [];
+                        this.cdr.detectChanges();
+                        return;
+                    }
 
-                this.users = data.GetUsers ?? [];
+                    this.users = data.GetUsers ?? [];
+                    this.cdr.detectChanges();
+                });
             },
             error: (err) => {
-                console.error('GetUsers network/error:', err);
-                this.users = [];
+                this.runInZone(() => {
+                    console.error('GetUsers network/error:', err);
+                    this.users = [];
+                    this.cdr.detectChanges();
+                });
             }
         });
     }
@@ -269,20 +300,36 @@ export class UsersComponent implements OnInit
         this.apollo.mutate({
             mutation: CREATE_ADMIN,
             variables: { input },
-            refetchQueries: [{ query: GET_USERS }]
         }).subscribe({
           next: () =>
           {
-                this.isLoading = false;
-                this.SetOpen(false);
-                alert('Usuario creado con éxito.\nRevisa la consola del servidor para ver la contraseña temporal.');
+                this.runInZone(() => {
+                    this.isLoading = false;
+                    this.SetOpen(false);
+                    this.cdr.detectChanges();
+                    alert('Usuario creado con éxito.\nRevisa la consola del servidor para ver la contraseña temporal.');
+                });
+                this.LoadUsers();
             },
           error: (err) =>
           {
-                this.isLoading = false;
-                const msg = err.graphQLErrors?.[0]?.message || err.message;
-                alert('Error: ' + msg);
+                this.runInZone(() => {
+                    this.isLoading = false;
+                    this.cdr.detectChanges();
+                    const msg = err.graphQLErrors?.[0]?.message || err.message;
+                    alert('Error: ' + msg);
+                });
             }
         });
+    }
+
+    private setupRealtimeRefresh(): void
+    {
+        this.realtimeSync.watchScopes([RealtimeScope.Users, RealtimeScope.AllowedDomains])
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe(() => {
+                this.LoadUsers();
+                this.LoadAllowedDomains();
+            });
     }
 }
