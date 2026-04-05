@@ -74,19 +74,14 @@
     width: 100%;
     flex: 1 1 auto;
     padding: 0;
+    --padding-start: 0;
+    --padding-end: 0;
+    --inner-padding-start: 0;
+    --inner-padding-end: 0;
     --background: transparent;
     background: transparent;
     display: flex;
     align-items: stretch;
-}
-
-.menu-card ion-card-content::part(native) {
-    display: flex;
-    align-items: stretch;
-    width: 100%;
-    height: 100%;
-    padding: 0.95rem 1.35rem 0.95rem 1.7rem;
-    background: transparent;
 }
 
 /* ─── Inner layout ────────────────────────────────────────────────── */
@@ -96,6 +91,7 @@
     align-items: center;
     gap: 1rem;
     width: 100%;
+    padding: 0.95rem 0.85rem 0.95rem 0.75rem;
 }
 
 .menu-card__icon-shell {
@@ -165,11 +161,8 @@
         min-height: 4.85rem;
     }
 
-    .menu-card ion-card-content::part(native) {
-        padding: 0.85rem 1.15rem 0.85rem 1.35rem;
-    }
-
     .menu-card__content {
+        padding: 0.85rem 0.75rem 0.85rem 0.7rem;
         gap: 0.9rem;
     }
 
@@ -187,11 +180,8 @@
         min-height: 5.25rem;
     }
 
-    .menu-card ion-card-content::part(native) {
-        padding: 1.1rem 1.5rem 1.1rem 1.85rem;
-    }
-
     .menu-card__content {
+        padding: 1.1rem 0.9rem 1.1rem 0.8rem;
         gap: 1.05rem;
     }
 
