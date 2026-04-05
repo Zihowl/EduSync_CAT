@@ -1,16 +1,11 @@
 import { Component, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../core/services/auth.service';
-import { RouterModule } from '@angular/router';
 import { Observable, map } from 'rxjs';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { MenuCardComponent, MenuCardData } from '../../../shared/components/menu-card/menu-card.component';
 import {
     IonContent,
-    IonIcon,
-    IonCard,
-    IonCardHeader,
-    IonCardTitle,
-    IonCardContent,
     IonGrid,
     IonRow,
     IonCol
@@ -19,30 +14,28 @@ import { addIcons } from 'ionicons';
 import { settingsOutline, peopleOutline, logOutOutline, cloudUploadOutline, bookOutline, layersOutline, businessOutline, homeOutline, calendarOutline, shieldCheckmarkOutline, personCircleOutline } from 'ionicons/icons';
 
 type Role = 'SUPER_ADMIN' | 'ADMIN_HORARIOS';
-interface Card { title: string; icon: string; route: string; color?: string; roles: Role[]; desc: string; }
+
+interface DashboardCard extends MenuCardData {
+    roles: Role[];
+}
 
 @Component({
     selector: 'app-dashboard',
     standalone: true,
     imports: [
         CommonModule,
-        RouterModule,
         IonContent,
-        IonIcon,
-        IonCard,
-        IonCardHeader,
-        IonCardTitle,
-        IonCardContent,
         IonGrid,
         IonRow,
         IonCol,
-        PageHeaderComponent
+        PageHeaderComponent,
+        MenuCardComponent
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
         <ng-container *ngIf="role$ | async as currentRole">
             <app-page-header
-                title="EduSync Admin"
+                title="Panel de control"
                 [showStatusBadge]="true"
                 [statusBadgeText]="getRoleLabel(currentRole)"
                 [statusBadgeIcon]="getRoleIcon(currentRole)"
@@ -56,25 +49,9 @@ interface Card { title: string; icon: string; route: string; color?: string; rol
             <ion-content class="ion-padding">
                 <ion-grid class="ion-margin-top">
                     <ion-row>
-                        <ion-col size="12" size-md="6">
-                            <h1 class="dashboard-title">Panel de Control</h1>
-                        </ion-col>
-                    </ion-row>
-
-                    <ion-row>
                         <ng-container *ngFor="let card of cards; trackBy: trackByTitle">
                             <ion-col *ngIf="card.roles.includes(currentRole)" size="12" size-md="6">
-                                <ion-card button [routerLink]="card.route" class="dashboard-card" [color]="card.color">
-                                    <ion-card-header>
-                                        <ion-card-title>
-                                            <ion-icon [name]="card.icon" class="dashboard-icon"></ion-icon>
-                                            {{ card.title }}
-                                        </ion-card-title>
-                                    </ion-card-header>
-                                    <ion-card-content>
-                                        {{ card.desc }}
-                                    </ion-card-content>
-                                </ion-card>
+                                <app-menu-card [card]="card"></app-menu-card>
                             </ion-col>
                         </ng-container>
                     </ion-row>
@@ -92,16 +69,16 @@ export class DashboardComponent implements OnInit
         { label: 'Cerrar sesión', value: 'logout', icon: 'log-out-outline', danger: true },
     ];
 
-    cards: Card[] = [
-        { title: 'Configuración', icon: 'settings-outline', route: '/admin/config', roles: ['SUPER_ADMIN'], desc: 'Gestionar ciclo escolar y dominios.' },
-        { title: 'Usuarios', icon: 'people-outline', route: '/admin/users', roles: ['SUPER_ADMIN'], desc: 'Altas y bajas de administradores.' },
-        { title: 'Horarios', icon: 'calendar-outline', route: '/admin/schedules', color: 'success', roles: ['ADMIN_HORARIOS'], desc: 'Gestionar horarios de grupos y subgrupos.' },
-        { title: 'Carga de Horarios', icon: 'cloud-upload-outline', route: '/admin/upload', color: 'tertiary', roles: ['ADMIN_HORARIOS'], desc: 'Importar archivos Excel masivos.' },
-        { title: 'Docentes', icon: 'people-outline', route: '/admin/catalogs/teachers', color: 'light', roles: ['ADMIN_HORARIOS'], desc: 'Catálogo de personal docente.' },
-        { title: 'Materias', icon: 'book-outline', route: '/admin/catalogs/subjects', color: 'light', roles: ['ADMIN_HORARIOS'], desc: 'Catálogo de materias.' },
-        { title: 'Grupos', icon: 'layers-outline', route: '/admin/catalogs/groups', color: 'light', roles: ['ADMIN_HORARIOS'], desc: 'Estructura de grupos y subgrupos.' },
-        { title: 'Aulas', icon: 'business-outline', route: '/admin/catalogs/classrooms', color: 'light', roles: ['ADMIN_HORARIOS'], desc: 'Espacios físicos y salones.' },
-        { title: 'Edificios', icon: 'home-outline', route: '/admin/catalogs/buildings', color: 'light', roles: ['ADMIN_HORARIOS'], desc: 'Infraestructura del plantel.' }
+    cards: DashboardCard[] = [
+        { title: 'Configuración', icon: 'settings-outline', route: '/admin/config', roles: ['SUPER_ADMIN'], description: 'Gestionar ciclo escolar y dominios.' },
+        { title: 'Usuarios', icon: 'people-outline', route: '/admin/users', roles: ['SUPER_ADMIN'], description: 'Altas y bajas de administradores.' },
+        { title: 'Horarios', icon: 'calendar-outline', route: '/admin/schedules', roles: ['ADMIN_HORARIOS'], description: 'Gestionar horarios de grupos y subgrupos.' },
+        { title: 'Carga de Horarios', icon: 'cloud-upload-outline', route: '/admin/upload', roles: ['ADMIN_HORARIOS'], description: 'Importar archivos Excel masivos.' },
+        { title: 'Docentes', icon: 'people-outline', route: '/admin/catalogs/teachers', roles: ['ADMIN_HORARIOS'], description: 'Catálogo de personal docente.' },
+        { title: 'Materias', icon: 'book-outline', route: '/admin/catalogs/subjects', roles: ['ADMIN_HORARIOS'], description: 'Catálogo de materias.' },
+        { title: 'Grupos', icon: 'layers-outline', route: '/admin/catalogs/groups', roles: ['ADMIN_HORARIOS'], description: 'Estructura de grupos y subgrupos.' },
+        { title: 'Aulas', icon: 'business-outline', route: '/admin/catalogs/classrooms', roles: ['ADMIN_HORARIOS'], description: 'Espacios físicos y salones.' },
+        { title: 'Edificios', icon: 'home-outline', route: '/admin/catalogs/buildings', roles: ['ADMIN_HORARIOS'], description: 'Infraestructura del plantel.' }
     ];
 
     ngOnInit() 
@@ -148,7 +125,7 @@ export class DashboardComponent implements OnInit
         }
     }
 
-    trackByTitle(index: number, card: Card) { return card.title; }
+    trackByTitle(index: number, card: DashboardCard) { return card.title; }
 
     Logout() 
     { 
