@@ -101,6 +101,7 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
                                                 fill="outline"
                                                 type="date"
                                                 [(ngModel)]="newSchoolYearStart"
+                                                (ionInput)="newSchoolYearStart = $any($event).detail.value ?? ''"
                                                 name="startDate">
                                             </ion-input>
                                         </div>
@@ -111,11 +112,13 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
                                                 fill="outline"
                                                 type="date"
                                                 [(ngModel)]="newSchoolYearEnd"
+                                                (ionInput)="newSchoolYearEnd = $any($event).detail.value ?? ''"
                                                 name="endDate">
                                             </ion-input>
                                         </div>
                                     </div>
                                     <ion-button 
+                                        type="button"
                                         expand="block"
                                         color="primary"
                                         (click)="AddSchoolYear()" 
@@ -178,10 +181,12 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
                                         fill="outline"
                                         type="text"
                                         [(ngModel)]="newDomain"
+                                        (ionInput)="newDomain = $any($event).detail.value ?? ''"
                                         placeholder="ej: institución.edu.mx"
                                         (keyup.enter)="AddDomain()">
                                     </ion-input>
                                     <ion-button 
+                                        type="button"
                                         color="primary"
                                         (click)="AddDomain()" 
                                         [disabled]="!newDomain"
@@ -199,6 +204,7 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
                                     <ion-item *ngFor="let d of domains" class="domain-item" lines="none">
                                         <ion-label class="domain-name">{{ d.domain }}</ion-label>
                                         <ion-button 
+                                            type="button"
                                             fill="clear" 
                                             color="danger" 
                                             slot="end" 
