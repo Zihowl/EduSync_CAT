@@ -3,7 +3,7 @@ import { CommonModule, NgForOf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { IonContent, IonList, IonItem, IonLabel, IonInput, IonButton, IonIcon, IonCard, IonCardContent } from '@ionic/angular/standalone';
+import { IonContent, IonList, IonItem, IonLabel, IonInput, IonButton, IonIcon, IonCard, IonCardContent, IonSpinner } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { alertCircleOutline, calendarOutline, checkmarkOutline, globeOutline, informationCircleOutline, trashOutline } from 'ionicons/icons';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
@@ -71,6 +71,7 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
         IonIcon,
         IonCard,
         IonCardContent,
+        IonSpinner,
         PageHeaderComponent
     ],
     template: `
@@ -128,21 +129,30 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
                         <ion-card class="info-card">
                             <p class="info-card-title">Ciclo actual</p>
                             <ion-card-content>
-                                <div *ngIf="currentSchoolYear; else noCycle" class="current-cycle">
-                                    <div class="cycle-range">
-                                        <ion-icon name="calendar-outline"></ion-icon>
-                                        {{ currentSchoolYear.startDate | date:'dd/MM/yyyy' }} 
-                                        <span class="arrow">→</span> 
-                                        {{ currentSchoolYear.endDate | date:'dd/MM/yyyy' }}
+                                <ng-container *ngIf="isCurrentSchoolYearLoaded; else currentSchoolYearLoading">
+                                    <div *ngIf="currentSchoolYear; else noCycle" class="current-cycle">
+                                        <div class="cycle-range">
+                                            <ion-icon name="calendar-outline"></ion-icon>
+                                            {{ currentSchoolYear.startDate | date:'dd/MM/yyyy' }} 
+                                            <span class="arrow">→</span> 
+                                            {{ currentSchoolYear.endDate | date:'dd/MM/yyyy' }}
+                                        </div>
+                                        <small class="cycle-saved">
+                                            Configurado: {{ currentSchoolYear.createdAt | date:'short' }}
+                                        </small>
                                     </div>
-                                    <small class="cycle-saved">
-                                        Configurado: {{ currentSchoolYear.createdAt | date:'short' }}
-                                    </small>
-                                </div>
-                                <ng-template #noCycle>
-                                    <div class="no-data">
-                                        <ion-icon name="alert-circle-outline"></ion-icon>
-                                        <p>No hay ciclo configurado</p>
+                                    <ng-template #noCycle>
+                                        <div class="no-data">
+                                            <ion-icon name="alert-circle-outline"></ion-icon>
+                                            <p>No hay ciclo configurado</p>
+                                        </div>
+                                    </ng-template>
+                                </ng-container>
+
+                                <ng-template #currentSchoolYearLoading>
+                                    <div class="loading-state">
+                                        <ion-spinner name="crescent"></ion-spinner>
+                                        <p>Cargando ciclo actual...</p>
                                     </div>
                                 </ng-template>
                             </ion-card-content>
@@ -180,32 +190,45 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
                             </ion-card-content>
                         </ion-card>
 
-                        <ion-card class="domains-list-card" *ngIf="domains.length > 0">
-                            <p class="domains-list-title">Dominios registrados ({{ domains.length }})</p>
-                            <ion-list class="domains-list">
-                                <ion-item *ngFor="let d of domains" class="domain-item">
-                                    <ion-label class="domain-name">{{ d.domain }}</ion-label>
-                                    <ion-button 
-                                        fill="clear" 
-                                        color="danger" 
-                                        slot="end" 
-                                        (click)="RemoveDomain(d.id)"
-                                        class="delete-btn">
-                                        <ion-icon name="trash-outline"></ion-icon>
-                                    </ion-button>
-                                </ion-item>
-                            </ion-list>
-                        </ion-card>
+                        <ng-container *ngIf="isDomainsLoaded; else domainsLoading">
+                            <ion-card class="domains-list-card" *ngIf="domains.length > 0">
+                                <p class="domains-list-title">Dominios registrados ({{ domains.length }})</p>
+                                <ion-list class="domains-list">
+                                    <ion-item *ngFor="let d of domains" class="domain-item">
+                                        <ion-label class="domain-name">{{ d.domain }}</ion-label>
+                                        <ion-button 
+                                            fill="clear" 
+                                            color="danger" 
+                                            slot="end" 
+                                            (click)="RemoveDomain(d.id)"
+                                            class="delete-btn">
+                                            <ion-icon name="trash-outline"></ion-icon>
+                                        </ion-button>
+                                    </ion-item>
+                                </ion-list>
+                            </ion-card>
 
-                        <ion-card class="empty-state-card" *ngIf="domains.length === 0">
-                            <ion-card-content>
-                                <div class="no-data">
-                                    <ion-icon name="information-circle-outline"></ion-icon>
-                                    <p>Sin dominios registrados</p>
-                                    <small>Agrega dominios arriba para permitir usuarios</small>
-                                </div>
-                            </ion-card-content>
-                        </ion-card>
+                            <ion-card class="empty-state-card" *ngIf="domains.length === 0">
+                                <ion-card-content>
+                                    <div class="no-data">
+                                        <ion-icon name="information-circle-outline"></ion-icon>
+                                        <p>Sin dominios registrados</p>
+                                        <small>Agrega dominios arriba para permitir usuarios</small>
+                                    </div>
+                                </ion-card-content>
+                            </ion-card>
+                        </ng-container>
+
+                        <ng-template #domainsLoading>
+                            <ion-card class="empty-state-card">
+                                <ion-card-content>
+                                    <div class="loading-state">
+                                        <ion-spinner name="crescent"></ion-spinner>
+                                        <p>Cargando dominios...</p>
+                                    </div>
+                                </ion-card-content>
+                            </ion-card>
+                        </ng-template>
                     </div>
                 </div>
             </div>
@@ -226,6 +249,8 @@ export class ConfigComponent implements OnInit
     newDomain: string = '';
     newSchoolYearStart: string = '';
     newSchoolYearEnd: string = '';
+    isDomainsLoaded = false;
+    isCurrentSchoolYearLoaded = false;
 
     private runInZone(action: () => void): void
     {
@@ -261,19 +286,20 @@ export class ConfigComponent implements OnInit
                         if (!data)
                         {
                             console.error('GetAllowedDomains returned no data:', res);
-                            this.domains = [];
+                            this.isDomainsLoaded = true;
                             this.cdr.detectChanges();
                             return;
                         }
 
                         this.domains = data.GetAllowedDomains ?? [];
+                        this.isDomainsLoaded = true;
                         this.cdr.detectChanges();
                     });
                 },
                 error: (err) => {
                     this.runInZone(() => {
                         console.error('GetAllowedDomains network/error:', err);
-                        this.domains = [];
+                        this.isDomainsLoaded = true;
                         this.cdr.detectChanges();
                     });
                 }
@@ -293,13 +319,14 @@ export class ConfigComponent implements OnInit
                         }
                         console.debug('GetCurrentSchoolYear result:', data);
                         this.currentSchoolYear = data?.GetCurrentSchoolYear ?? null;
+                        this.isCurrentSchoolYearLoaded = true;
                         this.cdr.detectChanges();
                     });
                 },
                 error: (err) => {
                     this.runInZone(() => {
                         console.error('GetCurrentSchoolYear network/error:', err);
-                        this.currentSchoolYear = null;
+                        this.isCurrentSchoolYearLoaded = true;
                         this.cdr.detectChanges();
                     });
                 }

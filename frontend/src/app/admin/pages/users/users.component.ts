@@ -19,7 +19,8 @@ import {
     IonNote,
     IonBadge,
     IonFab,
-    IonFabButton
+    IonFabButton,
+    IonSpinner
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { personAddOutline, trashOutline, shieldCheckmarkOutline } from 'ionicons/icons';
@@ -78,6 +79,7 @@ const GET_ALLOWED_DOMAINS = gql`
         IonBadge,
         IonFab,
         IonFabButton,
+        IonSpinner,
         PageHeaderComponent
     ],
     template: `
@@ -85,22 +87,34 @@ const GET_ALLOWED_DOMAINS = gql`
 
         <ion-content class="ion-padding users-content">
             <div class="users-container">
-                <ion-list inset="true">
-                    <ion-item *ngFor="let u of users">
-                        <ion-icon slot="start" name="shield-checkmark-outline" color="medium"></ion-icon>
-                        <ion-label>
-                            <h2>{{ u.fullName || 'Sin Nombre' }}</h2>
-                            <p>{{ u.email }}</p>
-                        </ion-label>
-                        <ion-badge slot="end" [color]="u.isActive ? 'success' : 'medium'">
-                            {{ u.role }}
-                        </ion-badge>
-                    </ion-item>
+                <ng-container *ngIf="isUsersLoaded; else usersLoading">
+                    <ion-list inset="true" *ngIf="users.length > 0; else noUsers">
+                        <ion-item *ngFor="let u of users">
+                            <ion-icon slot="start" name="shield-checkmark-outline" color="medium"></ion-icon>
+                            <ion-label>
+                                <h2>{{ u.fullName || 'Sin Nombre' }}</h2>
+                                <p>{{ u.email }}</p>
+                            </ion-label>
+                            <ion-badge slot="end" [color]="u.isActive ? 'success' : 'medium'">
+                                {{ u.role }}
+                            </ion-badge>
+                        </ion-item>
+                    </ion-list>
 
-                    <div *ngIf="users.length === 0" class="empty-state">
-                        Cargando usuarios...
+                    <ng-template #noUsers>
+                        <div class="empty-state">
+                            <p>No hay usuarios registrados</p>
+                            <small>Usa el botón + para crear el primer administrador.</small>
+                        </div>
+                    </ng-template>
+                </ng-container>
+
+                <ng-template #usersLoading>
+                    <div class="users-loading-state">
+                        <ion-spinner name="crescent"></ion-spinner>
+                        <p>Cargando usuarios...</p>
                     </div>
-                </ion-list>
+                </ng-template>
 
                 <ion-fab vertical="bottom" horizontal="end" slot="fixed">
                     <ion-fab-button (click)="SetOpen(true)">
@@ -143,7 +157,7 @@ const GET_ALLOWED_DOMAINS = gql`
                                     </ion-note>
 
                                     <ion-note
-                                        *ngIf="adminForm.get('email')?.value && getEmailDomain()"
+                                        *ngIf="isAllowedDomainsLoaded && adminForm.get('email')?.value && getEmailDomain()"
                                         [color]="isDomainAllowed() ? 'success' : 'danger'"
                                         class="ion-padding-start ion-margin-top">
                                         <small>{{ isDomainAllowed() ? 'Dominio permitido' : 'Dominio NO permitido — registra el dominio en Configuración' }}</small>
@@ -153,7 +167,7 @@ const GET_ALLOWED_DOMAINS = gql`
                                 <ion-button
                                     expand="block"
                                     type="submit"
-                                    [disabled]="adminForm.invalid || isLoading || (adminForm.get('email')?.value && !isDomainAllowed())">
+                                    [disabled]="adminForm.invalid || isLoading || (isAllowedDomainsLoaded && adminForm.get('email')?.value && !isDomainAllowed())">
                                     {{ isLoading ? 'Registrando...' : 'Registrar Usuario' }}
                                 </ion-button>
                             </form>
@@ -178,6 +192,8 @@ export class UsersComponent implements OnInit
     allowedDomains: string[] = [];
     isModalOpen = false;
     isLoading = false;
+    isUsersLoaded = false;
+    isAllowedDomainsLoaded = false;
     adminForm: FormGroup = this.fb.group({
         fullName: ['', [Validators.required, Validators.minLength(3)]],
         email: ['', [Validators.required, Validators.email]]
@@ -210,19 +226,20 @@ export class UsersComponent implements OnInit
                     if (!data)
                     {
                         console.error('GetAllowedDomains returned no data for users:', res);
-                        this.allowedDomains = [];
+                        this.isAllowedDomainsLoaded = true;
                         this.cdr.detectChanges();
                         return;
                     }
 
                     this.allowedDomains = (data.GetAllowedDomains ?? []).map((d: any) => d.domain.toLowerCase());
+                    this.isAllowedDomainsLoaded = true;
                     this.cdr.detectChanges();
                 });
             },
             error: (err) => {
                 this.runInZone(() => {
                     console.error('GetAllowedDomains network/error (users):', err);
-                    this.allowedDomains = [];
+                    this.isAllowedDomainsLoaded = true;
                     this.cdr.detectChanges();
                 });
             }
@@ -242,10 +259,16 @@ export class UsersComponent implements OnInit
     isDomainAllowed(): boolean
     {
         const d = this.getEmailDomain();
-      if (!d)
-      {
-        return true;
-      }
+                if (!d)
+                {
+                        return true;
+                }
+
+                if (!this.isAllowedDomainsLoaded)
+                {
+                        return true;
+                }
+
         return this.allowedDomains.includes(d);
     }
 
@@ -259,19 +282,20 @@ export class UsersComponent implements OnInit
                     if (!data)
                     {
                         console.error('GetUsers returned no data:', res);
-                        this.users = [];
+                        this.isUsersLoaded = true;
                         this.cdr.detectChanges();
                         return;
                     }
 
                     this.users = data.GetUsers ?? [];
+                    this.isUsersLoaded = true;
                     this.cdr.detectChanges();
                 });
             },
             error: (err) => {
                 this.runInZone(() => {
                     console.error('GetUsers network/error:', err);
-                    this.users = [];
+                    this.isUsersLoaded = true;
                     this.cdr.detectChanges();
                 });
             }
