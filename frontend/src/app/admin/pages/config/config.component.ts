@@ -182,7 +182,7 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
                                         (keyup.enter)="AddDomain()">
                                     </ion-input>
                                     <ion-button 
-                                        color="success"
+                                        color="primary"
                                         (click)="AddDomain()" 
                                         [disabled]="!newDomain"
                                         class="add-domain-btn">

@@ -169,10 +169,12 @@ ion-card-content {
 }
 
 .add-domain-btn {
-    --background: linear-gradient(135deg, rgba(34, 197, 94, 0.95), rgba(22, 163, 74, 0.98));
-    --background-hover: linear-gradient(135deg, rgba(74, 222, 128, 1), rgba(22, 163, 74, 1));
-    --background-activated: linear-gradient(135deg, rgba(22, 163, 74, 1), rgba(21, 128, 61, 1));
-    --box-shadow: 0 10px 18px rgba(34, 197, 94, 0.2);
+    --background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.98));
+    --background-hover: linear-gradient(135deg, rgba(96, 165, 250, 1), rgba(37, 99, 235, 1));
+    --background-activated: linear-gradient(135deg, rgba(37, 99, 235, 1), rgba(29, 78, 216, 1));
+    --box-shadow: 0 10px 18px rgba(37, 99, 235, 0.24);
+    align-self: center;
+    white-space: nowrap;
 }
 
 .form-submit::part(native),
@@ -350,8 +352,10 @@ ion-card-content {
     }
 
     .domain-input-section {
-        flex-direction: row;
-        align-items: flex-end;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 0.9rem;
     }
 
     .domain-input-section ion-input {
