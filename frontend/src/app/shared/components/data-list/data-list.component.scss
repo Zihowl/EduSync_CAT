@@ -27,6 +27,9 @@
 
   /* Content padding */
   --dl-card-padding: 1rem 1rem 1.1rem;
+  --dl-divider-color: rgba(203, 213, 225, 0.14);
+  --dl-divider-start: 0.9rem;
+  --dl-divider-end: 0.65rem;
 
   display: block;
   width: 100%;
@@ -88,6 +91,7 @@ ion-card-content {
 /* ── Item surface (match the config panel domains list) ───────────── */
 :host ::ng-deep .data-list__list ion-item {
   margin: 0;
+  position: relative;
   --background: transparent;
   --background-hover: transparent;
   --background-focused: transparent;
@@ -106,6 +110,17 @@ ion-card-content {
   &:focus-within {
     --background: transparent;
   }
+}
+
+:host ::ng-deep .data-list__list ion-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: var(--dl-divider-start);
+  right: var(--dl-divider-end);
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--dl-divider-color), transparent);
+  pointer-events: none;
 }
 
 :host ::ng-deep .data-list__list ion-item ion-label {
