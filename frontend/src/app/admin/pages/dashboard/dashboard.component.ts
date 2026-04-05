@@ -4,12 +4,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { Observable, map } from 'rxjs';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { MenuCardComponent, MenuCardData } from '../../../shared/components/menu-card/menu-card.component';
-import {
-    IonContent,
-    IonGrid,
-    IonRow,
-    IonCol
-} from '@ionic/angular/standalone';
+import { IonContent } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { settingsOutline, peopleOutline, logOutOutline, cloudUploadOutline, bookOutline, layersOutline, businessOutline, homeOutline, calendarOutline, shieldCheckmarkOutline, personCircleOutline } from 'ionicons/icons';
 
@@ -25,9 +20,6 @@ interface DashboardCard extends MenuCardData {
     imports: [
         CommonModule,
         IonContent,
-        IonGrid,
-        IonRow,
-        IonCol,
         PageHeaderComponent,
         MenuCardComponent
     ],
@@ -49,15 +41,11 @@ interface DashboardCard extends MenuCardData {
 
             <ion-content class="ion-padding">
                 <div class="dashboard-shell app-page-shell">
-                    <ion-grid class="dashboard-grid">
-                        <ion-row>
-                            <ng-container *ngFor="let card of cards; trackBy: trackByTitle">
-                                <ion-col *ngIf="card.roles.includes(currentRole)" size="12" size-md="6" size-lg="4">
-                                    <app-menu-card [card]="card"></app-menu-card>
-                                </ion-col>
-                            </ng-container>
-                        </ion-row>
-                    </ion-grid>
+                    <div class="dashboard-grid">
+                        <ng-container *ngFor="let card of cards; trackBy: trackByTitle">
+                            <app-menu-card *ngIf="card.roles.includes(currentRole)" [card]="card"></app-menu-card>
+                        </ng-container>
+                    </div>
                 </div>
             </ion-content>
         </ng-container>

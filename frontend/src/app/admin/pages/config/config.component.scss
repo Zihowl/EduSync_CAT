@@ -1,6 +1,7 @@
 :host {
     display: block;
     width: 100%;
+    --config-surface-bg: rgba(15, 23, 42, 0.45);
 }
 
 .config-content {
@@ -43,7 +44,7 @@
     padding: 0.95rem 1rem 0.95rem 1.15rem;
     border: 1px solid rgba(148, 163, 184, 0.18);
     border-radius: 0 1rem 1rem 0;
-    background: rgba(15, 23, 42, 0.5);
+    background: var(--config-surface-bg);
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
@@ -79,9 +80,8 @@ ion-card {
     margin: 0;
     border: 1px solid rgba(148, 163, 184, 0.18);
     border-radius: 1rem;
-    --background: rgba(15, 23, 42, 0.5);
+    --background: var(--config-surface-bg);
     --color: #f8fafc;
-    background: rgba(15, 23, 42, 0.5);
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
     color: #f8fafc;
     backdrop-filter: blur(10px);

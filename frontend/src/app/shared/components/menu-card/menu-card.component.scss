@@ -4,87 +4,115 @@
     height: 100%;
 }
 
+/* ─── Card shell ──────────────────────────────────────────────────────
+   Strategy to avoid double background while keeping frosted effect:
+     • HOST  → paints background + backdrop-filter (the visible surface)
+     • shadow-DOM card-native → fully transparent
+   ──────────────────────────────────────────────────────────────────── */
 .menu-card {
     position: relative;
     width: 100%;
     height: 100%;
-    min-height: 4.6rem;
+    min-height: 5.1rem;
     margin: 0;
-    --background: rgba(15, 23, 42, 0.78);
+
+    /* Kill shadow-DOM native background */
+    --background: transparent;
     --color: #f8fafc;
-    background: transparent;
+
+    /* Single visual surface on HOST */
+    background: var(--config-surface-bg, rgba(15, 23, 42, 0.45));
+
     border: 1px solid rgba(148, 163, 184, 0.18);
     border-radius: 0 1rem 1rem 0;
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
-    color: var(--ion-text-color, #f8fafc);
+    color: #f8fafc;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     overflow: hidden;
     contain: none;
-    transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+    transition: transform 150ms ease, border-color 150ms ease,
+        box-shadow 150ms ease, background-color 150ms ease;
 }
 
+/* Shadow-DOM native: fully transparent, fill the card */
+.menu-card::part(native) {
+    border-radius: inherit;
+    background: transparent;
+    display: flex;
+    align-items: stretch;
+    height: 100%;
+    min-height: inherit;
+}
+
+/* Left accent bar */
 .menu-card::before {
     content: '';
     position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
+    inset: 0 auto 0 0;
     width: 3px;
-    border-radius: 0;
-    background: linear-gradient(180deg, rgba(96, 165, 250, 0.7), rgba(34, 197, 94, 0.35));
-    opacity: 0.55;
+    z-index: 1;
+    background: linear-gradient(
+        180deg,
+        rgba(96, 165, 250, 0.82),
+        rgba(37, 99, 235, 0.42)
+    );
+    opacity: 0.65;
 }
 
+/* Hover / focus lift */
 .menu-card:hover,
 .menu-card:focus-within {
     transform: translateY(-2px);
-    --background: rgba(15, 23, 42, 0.84);
-    background: transparent;
-    border-color: rgba(148, 163, 184, 0.28);
-    box-shadow: 0 12px 22px rgba(0, 0, 0, 0.34);
+    border-color: rgba(56, 189, 248, 0.28);
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.12),
+        0 12px 24px rgba(0, 0, 0, 0.36);
 }
 
+/* ─── Card content ────────────────────────────────────────────────── */
 .menu-card ion-card-content {
-    height: 100%;
-    overflow: visible;
-    contain: none;
+    width: 100%;
+    flex: 1 1 auto;
+    padding: 0;
+    --background: transparent;
+    background: transparent;
+    display: flex;
+    align-items: stretch;
 }
 
 .menu-card ion-card-content::part(native) {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100%;
-    padding: 0.5rem 0.8rem;
-    box-sizing: border-box;
-    overflow: visible;
-    contain: none;
+    align-items: stretch;
+    width: 100%;
+    height: 100%;
+    padding: 0.95rem 1.35rem 0.95rem 1.7rem;
+    background: transparent;
 }
 
+/* ─── Inner layout ────────────────────────────────────────────────── */
 .menu-card__content {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: 0.7rem;
+    gap: 1rem;
     width: 100%;
-    min-height: 0;
 }
 
 .menu-card__icon-shell {
-    width: 2rem;
-    height: 2rem;
+    width: 2.2rem;
+    height: 2.2rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 0.7rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(15, 23, 42, 0.42);
+    border: 1px solid rgba(148, 163, 184, 0.18);
     box-shadow: none;
     flex: 0 0 auto;
 }
 
 .menu-card__icon {
-    font-size: 1rem;
+    font-size: 1.1rem;
     color: rgba(248, 250, 252, 0.84);
 }
 
@@ -92,14 +120,22 @@
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
+    justify-content: center;
     gap: 0.15rem;
     min-width: 0;
+}
+
+.menu-card__chevron {
+    font-size: 0.98rem;
+    color: rgba(203, 213, 225, 0.78);
+    opacity: 0.72;
+    transition: transform 150ms ease, opacity 150ms ease;
 }
 
 .menu-card__title {
     margin: 0;
     color: rgba(248, 250, 252, 0.98);
-    font-size: 0.98rem;
+    font-size: 1rem;
     line-height: 1.2;
     font-weight: 600;
     letter-spacing: -0.01em;
@@ -110,44 +146,67 @@
     color: rgba(226, 232, 240, 0.72);
     font-size: 0.83rem;
     line-height: 1.25;
+    display: -webkit-box;
+    overflow: hidden;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
 }
 
+.menu-card:hover .menu-card__chevron,
+.menu-card:focus-within .menu-card__chevron {
+    transform: translateX(0.18rem);
+    opacity: 1;
+}
+
+/* ─── Responsive ──────────────────────────────────────────────────── */
 @media (max-width: 600px) {
-    .menu-card ion-card-content::part(native) {
-        padding: 0.5rem 0.8rem;
-    }
-
-    .menu-card__content {
-        gap: 0.7rem;
-    }
-
-    .menu-card__title {
-        font-size: 0.99rem;
-    }
-}
-
-@media (min-width: 1200px) {
     .menu-card {
         min-height: 4.85rem;
     }
 
     .menu-card ion-card-content::part(native) {
-        padding: 0.55rem 0.85rem;
+        padding: 0.85rem 1.15rem 0.85rem 1.35rem;
     }
 
     .menu-card__content {
-        gap: 0.7rem;
-        text-align: left;
+        gap: 0.9rem;
+    }
+
+    .menu-card__title {
+        font-size: 0.99rem;
+    }
+
+    .menu-card__chevron {
+        font-size: 0.92rem;
+    }
+}
+
+@media (min-width: 1200px) {
+    .menu-card {
+        min-height: 5.25rem;
+    }
+
+    .menu-card ion-card-content::part(native) {
+        padding: 1.1rem 1.5rem 1.1rem 1.85rem;
+    }
+
+    .menu-card__content {
+        gap: 1.05rem;
     }
 
     .menu-card__icon-shell {
-        width: 2rem;
-        height: 2rem;
+        width: 2.35rem;
+        height: 2.35rem;
+    }
+
+    .menu-card__icon {
+        font-size: 1.15rem;
     }
 
     .menu-card__body {
         align-items: flex-start;
-        gap: 0.15rem;
+        gap: 0.1rem;
     }
 
     .menu-card__description {
@@ -155,10 +214,14 @@
     }
 
     .menu-card__title {
-        font-size: 1rem;
+        font-size: 1.02rem;
     }
 
     .menu-card__description {
         font-size: 0.84rem;
+    }
+
+    .menu-card__chevron {
+        font-size: 1rem;
     }
 }
