@@ -10,7 +10,9 @@
    ═══════════════════════════════════════════════════════════════════════ */
 
 /* ── Design tokens ─────────────────────────────────────────────────── */
-:host {
+/* NOTE: This component uses ViewEncapsulation.None — :host won't scope
+   properly, so we target the element selector directly. */
+app-auth-card {
   /* Surface */
   --auth-bg: rgba(15, 23, 42, 0.72);
   --auth-border: rgba(148, 163, 184, 0.4);
