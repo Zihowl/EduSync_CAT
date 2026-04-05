@@ -58,7 +58,7 @@ impl SchoolYearRepository for PgSchoolYearRepository {
         if let Some(current) = self.get_current().await? {
             let row = sqlx::query_as::<_, SchoolYearRow>(
                 "UPDATE school_years
-                 SET start_date = $1::date, end_date = $2::date
+                  SET start_date = $1::date, end_date = $2::date, created_at = NOW()
                  WHERE id = $3
                  RETURNING id, start_date, end_date, created_at",
             )

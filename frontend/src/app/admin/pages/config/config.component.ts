@@ -140,7 +140,7 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
                                             {{ currentSchoolYear.endDate | date:'dd/MM/yyyy' }}
                                         </div>
                                         <small class="cycle-saved">
-                                            Configurado: {{ currentSchoolYear.createdAt | date:'short' }}
+                                            Configurado: {{ formatConfiguredAt(currentSchoolYear.createdAt) }}
                                         </small>
                                     </div>
                                     <ng-template #noCycle>
@@ -195,8 +195,8 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
                         <ng-container *ngIf="isDomainsLoaded; else domainsLoading">
                             <ion-card class="domains-list-card" *ngIf="domains.length > 0">
                                 <p class="domains-list-title">Dominios registrados ({{ domains.length }})</p>
-                                <ion-list class="domains-list">
-                                    <ion-item *ngFor="let d of domains" class="domain-item">
+                                <ion-list class="domains-list" lines="none">
+                                    <ion-item *ngFor="let d of domains" class="domain-item" lines="none">
                                         <ion-label class="domain-name">{{ d.domain }}</ion-label>
                                         <ion-button 
                                             fill="clear" 
@@ -246,6 +246,7 @@ export class ConfigComponent implements OnInit
     private destroyRef = inject(DestroyRef);
     private realtimeSync = inject(RealtimeSyncService);
     private queryCache = inject(RealtimeQueryCacheService);
+    private readonly userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     domains: any[] = [];
     currentSchoolYear: any = null;
@@ -258,6 +259,52 @@ export class ConfigComponent implements OnInit
     private runInZone(action: () => void): void
     {
         this.ngZone.run(action);
+    }
+
+    formatConfiguredAt(value: string | Date | null | undefined): string
+    {
+        if (!value)
+        {
+            return 'No disponible';
+        }
+
+        const date = this.parseConfiguredAtValue(value);
+
+        if (Number.isNaN(date.getTime()))
+        {
+            return 'No disponible';
+        }
+
+        const parts = new Intl.DateTimeFormat('es-MX', {
+            timeZone: this.userTimeZone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+        }).formatToParts(date);
+
+        const lookup = parts.reduce<Record<string, string>>((accumulator, part) => {
+            accumulator[part.type] = part.value;
+            return accumulator;
+        }, {});
+
+        const meridiem = lookup['dayPeriod'] ? ` ${lookup['dayPeriod']}` : '';
+
+        return `${lookup['day']}/${lookup['month']}/${lookup['year']} ${lookup['hour']}:${lookup['minute']}:${lookup['second']}${meridiem}`;
+    }
+
+    private parseConfiguredAtValue(value: string | Date): Date
+    {
+        if (value instanceof Date)
+        {
+            return value;
+        }
+
+        const hasTimezoneSuffix = /(?:Z|[+-]\d{2}:\d{2})$/i.test(value);
+        return new Date(hasTimezoneSuffix ? value : `${value}Z`);
     }
 
     ngOnInit() 
@@ -279,15 +326,25 @@ export class ConfigComponent implements OnInit
         this.LoadCurrentSchoolYear();
     }
 
-    LoadDomains() 
+    LoadDomains(forceRefresh: boolean = false) 
     {
-        this.queryCache.load(
+        const loadDomains = () => this.apollo.query<any>({ query: GET_DOMAINS, fetchPolicy: 'network-only' }).pipe(
+            map((res: any) => res?.data?.GetAllowedDomains ?? [])
+        );
+
+        const request$ = forceRefresh
+            ? this.queryCache.refresh(
+                'admin-config-domains',
+                [RealtimeScope.AllowedDomains],
+                loadDomains
+            )
+            : this.queryCache.load(
             'admin-config-domains',
             [RealtimeScope.AllowedDomains],
-            () => this.apollo.query<any>({ query: GET_DOMAINS, fetchPolicy: 'network-only' }).pipe(
-                map((res: any) => res?.data?.GetAllowedDomains ?? [])
-            )
-        )
+            loadDomains
+        );
+
+        request$
             .subscribe({
                 next: (domains: any[]) => {
                     this.runInZone(() => {
@@ -306,15 +363,25 @@ export class ConfigComponent implements OnInit
             });
     }
 
-    LoadCurrentSchoolYear()
+    LoadCurrentSchoolYear(forceRefresh: boolean = false)
     {
-        this.queryCache.load(
+        const loadCurrentSchoolYear = () => this.apollo.query<any>({ query: GET_CURRENT_SCHOOL_YEAR, fetchPolicy: 'network-only' }).pipe(
+            map((res: any) => res?.data?.GetCurrentSchoolYear ?? null)
+        );
+
+        const request$ = forceRefresh
+            ? this.queryCache.refresh(
+                'admin-config-current-school-year',
+                [RealtimeScope.CurrentSchoolYear],
+                loadCurrentSchoolYear
+            )
+            : this.queryCache.load(
             'admin-config-current-school-year',
             [RealtimeScope.CurrentSchoolYear],
-            () => this.apollo.query<any>({ query: GET_CURRENT_SCHOOL_YEAR, fetchPolicy: 'network-only' }).pipe(
-                map((res: any) => res?.data?.GetCurrentSchoolYear ?? null)
-            )
-        )
+            loadCurrentSchoolYear
+        );
+
+        request$
             .subscribe({
                 next: (currentSchoolYear: any) => {
                     this.runInZone(() => {
@@ -350,7 +417,7 @@ export class ConfigComponent implements OnInit
                     this.newDomain = '';
                     this.cdr.detectChanges();
                 });
-                this.LoadDomains();
+                this.LoadDomains(true);
             },
             error: (err) => alert('Error al agregar dominio: ' + err.message)
         });
@@ -375,7 +442,7 @@ export class ConfigComponent implements OnInit
                     this.newSchoolYearEnd = '';
                     this.cdr.detectChanges();
                 });
-                this.LoadCurrentSchoolYear();
+                this.LoadCurrentSchoolYear(true);
             },
             error: (err) => alert('Error al guardar ciclo escolar: ' + err.message)
         });
@@ -394,7 +461,7 @@ export class ConfigComponent implements OnInit
             variables: { id: parseInt(id.toString()) }
         }).subscribe({
             next: () => {
-                this.LoadDomains();
+                this.LoadDomains(true);
             }
         });
     }
