@@ -44,3 +44,60 @@
     margin-top: 0.5rem !important;
 }
 
+.user-item {
+    --padding-top: 0.9rem;
+    --padding-bottom: 0.9rem;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.user-info h2 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ion-color-light-shade);
+}
+
+.user-info p {
+    margin: 0;
+    color: var(--ion-color-medium);
+    font-size: 0.9rem;
+    word-break: break-word;
+}
+
+.user-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.user-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    align-items: stretch;
+    min-width: 11rem;
+    margin-left: 0.75rem;
+}
+
+.user-actions ion-button {
+    min-height: 2.2rem;
+}
+
+@media (max-width: 640px) {
+    .user-item {
+        align-items: flex-start;
+    }
+
+    .user-actions {
+        width: 100%;
+        min-width: 0;
+        margin-left: 0;
+        margin-top: 0.75rem;
+    }
+}
+

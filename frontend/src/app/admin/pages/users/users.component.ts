@@ -22,12 +22,21 @@ import {
     IonFabButton
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { personAddOutline, trashOutline, shieldCheckmarkOutline } from 'ionicons/icons';
+import { personAddOutline, shieldCheckmarkOutline, lockClosedOutline, lockOpenOutline, refreshOutline } from 'ionicons/icons';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../shared/components/data-list/data-list.component';
 import { DestroyRef } from '@angular/core';
 import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realtime-sync.service';
 import { RealtimeQueryCacheService } from '../../../core/services/realtime-query-cache.service';
+
+interface AdminUserRow {
+    id: string;
+    fullName: string | null;
+    email: string;
+    role: string;
+    isActive: boolean;
+    isTempPassword: boolean;
+}
 
 const GET_USERS = gql`
     query GetUsers {
@@ -37,6 +46,7 @@ const GET_USERS = gql`
             email
             role
             isActive
+            isTempPassword
         }
     }
 `;
@@ -46,6 +56,36 @@ const CREATE_ADMIN = gql`
         CreateAdmin(input: $input) {
             id
             email
+        }
+    }
+`;
+
+const DISABLE_ADMIN_ACCESS = gql`
+    mutation DisableAdminAccess($userId: ID!) {
+        DisableAdminAccess(userId: $userId) {
+            id
+            isActive
+            isTempPassword
+        }
+    }
+`;
+
+const REACTIVATE_ADMIN_ACCESS = gql`
+    mutation ReactivateAdminAccess($userId: ID!) {
+        ReactivateAdminAccess(userId: $userId) {
+            id
+            isActive
+            isTempPassword
+        }
+    }
+`;
+
+const FORCE_RESET_ADMIN_PASSWORD = gql`
+    mutation ForceResetAdminPassword($userId: ID!) {
+        ForceResetAdminPassword(userId: $userId) {
+            id
+            isActive
+            isTempPassword
         }
     }
 `;
@@ -94,15 +134,44 @@ const GET_ALLOWED_DOMAINS = gql`
                     emptyTitle="No hay usuarios registrados"
                     emptySubtitle="Usa el botón + para crear el primer administrador.">
                     <ng-template #itemTemplate let-u>
-                        <ion-item>
+                        <ion-item class="user-item">
                             <ion-icon slot="start" name="shield-checkmark-outline" color="medium"></ion-icon>
-                            <ion-label>
+                            <ion-label class="user-info">
                                 <h2>{{ u.fullName || 'Sin Nombre' }}</h2>
                                 <p>{{ u.email }}</p>
+                                <div class="user-badges">
+                                    <ion-badge [color]="u.role === 'SUPER_ADMIN' ? 'primary' : 'tertiary'">
+                                        {{ u.role === 'SUPER_ADMIN' ? 'Súper Administrador' : 'Administrador de Horarios' }}
+                                    </ion-badge>
+                                    <ion-badge [color]="u.isActive ? 'success' : 'medium'">
+                                        {{ u.isActive ? 'Activo' : 'Inhabilitado' }}
+                                    </ion-badge>
+                                    <ion-badge *ngIf="u.isTempPassword" color="warning">
+                                        Temporal
+                                    </ion-badge>
+                                </div>
                             </ion-label>
-                            <ion-badge slot="end" [color]="u.isActive ? 'success' : 'medium'">
-                                {{ u.role }}
-                            </ion-badge>
+                            <div *ngIf="canManageAccess(u)" slot="end" class="user-actions">
+                                <ion-button
+                                    size="small"
+                                    fill="outline"
+                                    [color]="u.isActive ? 'warning' : 'success'"
+                                    (click)="toggleAdminAccess(u)"
+                                    [disabled]="isActionLoading">
+                                    <ion-icon [name]="u.isActive ? 'lock-closed-outline' : 'lock-open-outline'" slot="start"></ion-icon>
+                                    {{ u.isActive ? 'Inhabilitar' : 'Reactivar' }}
+                                </ion-button>
+
+                                <ion-button
+                                    size="small"
+                                    fill="outline"
+                                    color="medium"
+                                    (click)="forceResetAdminPassword(u)"
+                                    [disabled]="isActionLoading">
+                                    <ion-icon name="refresh-outline" slot="start"></ion-icon>
+                                    Restablecer
+                                </ion-button>
+                            </div>
                         </ion-item>
                     </ng-template>
                 </app-data-list>
@@ -180,10 +249,11 @@ export class UsersComponent implements OnInit
     private realtimeSync = inject(RealtimeSyncService);
     private queryCache = inject(RealtimeQueryCacheService);
 
-    users: any[] = [];
+    users: AdminUserRow[] = [];
     allowedDomains: string[] = [];
     isModalOpen = false;
     isLoading = false;
+    isActionLoading = false;
     isUsersLoaded = false;
     isAllowedDomainsLoaded = false;
     adminForm: FormGroup = this.fb.group({
@@ -198,7 +268,7 @@ export class UsersComponent implements OnInit
 
     ngOnInit() 
     {
-        addIcons({ personAddOutline, trashOutline, shieldCheckmarkOutline });
+        addIcons({ personAddOutline, shieldCheckmarkOutline, lockClosedOutline, lockOpenOutline, refreshOutline });
         this.setupRealtimeRefresh();
     }
 
@@ -291,7 +361,7 @@ export class UsersComponent implements OnInit
 
         request$
         .subscribe({
-            next: (users: any[]) => {
+            next: (users: AdminUserRow[]) => {
                 this.runInZone(() => {
                     this.users = users;
                     this.isUsersLoaded = true;
@@ -317,6 +387,65 @@ export class UsersComponent implements OnInit
       }
     }
 
+
+    canManageAccess(user: AdminUserRow): boolean {
+        return user.role === 'ADMIN_HORARIOS';
+    }
+
+    toggleAdminAccess(user: AdminUserRow): void {
+        const actionLabel = user.isActive ? 'Inhabilitar' : 'Reactivar';
+        const message = user.isActive
+            ? `¿Inhabilitar el acceso de ${user.fullName || user.email}?`
+            : `¿Reactivar el acceso de ${user.fullName || user.email}?`;
+
+        if (!confirm(message)) {
+            return;
+        }
+
+        this.executeUserAction(
+            user,
+            user.isActive ? DISABLE_ADMIN_ACCESS : REACTIVATE_ADMIN_ACCESS,
+            `${actionLabel} usuario con éxito.`
+        );
+    }
+
+    forceResetAdminPassword(user: AdminUserRow): void {
+        if (!confirm(`¿Forzar el restablecimiento de contraseña de ${user.fullName || user.email}?`)) {
+            return;
+        }
+
+        this.executeUserAction(
+            user,
+            FORCE_RESET_ADMIN_PASSWORD,
+            'Contraseña temporal regenerada. Revisa la consola del servidor.'
+        );
+    }
+
+    private executeUserAction(user: AdminUserRow, mutation: any, successMessage: string): void {
+        this.isActionLoading = true;
+
+        this.apollo.mutate({
+            mutation,
+            variables: { userId: user.id },
+        }).subscribe({
+            next: () => {
+                this.runInZone(() => {
+                    this.isActionLoading = false;
+                    this.cdr.detectChanges();
+                    alert(successMessage);
+                });
+                this.LoadUsers(true);
+            },
+            error: (err) => {
+                this.runInZone(() => {
+                    this.isActionLoading = false;
+                    this.cdr.detectChanges();
+                    const msg = err.graphQLErrors?.[0]?.message || err.message;
+                    alert('Error: ' + msg);
+                });
+            }
+        });
+    }
     CreateUser() 
     {
       if (this.adminForm.invalid)

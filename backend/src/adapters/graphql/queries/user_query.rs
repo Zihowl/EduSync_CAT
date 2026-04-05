@@ -31,8 +31,9 @@ impl UserQuery {
         
         let svc = ctx.data::<Arc<UserService>>()?;
         
-        match svc.find_by_email(&auth_user.email).await {
-            Ok(Some(user)) => Ok(user.into()),
+        match svc.find_by_id(auth_user.user_id).await {
+            Ok(Some(user)) if user.is_active => Ok(user.into()),
+            Ok(Some(_)) => Err(GqlError::new("Cuenta inactiva")),
             Ok(None) => Err(GqlError::new("User not found")),
             Err(e) => Err(to_gql_error(e))
         }

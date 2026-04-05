@@ -1,8 +1,16 @@
 use async_graphql::{Context, Error as GqlError};
 use axum::http::header::AUTHORIZATION;
+use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::{adapters::auth::jwt::decode_jwt, config::AppConfig};
+use crate::{
+    adapters::auth::jwt::decode_jwt,
+    config::AppConfig,
+    domain::{
+        models::user::User,
+        ports::user_repository::UserRepository,
+    },
+};
 
 #[derive(Clone, Debug)]
 pub struct AuthUser {
@@ -33,6 +41,24 @@ pub fn read_auth_user_from_headers(headers: &axum::http::HeaderMap, config: &App
         email: claims.email,
         role: claims.role,
     })
+}
+
+pub async fn read_active_auth_user_from_headers(
+    headers: &axum::http::HeaderMap,
+    config: &AppConfig,
+    user_repo: Arc<dyn UserRepository>,
+) -> Option<AuthUser> {
+    let auth_user = read_auth_user_from_headers(headers, config)?;
+
+    match user_repo.find_by_id(auth_user.user_id).await {
+        Ok(Some(User { id, email, role, is_active: true, .. })) => Some(AuthUser {
+            user_id: id,
+            email,
+            role: role.as_str().to_string(),
+        }),
+        Ok(Some(_)) => None,
+        Ok(None) | Err(_) => None,
+    }
 }
 
 pub fn require_admin(ctx: &Context<'_>) -> Result<AuthUser, GqlError> {

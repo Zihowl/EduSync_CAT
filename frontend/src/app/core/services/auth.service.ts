@@ -1,9 +1,10 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { Apollo, gql } from 'apollo-angular';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, catchError, map, of, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, catchError, map, of, switchMap, throwError } from 'rxjs';
 
 import { RealtimeQueryCacheService } from './realtime-query-cache.service';
+import { RealtimeScope, RealtimeSyncService } from './realtime-sync.service';
 
 import {
   User,
@@ -96,6 +97,7 @@ export class AuthService {
   private router = inject(Router);
   private apollo = inject(Apollo);
   private queryCache = inject(RealtimeQueryCacheService);
+  private realtimeSync = inject(RealtimeSyncService);
 
   private userSignal = signal<User | null>(null);
   private userSubject = new BehaviorSubject<User | null>(null);
@@ -111,6 +113,7 @@ export class AuthService {
 
   constructor() {
     this.loadSessionFromStorage();
+    this.setupSessionRevalidationWatcher();
   }
 
   login(email: string, password: string): Observable<User> {
@@ -318,6 +321,31 @@ export class AuthService {
         this.clearSession();
       }
     }
+  }
+
+  private setupSessionRevalidationWatcher(): void {
+    this.realtimeSync.watchScopes([RealtimeScope.Users]).subscribe(() => {
+      const token = this.getAccessToken();
+
+      if (!token) {
+        return;
+      }
+
+      const sessionCheck$ = this.isTokenExpired(token)
+        ? this.refreshAccessToken().pipe(switchMap(() => this.verifySession()))
+        : this.verifySession();
+
+      sessionCheck$.subscribe({
+        next: (user) => {
+          if (!user) {
+            this.logout();
+          }
+        },
+        error: (err) => {
+          console.warn('No se pudo revalidar la sesión tras cambios en usuarios:', err);
+        },
+      });
+    });
   }
 
   private getTokenExpiry(token: string, expiresIn?: number): number {

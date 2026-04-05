@@ -356,12 +356,26 @@ mod tests {
             }
         }
 
+        async fn set_is_active(&self, user_id: Uuid, is_active: bool) -> Result<User, DomainError> {
+            let mut user = self.user.lock().unwrap();
+            if user.id == user_id {
+                user.is_active = is_active;
+                user.failed_login_attempts = 0;
+                user.lockout_until = None;
+                Ok(user.clone())
+            } else {
+                Err(DomainError::NotFound("User not found".into()))
+            }
+        }
+
         async fn update_credentials(&self, user_id: Uuid, email: &str, password_hash: &str, is_temp_password: bool) -> Result<User, DomainError> {
             let mut user = self.user.lock().unwrap();
             if user.id == user_id {
                 user.email = email.to_string();
                 user.password_hash = password_hash.to_string();
                 user.is_temp_password = is_temp_password;
+                user.failed_login_attempts = 0;
+                user.lockout_until = None;
                 user.updated_at = Utc::now();
                 Ok(user.clone())
             } else {

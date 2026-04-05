@@ -9,7 +9,7 @@ use serde::Serialize;
 
 use crate::{
     adapters::{
-        auth::middleware::read_auth_user_from_headers,
+        auth::middleware::read_active_auth_user_from_headers,
         graphql::realtime::RealtimeScope,
     },
     domain::services::excel_service::ExcelService,
@@ -34,7 +34,7 @@ pub async fn upload_schedule(
     headers: HeaderMap,
     mut multipart: Multipart,
 ) -> Result<Json<UploadResponse>, (axum::http::StatusCode, String)> {
-    let auth_user = read_auth_user_from_headers(&headers, &state.config).ok_or((
+    let auth_user = read_active_auth_user_from_headers(&headers, &state.config, state.user_repo.clone()).await.ok_or((
         axum::http::StatusCode::UNAUTHORIZED,
         "Unauthorized".to_string(),
     ))?;

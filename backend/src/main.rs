@@ -6,7 +6,7 @@ mod infrastructure;
 use std::{net::SocketAddr, sync::Arc};
 
 use adapters::{
-    auth::middleware::read_auth_user_from_headers,
+    auth::middleware::read_active_auth_user_from_headers,
     graphql::{realtime::RealtimeBroadcaster, schema::{build_schema, AppSchema}},
     rest::{public_schedules, upload_handler::upload_schedule},
 };
@@ -65,6 +65,7 @@ use tower_http::cors::{Any, CorsLayer};
 #[derive(Clone)]
 pub struct AppState {
     pub config: Arc<AppConfig>,
+    pub user_repo: Arc<dyn UserRepository>,
     pub schema: AppSchema,
     pub realtime: Arc<RealtimeBroadcaster>,
     pub teacher_service: Arc<TeacherService>,
@@ -145,6 +146,7 @@ async fn main() -> anyhow::Result<()> {
 
     let state = AppState {
         config: config.clone(),
+        user_repo: user_repo.clone(),
         schema,
         realtime,
         teacher_service: teacher_service.clone(),
@@ -184,7 +186,7 @@ async fn graphql_handler(
     req: GraphQLRequest,
 ) -> GraphQLResponse {
     let mut request = req.into_inner();
-    if let Some(auth_user) = read_auth_user_from_headers(&headers, &state.config) {
+    if let Some(auth_user) = read_active_auth_user_from_headers(&headers, &state.config, state.user_repo.clone()).await {
         request = request.data(auth_user);
     }
 
