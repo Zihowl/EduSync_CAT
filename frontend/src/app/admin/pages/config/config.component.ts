@@ -53,6 +53,7 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
             id
             startDate
             endDate
+            createdAt
         }
     }
 `;
@@ -408,49 +409,96 @@ export class ConfigComponent implements OnInit
 
     AddDomain() 
     {
-      if (!this.newDomain)
+      const domain = this.newDomain.trim().toLowerCase();
+
+      if (!domain)
       {
         return;
       }
+
+        const previousDomains = [...this.domains];
+        const optimisticDomain = {
+            id: `temp-${Date.now()}`,
+            domain,
+        };
+
+        this.domains = [...this.domains, optimisticDomain];
+        this.isDomainsLoaded = true;
+        this.newDomain = '';
+        this.cdr.detectChanges();
         
         this.apollo.mutate({
             mutation: ADD_DOMAIN,
-            variables: { domain: this.newDomain },
+            variables: { domain },
         }).subscribe({
-        next: () =>
+        next: (result: any) =>
         {
+                const createdDomain = result?.data?.CreateAllowedDomain;
                 this.runInZone(() => {
-                    this.newDomain = '';
+                    this.domains = createdDomain
+                        ? [...previousDomains, createdDomain]
+                        : previousDomains;
+                    this.isDomainsLoaded = true;
                     this.cdr.detectChanges();
                 });
-                this.LoadDomains(true);
             },
-            error: (err) => alert('Error al agregar dominio: ' + err.message)
+            error: (err) => {
+                this.runInZone(() => {
+                    this.domains = previousDomains;
+                    this.newDomain = domain;
+                    this.isDomainsLoaded = true;
+                    this.cdr.detectChanges();
+                });
+                alert('Error al agregar dominio: ' + err.message)
+            }
         });
     }
 
     AddSchoolYear()
     {
-        if (!this.newSchoolYearStart || !this.newSchoolYearEnd)
+        const startDate = this.newSchoolYearStart.trim();
+        const endDate = this.newSchoolYearEnd.trim();
+
+        if (!startDate || !endDate)
         {
             return;
         }
 
+        const previousSchoolYear = this.currentSchoolYear;
+        this.currentSchoolYear = {
+            id: previousSchoolYear?.id ?? 'pending',
+            startDate,
+            endDate,
+            createdAt: new Date().toISOString()
+        };
+        this.cdr.detectChanges();
+
         this.apollo.mutate({
             mutation: SET_CURRENT_SCHOOL_YEAR,
-            variables: { startDate: this.newSchoolYearStart, endDate: this.newSchoolYearEnd },
+            variables: { startDate, endDate },
         }).subscribe({
             next: (res: any) => {
                 console.debug('SetCurrentSchoolYear response:', res);
                 this.runInZone(() => {
-                    alert('Ciclo en curso actualizado: ' + this.newSchoolYearStart + ' - ' + this.newSchoolYearEnd);
+                    const updatedSchoolYear = res?.data?.SetCurrentSchoolYear;
+                    if (updatedSchoolYear) {
+                        this.currentSchoolYear = updatedSchoolYear;
+                    }
+                    alert('Ciclo en curso actualizado: ' + startDate + ' - ' + endDate);
                     this.newSchoolYearStart = '';
                     this.newSchoolYearEnd = '';
                     this.cdr.detectChanges();
                 });
-                this.LoadCurrentSchoolYear(true);
             },
-            error: (err) => alert('Error al guardar ciclo escolar: ' + err.message)
+            error: (err) => {
+                this.runInZone(() => {
+                    this.currentSchoolYear = previousSchoolYear;
+                    this.newSchoolYearStart = startDate;
+                    this.newSchoolYearEnd = endDate;
+                    this.cdr.detectChanges();
+                });
+                alert('Error al guardar ciclo escolar: ' + err.message)
+            }
         });
     }
 
@@ -461,13 +509,30 @@ export class ConfigComponent implements OnInit
         return;
       }
 
+        const domainId = Number(id);
+        const previousDomains = [...this.domains];
+
+        this.domains = this.domains.filter((domain: any) => Number(domain.id) !== domainId);
+        this.isDomainsLoaded = true;
+        this.cdr.detectChanges();
+
         this.apollo.mutate(
         {
             mutation: REMOVE_DOMAIN,
-            variables: { id: parseInt(id.toString()) }
+            variables: { id: domainId }
         }).subscribe({
             next: () => {
-                this.LoadDomains(true);
+                this.runInZone(() => {
+                    this.cdr.detectChanges();
+                });
+            },
+            error: (err) => {
+                this.runInZone(() => {
+                    this.domains = previousDomains;
+                    this.isDomainsLoaded = true;
+                    this.cdr.detectChanges();
+                });
+                alert('Error al eliminar dominio: ' + err.message)
             }
         });
     }
