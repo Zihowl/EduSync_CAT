@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs';
 import {
     IonContent, IonSelect,
     IonSelectOption, IonList, IonItem, IonLabel, IonIcon,
@@ -17,6 +18,7 @@ import {
 } from 'ionicons/icons';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { environment } from '../../../../environments/environment';
+import { RealtimeQueryCacheService } from '../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realtime-sync.service';
 
 interface ScheduleSlot {
@@ -165,6 +167,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
 export class ScheduleKioskComponent implements OnInit
 {
     private http = inject(HttpClient);
+    private queryCache = inject(RealtimeQueryCacheService);
     private realtimeSync = inject(RealtimeSyncService);
     private destroyRef = inject(DestroyRef);
 
@@ -214,21 +217,27 @@ export class ScheduleKioskComponent implements OnInit
 
     LoadGroups()
     {
-        // Obtener grupos desde el endpoint público
-        this.http.get<ScheduleSlot[]>(`${this.apiUrl}/public/schedules`).subscribe({
-            next: (schedules) => {
-                // Extraer grupos únicos de los horarios publicados
-                const groupMap = new Map<number, any>();
-                schedules.forEach(s => {
-                    if (!groupMap.has(s.group.id)) {
-                        groupMap.set(s.group.id, s.group);
-                    }
-                });
-                this.groups = Array.from(groupMap.values()).sort((a, b) => {
-                    const nameA = (a.parent?.name || '') + a.name;
-                    const nameB = (b.parent?.name || '') + b.name;
-                    return nameA.localeCompare(nameB);
-                });
+        this.queryCache.load(
+            'public-schedule-groups',
+            [RealtimeScope.Schedules, RealtimeScope.Groups],
+            () => this.http.get<ScheduleSlot[]>(`${this.apiUrl}/public/schedules`).pipe(
+                map((schedules) => {
+                    const groupMap = new Map<number, any>();
+                    schedules.forEach(s => {
+                        if (!groupMap.has(s.group.id)) {
+                            groupMap.set(s.group.id, s.group);
+                        }
+                    });
+                    return Array.from(groupMap.values()).sort((a, b) => {
+                        const nameA = (a.parent?.name || '') + a.name;
+                        const nameB = (b.parent?.name || '') + b.name;
+                        return nameA.localeCompare(nameB);
+                    });
+                })
+            )
+        ).subscribe({
+            next: (groups: any[]) => {
+                this.groups = groups;
 
                 if (this.selectedGroupId && !this.groups.some(g => Number(g.id) === Number(this.selectedGroupId))) {
                     this.selectedGroupId = null;
@@ -244,8 +253,12 @@ export class ScheduleKioskComponent implements OnInit
         if (!this.selectedGroupId) return;
 
         this.loading = true;
-        this.http.get<ScheduleSlot[]>(`${this.apiUrl}/public/schedules?groupId=${this.selectedGroupId}`).subscribe({
-            next: (schedules) => {
+        this.queryCache.load(
+            `public-schedule-group:${this.selectedGroupId}`,
+            [RealtimeScope.Schedules, RealtimeScope.Groups],
+            () => this.http.get<ScheduleSlot[]>(`${this.apiUrl}/public/schedules?groupId=${this.selectedGroupId}`)
+        ).subscribe({
+            next: (schedules: ScheduleSlot[]) => {
                 this.schedules = schedules;
                 this.loading = false;
                 // Auto-select el primer día con clases

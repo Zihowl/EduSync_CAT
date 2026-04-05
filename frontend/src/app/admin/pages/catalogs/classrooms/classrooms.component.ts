@@ -2,6 +2,7 @@ import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
+import { map } from 'rxjs';
 import { 
     IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, 
     IonList, IonItem, IonLabel, IonSelect, 
@@ -12,6 +13,7 @@ import { addIcons } from 'ionicons';
 import { trashOutline, addOutline, pencilOutline, homeOutline } from 'ionicons/icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
 const GET_CLASSROOMS = gql`
@@ -139,6 +141,7 @@ const REMOVE_CLASSROOM = gql`
 export class ClassroomsComponent implements OnInit
 {
     private apollo = inject(Apollo);
+    private queryCache = inject(RealtimeQueryCacheService);
     private realtimeSync = inject(RealtimeSyncService);
     private destroyRef = inject(DestroyRef);
 
@@ -162,17 +165,29 @@ export class ClassroomsComponent implements OnInit
     }
 
     LoadBuildings() {
-        this.apollo.query<any>({ query: GET_BUILDINGS, fetchPolicy: 'network-only' }).subscribe({
-            next: (res: any) => {
-                this.buildings = res?.data?.GetBuildings ?? [];
+        this.queryCache.load(
+            'admin-classrooms-buildings',
+            [RealtimeScope.Buildings],
+            () => this.apollo.query<any>({ query: GET_BUILDINGS, fetchPolicy: 'network-only' }).pipe(
+                map((res: any) => res?.data?.GetBuildings ?? [])
+            )
+        ).subscribe({
+            next: (buildings: any[]) => {
+                this.buildings = buildings;
             }
         });
     }
 
     LoadClassrooms() {
-        this.apollo.query<any>({ query: GET_CLASSROOMS, fetchPolicy: 'network-only' }).subscribe({
-            next: (res: any) => {
-                this.classrooms = res?.data?.GetClassrooms ?? [];
+        this.queryCache.load(
+            'admin-classrooms-list',
+            [RealtimeScope.Classrooms],
+            () => this.apollo.query<any>({ query: GET_CLASSROOMS, fetchPolicy: 'network-only' }).pipe(
+                map((res: any) => res?.data?.GetClassrooms ?? [])
+            )
+        ).subscribe({
+            next: (classrooms: any[]) => {
+                this.classrooms = classrooms;
             }
         });
     }

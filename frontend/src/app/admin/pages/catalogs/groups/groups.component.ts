@@ -2,6 +2,7 @@ import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
+import { map } from 'rxjs';
 import { 
     IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, 
     IonList, IonItem, IonLabel, 
@@ -12,6 +13,7 @@ import { addIcons } from 'ionicons';
 import { trashOutline, addOutline, pencilOutline, peopleOutline, personOutline, searchOutline, returnDownForward, addCircleOutline, people, person } from 'ionicons/icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
 const GET_GROUPS = gql`
@@ -145,6 +147,7 @@ const REMOVE_GROUP = gql`
 export class GroupsComponent implements OnInit
 {
     private apollo = inject(Apollo);
+    private queryCache = inject(RealtimeQueryCacheService);
     private realtimeSync = inject(RealtimeSyncService);
     private destroyRef = inject(DestroyRef);
 
@@ -223,10 +226,15 @@ export class GroupsComponent implements OnInit
     }
 
     LoadGroups() {
-        this.apollo.query<any>({ query: GET_GROUPS, fetchPolicy: 'network-only' }).subscribe({
-            next: (res: any) => {
-                console.log('GetGroups response:', res);
-                const rawGroups = res?.data?.GetGroups ?? [];
+        this.queryCache.load(
+            'admin-groups',
+            [RealtimeScope.Groups],
+            () => this.apollo.query<any>({ query: GET_GROUPS, fetchPolicy: 'network-only' }).pipe(
+                map((res: any) => res?.data?.GetGroups ?? [])
+            )
+        ).subscribe({
+            next: (rawGroups: any[]) => {
+                console.log('GetGroups response:', rawGroups);
                 console.log('Raw groups:', rawGroups);
                 const normalized = this.normalizeParents(rawGroups);
                 this.allGroups = [...normalized];

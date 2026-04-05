@@ -2,6 +2,7 @@ import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
+import { map } from 'rxjs';
 import {
     IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, 
     IonList, IonItem, IonLabel, IonAvatar, 
@@ -12,6 +13,7 @@ import { addIcons } from 'ionicons';
 import { personOutline, trashOutline, addOutline, pencilOutline, mailOutline, cardOutline } from 'ionicons/icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
 const GET_TEACHERS = gql`
@@ -144,6 +146,7 @@ const REMOVE_TEACHER = gql`
 export class TeachersComponent implements OnInit
 {
     private apollo = inject(Apollo);
+    private queryCache = inject(RealtimeQueryCacheService);
     private realtimeSync = inject(RealtimeSyncService);
     private destroyRef = inject(DestroyRef);
 
@@ -168,9 +171,15 @@ export class TeachersComponent implements OnInit
     }
 
     LoadTeachers() {
-        this.apollo.query<any>({ query: GET_TEACHERS, fetchPolicy: 'network-only' }).subscribe({
-            next: (res: any) => {
-                this.teachers = res?.data?.GetTeachers ?? [];
+        this.queryCache.load(
+            'admin-teachers',
+            [RealtimeScope.Teachers],
+            () => this.apollo.query<any>({ query: GET_TEACHERS, fetchPolicy: 'network-only' }).pipe(
+                map((res: any) => res?.data?.GetTeachers ?? [])
+            )
+        ).subscribe({
+            next: (teachers: any[]) => {
+                this.teachers = teachers;
                 this.ApplyFilter();
             },
             error: (err) => {

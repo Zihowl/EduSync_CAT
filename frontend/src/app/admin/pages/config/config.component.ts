@@ -3,12 +3,14 @@ import { CommonModule, NgForOf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs';
 import { IonContent, IonList, IonItem, IonLabel, IonInput, IonButton, IonIcon, IonCard, IonCardContent, IonSpinner } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { alertCircleOutline, calendarOutline, checkmarkOutline, globeOutline, informationCircleOutline, trashOutline } from 'ionicons/icons';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { DestroyRef } from '@angular/core';
 import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realtime-sync.service';
+import { RealtimeQueryCacheService } from '../../../core/services/realtime-query-cache.service';
 
 const GET_DOMAINS = gql`
     query GetAllowedDomains {
@@ -243,6 +245,7 @@ export class ConfigComponent implements OnInit
     private ngZone = inject(NgZone);
     private destroyRef = inject(DestroyRef);
     private realtimeSync = inject(RealtimeSyncService);
+    private queryCache = inject(RealtimeQueryCacheService);
 
     domains: any[] = [];
     currentSchoolYear: any = null;
@@ -278,20 +281,17 @@ export class ConfigComponent implements OnInit
 
     LoadDomains() 
     {
-        this.apollo.query<any>({ query: GET_DOMAINS, fetchPolicy: 'network-only' })
+        this.queryCache.load(
+            'admin-config-domains',
+            [RealtimeScope.AllowedDomains],
+            () => this.apollo.query<any>({ query: GET_DOMAINS, fetchPolicy: 'network-only' }).pipe(
+                map((res: any) => res?.data?.GetAllowedDomains ?? [])
+            )
+        )
             .subscribe({
-                next: (res: any) => {
+                next: (domains: any[]) => {
                     this.runInZone(() => {
-                        const data = res?.data;
-                        if (!data)
-                        {
-                            console.error('GetAllowedDomains returned no data:', res);
-                            this.isDomainsLoaded = true;
-                            this.cdr.detectChanges();
-                            return;
-                        }
-
-                        this.domains = data.GetAllowedDomains ?? [];
+                        this.domains = domains;
                         this.isDomainsLoaded = true;
                         this.cdr.detectChanges();
                     });
@@ -308,17 +308,17 @@ export class ConfigComponent implements OnInit
 
     LoadCurrentSchoolYear()
     {
-        this.apollo.query<any>({ query: GET_CURRENT_SCHOOL_YEAR, fetchPolicy: 'network-only' })
+        this.queryCache.load(
+            'admin-config-current-school-year',
+            [RealtimeScope.CurrentSchoolYear],
+            () => this.apollo.query<any>({ query: GET_CURRENT_SCHOOL_YEAR, fetchPolicy: 'network-only' }).pipe(
+                map((res: any) => res?.data?.GetCurrentSchoolYear ?? null)
+            )
+        )
             .subscribe({
-                next: (res: any) => {
+                next: (currentSchoolYear: any) => {
                     this.runInZone(() => {
-                        const data = res?.data;
-                        const errors = res?.errors;
-                        if (errors && errors.length > 0) {
-                            console.error('GetCurrentSchoolYear errors:', errors);
-                        }
-                        console.debug('GetCurrentSchoolYear result:', data);
-                        this.currentSchoolYear = data?.GetCurrentSchoolYear ?? null;
+                        this.currentSchoolYear = currentSchoolYear;
                         this.isCurrentSchoolYearLoaded = true;
                         this.cdr.detectChanges();
                     });

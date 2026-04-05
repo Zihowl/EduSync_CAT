@@ -2,6 +2,7 @@ import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
+import { map } from 'rxjs';
 import { 
     IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, 
     IonList, IonItem, IonLabel, IonButton, 
@@ -12,6 +13,7 @@ import { addIcons } from 'ionicons';
 import { trashOutline, addOutline, pencilOutline, businessOutline } from 'ionicons/icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
 const GET_BUILDINGS = gql`
@@ -128,6 +130,7 @@ const REMOVE_BUILDING = gql`
 export class BuildingsComponent implements OnInit
 {
     private apollo = inject(Apollo);
+    private queryCache = inject(RealtimeQueryCacheService);
     private realtimeSync = inject(RealtimeSyncService);
     private destroyRef = inject(DestroyRef);
 
@@ -149,9 +152,15 @@ export class BuildingsComponent implements OnInit
     }
 
     LoadBuildings() {
-        this.apollo.query<any>({ query: GET_BUILDINGS, fetchPolicy: 'network-only' }).subscribe({
-            next: (res: any) => {
-                this.buildings = res?.data?.GetBuildings ?? [];
+        this.queryCache.load(
+            'admin-buildings',
+            [RealtimeScope.Buildings],
+            () => this.apollo.query<any>({ query: GET_BUILDINGS, fetchPolicy: 'network-only' }).pipe(
+                map((res: any) => res?.data?.GetBuildings ?? [])
+            )
+        ).subscribe({
+            next: (buildings: any[]) => {
+                this.buildings = buildings;
             },
             error: (err) => {
                 console.error('Error loading buildings:', err);

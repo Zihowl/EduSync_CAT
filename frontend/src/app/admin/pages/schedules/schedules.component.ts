@@ -2,6 +2,7 @@ import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
+import { map } from 'rxjs';
 import {
     IonContent, IonHeader, IonToolbar, IonTitle, IonButtons,
     IonList, IonItem, IonLabel, IonSelect,
@@ -19,6 +20,7 @@ import {
 } from 'ionicons/icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { RealtimeQueryCacheService } from '../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realtime-sync.service';
 
 const GET_SCHEDULES = gql`
@@ -311,6 +313,7 @@ export class SchedulesComponent implements OnInit
 {
     private apollo = inject(Apollo);
     private toastController = inject(ToastController);
+    private queryCache = inject(RealtimeQueryCacheService);
     private realtimeSync = inject(RealtimeSyncService);
     private destroyRef = inject(DestroyRef);
 
@@ -413,12 +416,23 @@ export class SchedulesComponent implements OnInit
 
     LoadCatalogs()
     {
-        this.apollo.query<any>({ query: GET_CATALOGS, fetchPolicy: 'network-only' }).subscribe({
-            next: (res) => {
-                this.teachers = res.data?.GetTeachers ?? [];
-                this.subjects = res.data?.GetSubjects ?? [];
-                this.classrooms = res.data?.GetClassrooms ?? [];
-                this.groups = res.data?.GetGroups ?? [];
+        this.queryCache.load(
+            'admin-schedules-catalogs',
+            [RealtimeScope.Teachers, RealtimeScope.Subjects, RealtimeScope.Classrooms, RealtimeScope.Groups],
+            () => this.apollo.query<any>({ query: GET_CATALOGS, fetchPolicy: 'network-only' }).pipe(
+                map((res: any) => ({
+                    teachers: res?.data?.GetTeachers ?? [],
+                    subjects: res?.data?.GetSubjects ?? [],
+                    classrooms: res?.data?.GetClassrooms ?? [],
+                    groups: res?.data?.GetGroups ?? [],
+                }))
+            )
+        ).subscribe({
+            next: (catalogs: any) => {
+                this.teachers = catalogs.teachers;
+                this.subjects = catalogs.subjects;
+                this.classrooms = catalogs.classrooms;
+                this.groups = catalogs.groups;
             }
         });
     }
@@ -447,13 +461,26 @@ export class SchedulesComponent implements OnInit
         if (this.filterPublished === 'published') filter.isPublished = true;
         if (this.filterPublished === 'draft') filter.isPublished = false;
 
-        this.apollo.query<any>({
-            query: GET_SCHEDULES,
-            variables: { filter: Object.keys(filter).length > 0 ? filter : null },
-            fetchPolicy: 'network-only'
-        }).subscribe({
-            next: (res) => {
-                this.schedules = res.data?.GetSchedules ?? [];
+        const scheduleKey = [
+            'admin-schedules',
+            this.filterPublished,
+            this.filterGroupId ?? 'all',
+            this.filterDay ?? 'all'
+        ].join(':');
+
+        this.queryCache.load(
+            scheduleKey,
+            [RealtimeScope.Schedules, RealtimeScope.Teachers, RealtimeScope.Subjects, RealtimeScope.Classrooms, RealtimeScope.Groups],
+            () => this.apollo.query<any>({
+                query: GET_SCHEDULES,
+                variables: { filter: Object.keys(filter).length > 0 ? filter : null },
+                fetchPolicy: 'network-only'
+            }).pipe(
+                map((res: any) => res?.data?.GetSchedules ?? [])
+            )
+        ).subscribe({
+            next: (schedules: any[]) => {
+                this.schedules = schedules;
             },
             error: (err) => console.error('Error loading schedules:', err)
         });

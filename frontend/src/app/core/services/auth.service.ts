@@ -3,6 +3,8 @@ import { Apollo, gql } from 'apollo-angular';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable, catchError, map, of, throwError } from 'rxjs';
 
+import { RealtimeQueryCacheService } from './realtime-query-cache.service';
+
 import {
   User,
   AuthToken,
@@ -93,6 +95,7 @@ export class AuthService {
 
   private router = inject(Router);
   private apollo = inject(Apollo);
+  private queryCache = inject(RealtimeQueryCacheService);
 
   private userSignal = signal<User | null>(null);
   private userSubject = new BehaviorSubject<User | null>(null);
@@ -275,6 +278,8 @@ export class AuthService {
     localStorage.removeItem(this.REFRESH_TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
     localStorage.removeItem('token_expiry');
+
+    this.queryCache.clear();
 
     this.accessTokenSignal.set(null);
     this.refreshTokenSignal.set(null);

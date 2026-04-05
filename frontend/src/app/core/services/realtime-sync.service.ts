@@ -22,6 +22,7 @@ export interface RealtimeEvent {
 export class RealtimeSyncService {
     private readonly eventSubject = new Subject<RealtimeEvent>();
     readonly events$ = this.eventSubject.asObservable();
+    private readonly scopeRevisions = new Map<RealtimeScope, number>();
 
     private socket: WebSocket | null = null;
     private reconnectAttempt = 0;
@@ -39,6 +40,20 @@ export class RealtimeSyncService {
         return this.events$.pipe(
             filter((event) => event.scopes.some((scope) => scopes.includes(scope)))
         );
+    }
+
+    getRevision(scopes: readonly RealtimeScope[]): number {
+        if (scopes.length === 0) {
+            return 0;
+        }
+
+        let revision = 0;
+
+        for (const scope of scopes) {
+            revision = Math.max(revision, this.scopeRevisions.get(scope) ?? 0);
+        }
+
+        return revision;
     }
 
     private connect(): void {
@@ -127,6 +142,10 @@ export class RealtimeSyncService {
 
         if (normalizedScopes.length === 0) {
             return;
+        }
+
+        for (const scope of normalizedScopes) {
+            this.scopeRevisions.set(scope, (this.scopeRevisions.get(scope) ?? 0) + 1);
         }
 
         this.ngZone.run(() => {

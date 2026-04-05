@@ -2,6 +2,7 @@ import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
+import { map } from 'rxjs';
 import { 
     IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, 
     IonList, IonItem, IonLabel, IonButton, 
@@ -12,6 +13,7 @@ import { addIcons } from 'ionicons';
 import { trashOutline, addOutline, pencilOutline, bookOutline } from 'ionicons/icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
 const GET_SUBJECTS = gql`
@@ -128,6 +130,7 @@ const REMOVE_SUBJECT = gql`
 export class SubjectsComponent implements OnInit
 {
     private apollo = inject(Apollo);
+    private queryCache = inject(RealtimeQueryCacheService);
     private realtimeSync = inject(RealtimeSyncService);
     private destroyRef = inject(DestroyRef);
 
@@ -149,9 +152,15 @@ export class SubjectsComponent implements OnInit
     }
 
     LoadSubjects() {
-        this.apollo.query<any>({ query: GET_SUBJECTS, fetchPolicy: 'network-only' }).subscribe({
+        this.queryCache.load(
+            'admin-subjects',
+            [RealtimeScope.Subjects],
+            () => this.apollo.query<any>({ query: GET_SUBJECTS, fetchPolicy: 'network-only' }).pipe(
+                map((res: any) => res?.data?.GetSubjects ?? [])
+            )
+        ).subscribe({
             next: (res: any) => {
-                this.subjects = res?.data?.GetSubjects ?? [];
+                this.subjects = res ?? [];
             },
             error: (err) => {
                 console.error('Error loading subjects:', err);

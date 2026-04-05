@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs';
 import {
     IonContent,
     IonHeader,
@@ -27,6 +28,7 @@ import { personAddOutline, trashOutline, shieldCheckmarkOutline } from 'ionicons
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { DestroyRef } from '@angular/core';
 import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realtime-sync.service';
+import { RealtimeQueryCacheService } from '../../../core/services/realtime-query-cache.service';
 
 const GET_USERS = gql`
     query GetUsers {
@@ -187,6 +189,7 @@ export class UsersComponent implements OnInit
     private ngZone = inject(NgZone);
     private destroyRef = inject(DestroyRef);
     private realtimeSync = inject(RealtimeSyncService);
+    private queryCache = inject(RealtimeQueryCacheService);
 
     users: any[] = [];
     allowedDomains: string[] = [];
@@ -218,20 +221,17 @@ export class UsersComponent implements OnInit
 
     LoadAllowedDomains()
     {
-        this.apollo.query<any>({ query: GET_ALLOWED_DOMAINS, fetchPolicy: 'network-only' })
+        this.queryCache.load(
+            'admin-users-allowed-domains',
+            [RealtimeScope.AllowedDomains],
+            () => this.apollo.query<any>({ query: GET_ALLOWED_DOMAINS, fetchPolicy: 'network-only' }).pipe(
+                map((res: any) => (res?.data?.GetAllowedDomains ?? []).map((d: any) => d.domain.toLowerCase()))
+            )
+        )
         .subscribe({
-            next: (res: any) => {
+            next: (domains: string[]) => {
                 this.runInZone(() => {
-                    const data = res?.data;
-                    if (!data)
-                    {
-                        console.error('GetAllowedDomains returned no data for users:', res);
-                        this.isAllowedDomainsLoaded = true;
-                        this.cdr.detectChanges();
-                        return;
-                    }
-
-                    this.allowedDomains = (data.GetAllowedDomains ?? []).map((d: any) => d.domain.toLowerCase());
+                    this.allowedDomains = domains;
                     this.isAllowedDomainsLoaded = true;
                     this.cdr.detectChanges();
                 });
@@ -259,35 +259,32 @@ export class UsersComponent implements OnInit
     isDomainAllowed(): boolean
     {
         const d = this.getEmailDomain();
-                if (!d)
-                {
-                        return true;
-                }
+        if (!d)
+        {
+            return true;
+        }
 
-                if (!this.isAllowedDomainsLoaded)
-                {
-                        return true;
-                }
+        if (!this.isAllowedDomainsLoaded)
+        {
+            return true;
+        }
 
         return this.allowedDomains.includes(d);
     }
 
     LoadUsers() 
     {
-        this.apollo.query<any>({ query: GET_USERS, fetchPolicy: 'network-only' })
+        this.queryCache.load(
+            'admin-users-list',
+            [RealtimeScope.Users],
+            () => this.apollo.query<any>({ query: GET_USERS, fetchPolicy: 'network-only' }).pipe(
+                map((res: any) => res?.data?.GetUsers ?? [])
+            )
+        )
         .subscribe({
-            next: (res: any) => {
+            next: (users: any[]) => {
                 this.runInZone(() => {
-                    const data = res?.data;
-                    if (!data)
-                    {
-                        console.error('GetUsers returned no data:', res);
-                        this.isUsersLoaded = true;
-                        this.cdr.detectChanges();
-                        return;
-                    }
-
-                    this.users = data.GetUsers ?? [];
+                    this.users = users;
                     this.isUsersLoaded = true;
                     this.cdr.detectChanges();
                 });
