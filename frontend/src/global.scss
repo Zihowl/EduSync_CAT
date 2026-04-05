@@ -36,6 +36,41 @@
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
 @import '@ionic/angular/css/palettes/dark.system.css';
 
+:root {
+	--app-shell-background: linear-gradient(rgba(15, 23, 42, 0.35), rgba(15, 23, 42, 0.35)), url('/assets/wallpaper.jpg') 37% center / cover no-repeat;
+	--app-shell-background-base: #0f172a;
+}
+
+html,
+body {
+	height: 100%;
+}
+
+body {
+	margin: 0;
+	background: var(--app-shell-background);
+	background-color: var(--app-shell-background-base);
+}
+
+ion-app {
+	min-height: 100%;
+	background: var(--app-shell-background);
+	background-color: var(--app-shell-background-base);
+}
+
+ion-router-outlet,
+ion-router-outlet .ion-page {
+	background: transparent;
+}
+
+ion-router-outlet .ion-page > ion-content {
+	--background: transparent;
+}
+
+ion-router-outlet .ion-page > ion-content::part(background) {
+	background: transparent;
+}
+
 /* frontend/src/global.scss */
 
 /* Soft, prominent login toast */
