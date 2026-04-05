@@ -65,80 +65,82 @@ const REMOVE_TEACHER = gql`
     template: `
         <app-page-header title="Docentes" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
-        <ion-content>
-            <div class="ion-padding-horizontal ion-padding-top">
-                <ion-searchbar placeholder="Buscar docente..." (ionInput)="Filter($event)"></ion-searchbar>
+        <ion-content class="ion-padding">
+            <div class="app-page-shell app-page-shell--medium">
+                <div class="app-page-section">
+                    <ion-searchbar placeholder="Buscar docente..." (ionInput)="Filter($event)"></ion-searchbar>
+                </div>
+                <ion-list lines="inset">
+                    <ion-item *ngFor="let t of filteredTeachers">
+                        <ion-avatar slot="start" class="teacher-avatar">
+                            <span class="teacher-initials">{{ GetInitials(t.name) }}</span>
+                        </ion-avatar>
+                        <ion-label>
+                            <h2 class="teacher-name">{{ t.name }}</h2>
+                            <p>No. Empleado: {{ t.employeeNumber }}</p>
+                            <p>{{ t.email || 'Sin correo' }}</p>
+                        </ion-label>
+                        <ion-buttons slot="end">
+                            <ion-button color="medium" (click)="OpenModal(t)">
+                                <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
+                            </ion-button>
+                            <ion-button color="danger" (click)="RemoveTeacher(t.id)">
+                                <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+                            </ion-button>
+                        </ion-buttons>
+                    </ion-item>
+                </ion-list>
+
+                <div *ngIf="filteredTeachers.length === 0" class="teacher-empty-state">
+                    <ion-icon name="person-outline" class="teacher-empty-icon"></ion-icon>
+                    <p>No se encontraron docentes</p>
+                </div>
+
+                <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+                    <ion-fab-button (click)="OpenModal()">
+                        <ion-icon name="add-outline"></ion-icon>
+                    </ion-fab-button>
+                </ion-fab>
+
+                <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false">
+                    <ng-template>
+                        <ion-header>
+                            <ion-toolbar color="primary">
+                                <ion-title>{{ editingItem ? 'Editar' : 'Nuevo' }} Docente</ion-title>
+                                <ion-buttons slot="end">
+                                    <ion-button (click)="isModalOpen = false">Cerrar</ion-button>
+                                </ion-buttons>
+                            </ion-toolbar>
+                        </ion-header>
+                        <ion-content class="ion-padding">
+                            <ion-list>
+                                <ion-item fill="outline" class="teacher-form-item">
+                                    <ion-label position="stacked">Nombre completo</ion-label>
+                                    <ion-input [(ngModel)]="formData.name" placeholder="Ej. Juan Pérez"></ion-input>
+                                    <ion-icon name="person-outline" slot="start"></ion-icon>
+                                </ion-item>
+                                
+                                <ion-item fill="outline" class="teacher-form-item">
+                                    <ion-label position="stacked">Número de empleado</ion-label>
+                                    <ion-input [(ngModel)]="formData.employeeNumber" placeholder="Ej. 123456"></ion-input>
+                                    <ion-icon name="card-outline" slot="start"></ion-icon>
+                                </ion-item>
+
+                                <ion-item fill="outline">
+                                    <ion-label position="stacked">Correo institucional</ion-label>
+                                    <ion-input type="email" [(ngModel)]="formData.email" placeholder="ejemplo@correo.com"></ion-input>
+                                    <ion-icon name="mail-outline" slot="start"></ion-icon>
+                                </ion-item>
+                            </ion-list>
+                        </ion-content>
+                        <ion-footer class="ion-padding">
+                            <ion-button expand="block" (click)="Save()" [disabled]="!formData.name || !formData.employeeNumber">
+                                {{ editingItem ? 'Actualizar' : 'Guardar' }}
+                            </ion-button>
+                        </ion-footer>
+                    </ng-template>
+                </ion-modal>
             </div>
-            <ion-list lines="inset">
-                <ion-item *ngFor="let t of filteredTeachers">
-                    <ion-avatar slot="start" class="teacher-avatar">
-                        <span class="teacher-initials">{{ GetInitials(t.name) }}</span>
-                    </ion-avatar>
-                    <ion-label>
-                        <h2 class="teacher-name">{{ t.name }}</h2>
-                        <p>No. Empleado: {{ t.employeeNumber }}</p>
-                        <p>{{ t.email || 'Sin correo' }}</p>
-                    </ion-label>
-                    <ion-buttons slot="end">
-                        <ion-button color="medium" (click)="OpenModal(t)">
-                            <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
-                        </ion-button>
-                        <ion-button color="danger" (click)="RemoveTeacher(t.id)">
-                            <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
-                        </ion-button>
-                    </ion-buttons>
-                </ion-item>
-            </ion-list>
-
-            <div *ngIf="filteredTeachers.length === 0" class="teacher-empty-state">
-                <ion-icon name="person-outline" class="teacher-empty-icon"></ion-icon>
-                <p>No se encontraron docentes</p>
-            </div>
-
-            <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-                <ion-fab-button (click)="OpenModal()">
-                    <ion-icon name="add-outline"></ion-icon>
-                </ion-fab-button>
-            </ion-fab>
-
-            <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false">
-                <ng-template>
-                    <ion-header>
-                        <ion-toolbar color="primary">
-                            <ion-title>{{ editingItem ? 'Editar' : 'Nuevo' }} Docente</ion-title>
-                            <ion-buttons slot="end">
-                                <ion-button (click)="isModalOpen = false">Cerrar</ion-button>
-                            </ion-buttons>
-                        </ion-toolbar>
-                    </ion-header>
-                    <ion-content class="ion-padding">
-                        <ion-list>
-                            <ion-item fill="outline" class="teacher-form-item">
-                                <ion-label position="stacked">Nombre completo</ion-label>
-                                <ion-input [(ngModel)]="formData.name" placeholder="Ej. Juan Pérez"></ion-input>
-                                <ion-icon name="person-outline" slot="start"></ion-icon>
-                            </ion-item>
-                            
-                            <ion-item fill="outline" class="teacher-form-item">
-                                <ion-label position="stacked">Número de empleado</ion-label>
-                                <ion-input [(ngModel)]="formData.employeeNumber" placeholder="Ej. 123456"></ion-input>
-                                <ion-icon name="card-outline" slot="start"></ion-icon>
-                            </ion-item>
-
-                            <ion-item fill="outline">
-                                <ion-label position="stacked">Correo institucional</ion-label>
-                                <ion-input type="email" [(ngModel)]="formData.email" placeholder="ejemplo@correo.com"></ion-input>
-                                <ion-icon name="mail-outline" slot="start"></ion-icon>
-                            </ion-item>
-                        </ion-list>
-                    </ion-content>
-                    <ion-footer class="ion-padding">
-                        <ion-button expand="block" (click)="Save()" [disabled]="!formData.name || !formData.employeeNumber">
-                            {{ editingItem ? 'Actualizar' : 'Guardar' }}
-                        </ion-button>
-                    </ion-footer>
-                </ng-template>
-            </ion-modal>
         </ion-content>
     `,
     styleUrls: ['./teachers.component.scss']

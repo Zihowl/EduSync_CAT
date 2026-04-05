@@ -111,8 +111,9 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
             (actionButtonClick)="PublishSelected()"
         ></app-page-header>
 
-        <ion-content>
-            <div class="schedule-controls ion-padding-horizontal ion-padding-top">
+        <ion-content class="ion-padding">
+            <div class="app-page-shell app-page-shell--wide">
+            <div class="schedule-controls app-page-section">
                 <ion-segment [(ngModel)]="filterPublished" (ionChange)="LoadSchedules()" class="schedule-segment">
                     <ion-segment-button value="all">Todos</ion-segment-button>
                     <ion-segment-button value="published">Publicados</ion-segment-button>
@@ -305,6 +306,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                     </ion-footer>
                 </ng-template>
             </ion-modal>
+            </div>
         </ion-content>
     `,
     styleUrls: ['./schedules.component.scss']

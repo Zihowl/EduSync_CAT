@@ -33,7 +33,7 @@ import { environment } from '../../../../environments/environment';
         <app-page-header title="Carga de Horarios" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content class="ion-padding upload-content">
-            <div class="upload-container">
+            <div class="upload-container app-page-shell">
                 <ion-card class="upload-card">
                     <ion-card-content>
                         <div class="upload-header">

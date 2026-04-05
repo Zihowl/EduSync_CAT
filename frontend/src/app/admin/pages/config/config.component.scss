@@ -17,7 +17,6 @@
     align-items: flex-start;
     width: 100%;
     min-height: 100%;
-    padding: 1rem 0.75rem 1.25rem;
     box-sizing: border-box;
 }
 
@@ -369,11 +368,6 @@ ion-card-content {
 }
 
 @media (min-width: 768px) and (max-width: 1199px) {
-    .config-wrapper {
-        padding-left: 1rem;
-        padding-right: 1rem;
-    }
-
     .config-container {
         width: min(100%, 820px);
         gap: 0.9rem;
@@ -381,11 +375,6 @@ ion-card-content {
 }
 
 @media (min-width: 1200px) {
-    .config-wrapper {
-        padding-left: 1.25rem;
-        padding-right: 1.25rem;
-    }
-
     .config-container {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         width: 100%;
@@ -395,10 +384,6 @@ ion-card-content {
 }
 
 @media (max-width: 600px) {
-    .config-wrapper {
-        padding-top: 0.25rem;
-    }
-
     .section-header {
         padding: 0.85rem 0.9rem 0.85rem 1rem;
     }

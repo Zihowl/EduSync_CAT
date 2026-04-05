@@ -63,66 +63,68 @@ const REMOVE_SUBJECT = gql`
     template: `
         <app-page-header title="Materias" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
-        <ion-content>
-            <ion-list lines="inset">
-                <ion-item *ngFor="let s of subjects">
-                    <ion-icon name="book-outline" slot="start" color="primary"></ion-icon>
-                    <ion-label>
-                        <h2 class="subject-name">{{ s.name }}</h2>
-                        <p>Clave: {{ s.code }}</p>
-                    </ion-label>
-                    <ion-buttons slot="end">
-                        <ion-button color="medium" (click)="OpenModal(s)">
-                            <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
-                        </ion-button>
-                        <ion-button color="danger" (click)="RemoveSubject(s.id)">
-                            <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
-                        </ion-button>
-                    </ion-buttons>
-                </ion-item>
-            </ion-list>
+        <ion-content class="ion-padding">
+            <div class="app-page-shell app-page-shell--medium">
+                <ion-list lines="inset">
+                    <ion-item *ngFor="let s of subjects">
+                        <ion-icon name="book-outline" slot="start" color="primary"></ion-icon>
+                        <ion-label>
+                            <h2 class="subject-name">{{ s.name }}</h2>
+                            <p>Clave: {{ s.code }}</p>
+                        </ion-label>
+                        <ion-buttons slot="end">
+                            <ion-button color="medium" (click)="OpenModal(s)">
+                                <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
+                            </ion-button>
+                            <ion-button color="danger" (click)="RemoveSubject(s.id)">
+                                <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+                            </ion-button>
+                        </ion-buttons>
+                    </ion-item>
+                </ion-list>
 
-            <div *ngIf="subjects.length === 0" class="subject-empty-state">
-                <ion-icon name="book-outline" class="subject-empty-icon"></ion-icon>
-                <p>No hay materias registradas</p>
+                <div *ngIf="subjects.length === 0" class="subject-empty-state">
+                    <ion-icon name="book-outline" class="subject-empty-icon"></ion-icon>
+                    <p>No hay materias registradas</p>
+                </div>
+
+                <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+                    <ion-fab-button (click)="OpenModal()">
+                        <ion-icon name="add-outline"></ion-icon>
+                    </ion-fab-button>
+                </ion-fab>
+
+                <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false">
+                    <ng-template>
+                        <ion-header>
+                            <ion-toolbar color="primary">
+                                <ion-title>{{ editingItem ? 'Editar' : 'Nueva' }} Materia</ion-title>
+                                <ion-buttons slot="end">
+                                    <ion-button (click)="isModalOpen = false">Cerrar</ion-button>
+                                </ion-buttons>
+                            </ion-toolbar>
+                        </ion-header>
+                        <ion-content class="ion-padding">
+                            <ion-list>
+                                <ion-item fill="outline" class="subject-form-item">
+                                    <ion-label position="stacked">Clave de la materia</ion-label>
+                                    <ion-input [(ngModel)]="formData.code" placeholder="Ej. MAT101"></ion-input>
+                                </ion-item>
+                                
+                                <ion-item fill="outline">
+                                    <ion-label position="stacked">Nombre de la materia</ion-label>
+                                    <ion-input [(ngModel)]="formData.name" placeholder="Ej. Matemáticas I"></ion-input>
+                                </ion-item>
+                            </ion-list>
+                        </ion-content>
+                        <ion-footer class="ion-padding">
+                            <ion-button expand="block" (click)="Save()" [disabled]="!formData.code || !formData.name">
+                                {{ editingItem ? 'Actualizar' : 'Guardar' }}
+                            </ion-button>
+                        </ion-footer>
+                    </ng-template>
+                </ion-modal>
             </div>
-
-            <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-                <ion-fab-button (click)="OpenModal()">
-                    <ion-icon name="add-outline"></ion-icon>
-                </ion-fab-button>
-            </ion-fab>
-
-            <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false">
-                <ng-template>
-                    <ion-header>
-                        <ion-toolbar color="primary">
-                            <ion-title>{{ editingItem ? 'Editar' : 'Nueva' }} Materia</ion-title>
-                            <ion-buttons slot="end">
-                                <ion-button (click)="isModalOpen = false">Cerrar</ion-button>
-                            </ion-buttons>
-                        </ion-toolbar>
-                    </ion-header>
-                    <ion-content class="ion-padding">
-                        <ion-list>
-                            <ion-item fill="outline" class="subject-form-item">
-                                <ion-label position="stacked">Clave de la materia</ion-label>
-                                <ion-input [(ngModel)]="formData.code" placeholder="Ej. MAT101"></ion-input>
-                            </ion-item>
-                            
-                            <ion-item fill="outline">
-                                <ion-label position="stacked">Nombre de la materia</ion-label>
-                                <ion-input [(ngModel)]="formData.name" placeholder="Ej. Matemáticas I"></ion-input>
-                            </ion-item>
-                        </ion-list>
-                    </ion-content>
-                    <ion-footer class="ion-padding">
-                        <ion-button expand="block" (click)="Save()" [disabled]="!formData.code || !formData.name">
-                            {{ editingItem ? 'Actualizar' : 'Guardar' }}
-                        </ion-button>
-                    </ion-footer>
-                </ng-template>
-            </ion-modal>
         </ion-content>
     `,
     styleUrls: ['./subjects.component.scss']

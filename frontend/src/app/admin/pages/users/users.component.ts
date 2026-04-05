@@ -88,7 +88,7 @@ const GET_ALLOWED_DOMAINS = gql`
         <app-page-header title="Gestión de Usuarios" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content class="ion-padding users-content">
-            <div class="users-container">
+            <div class="users-container app-page-shell">
                 <ng-container *ngIf="isUsersLoaded; else usersLoading">
                     <ion-list inset="true" *ngIf="users.length > 0; else noUsers">
                         <ion-item *ngFor="let u of users">

@@ -1,3 +1,51 @@
 :host {
     display: block;
+    width: 100%;
+}
+
+.dashboard-shell {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding-top: 0.85rem;
+    padding-bottom: 1rem;
+}
+
+.dashboard-grid {
+    --ion-grid-column-padding: 0.65rem;
+    --ion-grid-padding: 0;
+}
+
+.dashboard-grid ion-row {
+    align-items: stretch;
+    row-gap: 0.55rem;
+}
+
+.dashboard-grid ion-col {
+    display: flex;
+}
+
+@media (min-width: 1200px) {
+    .dashboard-shell {
+        max-width: 1320px;
+        padding-top: 0.95rem;
+        padding-bottom: 1.1rem;
+    }
+
+    .dashboard-grid {
+        --ion-grid-column-padding: 0.7rem;
+    }
+
+    .dashboard-grid ion-row {
+        row-gap: 0.65rem;
+    }
+}
+
+@media (min-width: 1600px) {
+    .dashboard-shell {
+        max-width: 1360px;
+    }
+
+    .dashboard-grid {
+        --ion-grid-column-padding: 0.75rem;
+    }
 }

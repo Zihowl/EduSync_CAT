@@ -73,73 +73,75 @@ const REMOVE_GROUP = gql`
     template: `
         <app-page-header title="Grupos" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
-        <ion-content>
-            <div class="ion-padding-horizontal ion-padding-top">
-                <ion-searchbar (ionInput)="Filter($event)" placeholder="Buscar grupo..." show-clear-button="always"></ion-searchbar>
+        <ion-content class="ion-padding">
+            <div class="app-page-shell app-page-shell--medium">
+                <div class="app-page-section">
+                    <ion-searchbar (ionInput)="Filter($event)" placeholder="Buscar grupo..." show-clear-button="always"></ion-searchbar>
+                </div>
+                <ion-list lines="inset">
+                    <ion-item *ngFor="let g of filteredGroups" [class.groups-subgroup-item]="g.parent">
+                        <ion-icon [name]="g.parent ? 'return-down-forward' : 'people-outline'" slot="start" [color]="g.parent ? 'medium' : 'primary'"></ion-icon>
+                        <ion-label>
+                            <h2 class="groups-title"><span *ngIf="g.parent" class="groups-parent-prefix">{{ g.parent.name }}-</span>{{ g.name }}</h2>
+                            <p *ngIf="!g.parent">Grupo Base</p>
+                        </ion-label>
+                        <ion-buttons slot="end">
+                            <ion-button *ngIf="!g.parent" color="primary" (click)="AddSubgroup(g)">
+                                <ion-icon name="add-circle-outline" slot="icon-only"></ion-icon>
+                            </ion-button>
+                            <ion-button color="medium" (click)="OpenModal(g)">
+                                <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
+                            </ion-button>
+                            <ion-button color="danger" (click)="RemoveGroup(g)">
+                                <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+                            </ion-button>
+                        </ion-buttons>
+                    </ion-item>
+                </ion-list>
+
+                <div *ngIf="filteredGroups.length === 0" class="groups-empty-state">
+                    <ion-icon name="people-outline" class="groups-empty-icon"></ion-icon>
+                    <p>{{ allGroups.length === 0 ? 'No hay grupos registrados' : 'No se encontraron resultados' }}</p>
+                </div>
+
+                <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+                    <ion-fab-button (click)="OpenNewGroup()">
+                        <ion-icon name="add-outline"></ion-icon>
+                    </ion-fab-button>
+                </ion-fab>
+
+                <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false">
+                    <ng-template>
+                        <ion-header>
+                            <ion-toolbar color="primary">
+                                <ion-title>{{ getModalTitle() }}</ion-title>
+                                <ion-buttons slot="end">
+                                    <ion-button (click)="isModalOpen = false">Cerrar</ion-button>
+                                </ion-buttons>
+                            </ion-toolbar>
+                        </ion-header>
+                        <ion-content class="ion-padding">
+                            <ion-list>
+                                <ion-item fill="outline" class="groups-form-item">
+                                    <ion-label position="stacked">{{ formData.parentId ? 'Nombre del Subgrupo' : 'Nombre del Grupo' }}</ion-label>
+                                    <ion-input [(ngModel)]="formData.name" [placeholder]="formData.parentId ? 'Ej. Desarrollo, A, 1...' : 'Ej. 8A, Sistemas...' "></ion-input>
+                                    <ion-icon name="people-outline" slot="start"></ion-icon>
+                                </ion-item>
+
+                                <p *ngIf="formData.parentId" class="groups-preview-text">
+                                    <ion-icon name="arrow-forward-outline" class="groups-preview-icon"></ion-icon>
+                                    <span class="groups-preview-label">{{ getParentName(formData.parentId) }}-</span><strong>{{ formData.name || '...' }}</strong>
+                                </p>
+                            </ion-list>
+                        </ion-content>
+                        <ion-footer class="ion-padding">
+                            <ion-button expand="block" (click)="Save()" [disabled]="!formData.name">
+                                {{ editingItem ? 'Actualizar' : 'Guardar' }}
+                            </ion-button>
+                        </ion-footer>
+                    </ng-template>
+                </ion-modal>
             </div>
-            <ion-list lines="inset">
-                <ion-item *ngFor="let g of filteredGroups" [class.groups-subgroup-item]="g.parent">
-                    <ion-icon [name]="g.parent ? 'return-down-forward' : 'people-outline'" slot="start" [color]="g.parent ? 'medium' : 'primary'"></ion-icon>
-                    <ion-label>
-                        <h2 class="groups-title"><span *ngIf="g.parent" class="groups-parent-prefix">{{ g.parent.name }}-</span>{{ g.name }}</h2>
-                        <p *ngIf="!g.parent">Grupo Base</p>
-                    </ion-label>
-                    <ion-buttons slot="end">
-                        <ion-button *ngIf="!g.parent" color="primary" (click)="AddSubgroup(g)">
-                            <ion-icon name="add-circle-outline" slot="icon-only"></ion-icon>
-                        </ion-button>
-                        <ion-button color="medium" (click)="OpenModal(g)">
-                            <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
-                        </ion-button>
-                        <ion-button color="danger" (click)="RemoveGroup(g)">
-                            <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
-                        </ion-button>
-                    </ion-buttons>
-                </ion-item>
-            </ion-list>
-
-            <div *ngIf="filteredGroups.length === 0" class="groups-empty-state">
-                <ion-icon name="people-outline" class="groups-empty-icon"></ion-icon>
-                <p>{{ allGroups.length === 0 ? 'No hay grupos registrados' : 'No se encontraron resultados' }}</p>
-            </div>
-
-            <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-                <ion-fab-button (click)="OpenNewGroup()">
-                    <ion-icon name="add-outline"></ion-icon>
-                </ion-fab-button>
-            </ion-fab>
-
-            <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false">
-                <ng-template>
-                    <ion-header>
-                        <ion-toolbar color="primary">
-                            <ion-title>{{ getModalTitle() }}</ion-title>
-                            <ion-buttons slot="end">
-                                <ion-button (click)="isModalOpen = false">Cerrar</ion-button>
-                            </ion-buttons>
-                        </ion-toolbar>
-                    </ion-header>
-                    <ion-content class="ion-padding">
-                        <ion-list>
-                            <ion-item fill="outline" class="groups-form-item">
-                                <ion-label position="stacked">{{ formData.parentId ? 'Nombre del Subgrupo' : 'Nombre del Grupo' }}</ion-label>
-                                <ion-input [(ngModel)]="formData.name" [placeholder]="formData.parentId ? 'Ej. Desarrollo, A, 1...' : 'Ej. 8A, Sistemas...'"></ion-input>
-                                <ion-icon name="people-outline" slot="start"></ion-icon>
-                            </ion-item>
-                            
-                            <p *ngIf="formData.parentId" class="groups-preview-text">
-                                <ion-icon name="arrow-forward-outline" class="groups-preview-icon"></ion-icon>
-                                <span class="groups-preview-label">{{ getParentName(formData.parentId) }}-</span><strong>{{ formData.name || '...' }}</strong>
-                            </p>
-                        </ion-list>
-                    </ion-content>
-                    <ion-footer class="ion-padding">
-                        <ion-button expand="block" (click)="Save()" [disabled]="!formData.name">
-                            {{ editingItem ? 'Actualizar' : 'Guardar' }}
-                        </ion-button>
-                    </ion-footer>
-                </ng-template>
-            </ion-modal>
         </ion-content>
     `,
     styleUrls: ['./groups.component.scss']

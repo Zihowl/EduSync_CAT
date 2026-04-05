@@ -111,3 +111,54 @@ ion-toast.login-toast::part(icon) {
 	color: #64748b;
 	font-size: 1.1rem;
 }
+
+.app-page-shell {
+	width: 100%;
+	min-height: 100%;
+	padding: 1rem 0.75rem 1.25rem;
+	box-sizing: border-box;
+}
+
+.app-page-section {
+	margin-bottom: 1rem;
+}
+
+.app-page-shell--compact {
+	max-width: 600px;
+	margin: 0 auto;
+}
+
+.app-page-shell--medium {
+	max-width: 800px;
+	margin: 0 auto;
+}
+
+.app-page-shell--wide {
+	max-width: 1120px;
+	margin: 0 auto;
+}
+
+.app-page-shell--full {
+	max-width: none;
+	margin: 0;
+}
+
+@media (min-width: 768px) {
+	.app-page-shell {
+		padding-left: 1rem;
+		padding-right: 1rem;
+	}
+}
+
+@media (min-width: 1200px) {
+	.app-page-shell {
+		padding-left: 1.25rem;
+		padding-right: 1.25rem;
+	}
+}
+
+@media (max-width: 600px) {
+	.app-page-shell {
+		padding-top: 0.25rem;
+	}
+}

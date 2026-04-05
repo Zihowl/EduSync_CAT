@@ -32,6 +32,7 @@ interface DashboardCard extends MenuCardData {
         MenuCardComponent
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
+    styleUrls: ['./dashboard.component.scss'],
     template: `
         <ng-container *ngIf="role$ | async as currentRole">
             <app-page-header
@@ -47,15 +48,17 @@ interface DashboardCard extends MenuCardData {
             ></app-page-header>
 
             <ion-content class="ion-padding">
-                <ion-grid class="ion-margin-top">
-                    <ion-row>
-                        <ng-container *ngFor="let card of cards; trackBy: trackByTitle">
-                            <ion-col *ngIf="card.roles.includes(currentRole)" size="12" size-md="6">
-                                <app-menu-card [card]="card"></app-menu-card>
-                            </ion-col>
-                        </ng-container>
-                    </ion-row>
-                </ion-grid>
+                <div class="dashboard-shell app-page-shell">
+                    <ion-grid class="dashboard-grid">
+                        <ion-row>
+                            <ng-container *ngFor="let card of cards; trackBy: trackByTitle">
+                                <ion-col *ngIf="card.roles.includes(currentRole)" size="12" size-md="6" size-lg="4">
+                                    <app-menu-card [card]="card"></app-menu-card>
+                                </ion-col>
+                            </ng-container>
+                        </ion-row>
+                    </ion-grid>
+                </div>
             </ion-content>
         </ng-container>
     `

@@ -81,7 +81,7 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
         <app-page-header title="Configuración Global" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content class="ion-padding config-content">
-            <div class="config-wrapper">
+            <div class="config-wrapper app-page-shell">
                 <div class="config-container">
                     <!-- SECCIÓN CICLO ESCOLAR -->
                     <div class="config-section">
