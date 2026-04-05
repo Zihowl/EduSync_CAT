@@ -37,6 +37,9 @@ export class DataListComponent {
     /** Optional `trackBy` function for the rendered list items. */
     @Input() trackByFn: TrackByFunction<any> | null = null;
 
+    /** Whether the list should render inside an outer card. */
+    @Input() showCard = true;
+
     /** Whether data has finished loading. */
     @Input() loaded = false;
 

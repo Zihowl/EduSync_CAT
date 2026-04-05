@@ -144,7 +144,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                 emptyTitle="No hay horarios registrados"
                 emptySubtitle="Revisa los filtros o crea el primer horario con el botón +">
                 <ng-template #itemTemplate let-s>
-                    <ion-item lines="full"
+                    <ion-item lines="none"
                               [class.schedule-published]="s.isPublished"
                               [class.schedule-updating]="isUpdating(s.id)">
                         <ion-icon name="calendar-outline" slot="start" [color]="s.isPublished ? 'success' : 'medium'"></ion-icon>

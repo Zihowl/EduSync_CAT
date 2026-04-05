@@ -85,6 +85,33 @@ ion-card-content {
   gap: 0.15rem;
 }
 
+/* ── Item surface (match the config panel domains list) ───────────── */
+:host ::ng-deep .data-list__list ion-item {
+  margin: 0;
+  --background: transparent;
+  --background-hover: transparent;
+  --background-focused: transparent;
+  --background-activated: transparent;
+  --padding-start: 0.9rem;
+  --padding-end: 0.65rem;
+  --min-height: 3rem;
+  --color: rgba(248, 250, 252, 0.94);
+  border: 0;
+  border-radius: 0;
+  transition: none;
+  --ripple-color: transparent;
+  --inner-border-width: 0;
+
+  &:hover,
+  &:focus-within {
+    --background: transparent;
+  }
+}
+
+:host ::ng-deep .data-list__list ion-item ion-label {
+  color: rgba(248, 250, 252, 0.94);
+}
+
 /* ── Loading state ─────────────────────────────────────────────────── */
 .data-list__loading {
   display: flex;
