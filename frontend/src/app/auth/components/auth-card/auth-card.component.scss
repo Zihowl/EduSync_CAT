@@ -18,68 +18,86 @@ app-auth-card {
     contain: none;
 }
 
+.auth-card.login-card {
+    width: min(100%, 380px);
+    max-width: 380px;
+    margin: 0 auto;
+}
+
 .auth-card ion-card-content {
     overflow: visible;
     contain: none;
 }
 
-.text-center {
+.auth-card.login-card ion-card-content {
+    padding: 1rem 1rem 1.1rem;
+}
+
+.auth-card.login-card .text-center {
     text-align: center;
-    margin-bottom: 1.5rem;
-}
-
-.text-center h1 {
-    color: var(--ion-text-color, #0f172a);
-}
-
-.text-muted {
-    color: var(--ion-color-medium);
-}
-
-.form-group {
-    position: relative;
     margin-bottom: 1rem;
 }
 
-.field-label {
+.auth-card.login-card .text-center h1 {
+    margin: 0 0 0.35rem;
+    color: var(--ion-text-color, #0f172a);
+    font-size: 1.35rem;
+    line-height: 1.2;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.auth-card.login-card .text-muted {
+    color: var(--ion-color-medium);
+    font-size: 0.86rem;
+    line-height: 1.35;
+}
+
+.auth-card.login-card .form-group {
+    position: relative;
+    margin-bottom: 0.85rem;
+}
+
+.auth-card.login-card .field-label {
     display: inline-flex;
     align-items: center;
     gap: 0.33rem;
-    margin: 0 0 0.4rem;
-    font-size: 0.9rem;
+    margin: 0 0 0.3rem;
+    font-size: 0.82rem;
     font-weight: 600;
     color: var(--ion-text-color, #0f172a);
 }
 
-.field-icon {
-    font-size: 0.9rem;
+.auth-card.login-card .field-icon {
+    font-size: 0.76rem;
     color: #f59e0b;
     opacity: 0;
     transition: opacity 140ms ease;
 }
 
-.field-validation-container {
+.auth-card.login-card .field-validation-container {
     position: relative;
     display: inline-flex;
     align-items: center;
     cursor: pointer;
 }
 
-.field-validation-container .popover-message {
+.auth-card.login-card .field-validation-container .popover-message {
     position: absolute;
     top: calc(100% + 0.35rem);
     left: 0;
     right: auto;
     transform: translateY(-8px);
     min-width: auto;
-    max-width: 320px;
+    max-width: 280px;
     width: max-content;
     background: rgba(15, 23, 42, 0.98);
     border: 1px solid rgba(148, 163, 184, 0.4);
     border-radius: 0.45rem;
     color: #f8fafc;
-    padding: 0.45rem 0.6rem;
-    font-size: 0.78rem;
+    padding: 0.35rem 0.55rem;
+    font-size: 0.72rem;
+    line-height: 1.35;
     text-align: left;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
     opacity: 0;
@@ -92,11 +110,11 @@ app-auth-card {
 }
 
 @media (max-width: 600px) {
-    .field-validation-container {
+    .auth-card.login-card .field-validation-container {
         position: static;
     }
 
-    .field-validation-container .popover-message {
+    .auth-card.login-card .field-validation-container .popover-message {
         position: absolute;
         left: 0 !important;
         right: 0 !important;
@@ -109,12 +127,12 @@ app-auth-card {
         padding: 0.4rem 0.6rem;
     }
 
-    .field-validation-container .popover-message::after {
+    .auth-card.login-card .field-validation-container .popover-message::after {
         display: none;
     }
 }
 
-.field-validation-container .popover-message::after {
+.auth-card.login-card .field-validation-container .popover-message::after {
     content: '';
     position: absolute;
     width: 0.52rem;
@@ -129,52 +147,52 @@ app-auth-card {
 }
 
 @media (hover: hover) and (pointer: fine) {
-    .field-validation-container .popover-message {
+    .auth-card.login-card .field-validation-container .popover-message {
         pointer-events: none;
     }
 
-    .field-validation-container:hover .popover-message {
+    .auth-card.login-card .field-validation-container:hover .popover-message {
         opacity: 1;
         visibility: visible;
         transform: translateY(0);
     }
 }
 
-.field-validation-container.popover-visible .popover-message {
+.auth-card.login-card .field-validation-container.popover-visible .popover-message {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
     transform: translateY(0);
 }
 
-.field-label.error .field-icon {
+.auth-card.login-card .field-label.error .field-icon {
     opacity: 1;
 }
 
-.native-login-input {
+.auth-card.login-card .native-login-input {
     width: 100%;
     border: 1px solid rgba(148, 163, 184, 0.35);
-    border-radius: 12px;
+    border-radius: 10px;
     background: rgba(8, 13, 23, 0.5);
     color: var(--ion-text-color, #f8fafc);
-    padding: 0.78rem 0.9rem;
-    font-size: 0.97rem;
+    padding: 0.64rem 0.78rem;
+    font-size: 0.92rem;
     line-height: 1.2;
     transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
-.native-login-input::placeholder {
+.auth-card.login-card .native-login-input::placeholder {
     color: var(--ion-color-medium);
 }
 
-.native-login-input:focus {
+.auth-card.login-card .native-login-input:focus {
     outline: none;
     border-color: rgba(56, 189, 248, 0.85);
     box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
 }
 
-.native-login-input[readonly],
-.native-login-input[disabled] {
+.auth-card.login-card .native-login-input[readonly],
+.auth-card.login-card .native-login-input[disabled] {
     background: rgba(148, 163, 184, 0.12);
     border-color: rgba(148, 163, 184, 0.25);
     color: var(--ion-color-medium);
@@ -182,18 +200,29 @@ app-auth-card {
     box-shadow: none;
 }
 
-.native-login-input.ng-invalid.ng-touched,
-.email-input.ng-invalid.ng-touched,
-.password-input.ng-invalid.ng-touched {
+.auth-card.login-card .native-login-input.ng-invalid.ng-touched,
+.auth-card.login-card .email-input.ng-invalid.ng-touched,
+.auth-card.login-card .password-input.ng-invalid.ng-touched {
     border-color: rgba(148, 163, 184, 0.18);
     box-shadow: none;
 }
 
-.email-input:focus,
-.email-input.ng-invalid.ng-touched:focus,
-.password-input:focus,
-.password-input.ng-invalid.ng-touched:focus,
-.native-login-input:focus {
+.auth-card.login-card .email-input:focus,
+.auth-card.login-card .email-input.ng-invalid.ng-touched:focus,
+.auth-card.login-card .password-input:focus,
+.auth-card.login-card .password-input.ng-invalid.ng-touched:focus,
+.auth-card.login-card .native-login-input:focus {
     border-color: rgba(56, 189, 248, 0.85);
     box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
+}
+
+.auth-card.login-card ion-button {
+    --padding-top: 0.72rem;
+    --padding-bottom: 0.72rem;
+    --padding-start: 1rem;
+    --padding-end: 1rem;
+    --border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
 }
