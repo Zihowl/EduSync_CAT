@@ -13,6 +13,7 @@ import { addIcons } from 'ionicons';
 import { trashOutline, addOutline, pencilOutline, bookOutline } from 'ionicons/icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
@@ -58,35 +59,38 @@ const REMOVE_SUBJECT = gql`
         CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, 
         IonTitle, IonButtons, IonList, IonItem, 
         IonLabel, IonButton, IonIcon, IonFab, IonFabButton, 
-        IonModal, IonInput, IonFooter, PageHeaderComponent
+        IonModal, IonInput, IonFooter, PageHeaderComponent, DataListComponent
     ],
     template: `
         <app-page-header title="Materias" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content class="ion-padding">
             <div class="app-page-shell app-page-shell--medium">
-                <ion-list lines="inset">
-                    <ion-item *ngFor="let s of subjects">
-                        <ion-icon name="book-outline" slot="start" color="primary"></ion-icon>
-                        <ion-label>
-                            <h2 class="subject-name">{{ s.name }}</h2>
-                            <p>Clave: {{ s.code }}</p>
-                        </ion-label>
-                        <ion-buttons slot="end">
-                            <ion-button color="medium" (click)="OpenModal(s)">
-                                <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
-                            </ion-button>
-                            <ion-button color="danger" (click)="RemoveSubject(s.id)">
-                                <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
-                            </ion-button>
-                        </ion-buttons>
-                    </ion-item>
-                </ion-list>
-
-                <div *ngIf="subjects.length === 0" class="subject-empty-state">
-                    <ion-icon name="book-outline" class="subject-empty-icon"></ion-icon>
-                    <p>No hay materias registradas</p>
-                </div>
+                <app-data-list
+                    [items]="subjects"
+                    [loaded]="isSubjectsLoaded"
+                    loadingText="Cargando materias..."
+                    emptyIcon="book-outline"
+                    emptyTitle="No hay materias registradas"
+                    emptySubtitle="Agrega la primera materia con el botón +">
+                    <ng-template #itemTemplate let-s>
+                        <ion-item>
+                            <ion-icon name="book-outline" slot="start" color="primary"></ion-icon>
+                            <ion-label>
+                                <h2 class="subject-name">{{ s.name }}</h2>
+                                <p>Clave: {{ s.code }}</p>
+                            </ion-label>
+                            <ion-buttons slot="end">
+                                <ion-button color="medium" (click)="OpenModal(s)">
+                                    <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
+                                </ion-button>
+                                <ion-button color="danger" (click)="RemoveSubject(s.id)">
+                                    <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+                                </ion-button>
+                            </ion-buttons>
+                        </ion-item>
+                    </ng-template>
+                </app-data-list>
 
                 <ion-fab vertical="bottom" horizontal="end" slot="fixed">
                     <ion-fab-button (click)="OpenModal()">
@@ -137,6 +141,7 @@ export class SubjectsComponent implements OnInit
     private destroyRef = inject(DestroyRef);
 
     subjects: any[] = [];
+    isSubjectsLoaded = false;
     isModalOpen = false;
     editingItem: any = null;
     formData = {
@@ -163,9 +168,11 @@ export class SubjectsComponent implements OnInit
         ).subscribe({
             next: (res: any) => {
                 this.subjects = res ?? [];
+                this.isSubjectsLoaded = true;
             },
             error: (err) => {
                 console.error('Error loading subjects:', err);
+                this.isSubjectsLoaded = true;
             }
         });
     }

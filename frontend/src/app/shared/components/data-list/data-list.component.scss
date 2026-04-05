@@ -1,0 +1,154 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Data List Component
+   ───────────────────────────────────────────────────────────────────────
+   Generic reusable list with loading / empty / populated states.
+   Inherits card surface tokens from parent via --dl-* or falls back
+   to the same glassmorphism defaults used across the app.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:host {
+  /* Surface — match the app-wide glassmorphism card look */
+  --dl-surface-bg: var(--cfg-surface-bg, rgba(15, 23, 42, 0.45));
+  --dl-border: rgba(148, 163, 184, 0.18);
+  --dl-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+  --dl-blur: 10px;
+  --dl-radius: 1rem;
+  --dl-speed: 150ms;
+
+  /* Hover */
+  --dl-focus-border: rgba(56, 189, 248, 0.28);
+  --dl-focus-shadow: 0 0 0 1px rgba(56, 189, 248, 0.12), 0 12px 24px rgba(0, 0, 0, 0.36);
+
+  /* Typography */
+  --dl-text: #f8fafc;
+  --dl-text-muted: rgba(203, 213, 225, 0.8);
+  --dl-text-subtle: rgba(226, 232, 240, 0.72);
+  --dl-accent: #93c5fd;
+
+  /* Content padding */
+  --dl-card-padding: 1rem 1rem 1.1rem;
+
+  display: block;
+  width: 100%;
+}
+
+/* ── Card surface (match parent's ion-card exactly) ────────────────── */
+ion-card {
+  margin: 0;
+  border: 1px solid var(--dl-border);
+  border-radius: var(--dl-radius);
+  --background: var(--dl-surface-bg);
+  --color: var(--dl-text);
+  box-shadow: var(--dl-shadow);
+  color: var(--dl-text);
+  backdrop-filter: blur(var(--dl-blur));
+  -webkit-backdrop-filter: blur(var(--dl-blur));
+  overflow: hidden;
+  transition:
+    transform var(--dl-speed) ease,
+    border-color var(--dl-speed) ease,
+    box-shadow var(--dl-speed) ease,
+    background-color var(--dl-speed) ease;
+
+  &:hover,
+  &:focus-within {
+    transform: translateY(-2px);
+    border-color: var(--dl-focus-border);
+    box-shadow: var(--dl-focus-shadow);
+  }
+}
+
+ion-card-content {
+  padding: var(--dl-card-padding);
+  background: transparent;
+}
+
+/* ── Section title (uppercase label) ───────────────────────────────── */
+.data-list__title {
+  margin: 0;
+  padding: 0.9rem 1rem 0.35rem;
+  color: var(--dl-text-subtle);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* ── List container ────────────────────────────────────────────────── */
+.data-list__list {
+  margin: 0;
+  padding: 0 0.15rem 0.15rem;
+  background: transparent;
+  border-radius: 0 0 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+/* ── Loading state ─────────────────────────────────────────────────── */
+.data-list__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 7rem;
+  padding: 1.35rem 0.5rem;
+  text-align: center;
+  color: rgba(203, 213, 225, 0.84);
+
+  ion-spinner {
+    font-size: 2rem;
+    color: var(--dl-accent);
+  }
+
+  p {
+    margin: 0;
+    color: rgba(248, 250, 252, 0.88);
+    font-size: 0.92rem;
+    font-weight: 500;
+    line-height: 1.35;
+  }
+}
+
+/* ── Empty state ───────────────────────────────────────────────────── */
+.data-list__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.35rem 0.5rem;
+  text-align: center;
+
+  ion-icon {
+    font-size: 2rem;
+    color: var(--dl-accent);
+  }
+
+  p {
+    margin: 0;
+    color: var(--dl-text);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+
+  small {
+    color: var(--dl-text-muted);
+    font-size: 0.84rem;
+    line-height: 1.35;
+  }
+}
+
+/* ── Responsive ────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  :host {
+    --dl-card-padding: 0.95rem 0.9rem 1rem;
+  }
+
+  .data-list__title {
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+  }
+}

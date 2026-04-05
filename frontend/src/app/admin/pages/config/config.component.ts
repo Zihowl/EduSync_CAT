@@ -1,13 +1,14 @@
 import { Component, OnInit, ChangeDetectorRef, NgZone, inject } from '@angular/core';
-import { CommonModule, NgForOf } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
-import { IonContent, IonList, IonItem, IonLabel, IonInput, IonButton, IonIcon, IonCard, IonCardContent, IonSpinner } from '@ionic/angular/standalone';
+import { IonContent, IonItem, IonLabel, IonInput, IonButton, IonIcon, IonCard, IonCardContent, IonSpinner } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { alertCircleOutline, calendarOutline, checkmarkOutline, globeOutline, informationCircleOutline, trashOutline } from 'ionicons/icons';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { DataListComponent } from '../../../shared/components/data-list/data-list.component';
 import { DestroyRef } from '@angular/core';
 import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realtime-sync.service';
 import { RealtimeQueryCacheService } from '../../../core/services/realtime-query-cache.service';
@@ -63,10 +64,8 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
     standalone: true,
     imports: [
         CommonModule,
-        NgForOf,
         FormsModule,
         IonContent,
-        IonList,
         IonItem,
         IonLabel,
         IonInput,
@@ -75,7 +74,8 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
         IonCard,
         IonCardContent,
         IonSpinner,
-        PageHeaderComponent
+        PageHeaderComponent,
+        DataListComponent
     ],
     template: `
         <app-page-header title="Configuración Global" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
@@ -198,46 +198,30 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
                             </ion-card-content>
                         </ion-card>
 
-                        <ng-container *ngIf="isDomainsLoaded; else domainsLoading">
-                            <ion-card class="domains-list-card" *ngIf="domains.length > 0">
-                                <p class="domains-list-title">Dominios registrados ({{ domains.length }})</p>
-                                <ion-list class="domains-list" lines="none">
-                                    <ion-item *ngFor="let d of domains" class="domain-item" lines="none">
-                                        <ion-label class="domain-name">{{ d.domain }}</ion-label>
-                                        <ion-button 
-                                            type="button"
-                                            fill="clear" 
-                                            color="danger" 
-                                            slot="end" 
-                                            (click)="RemoveDomain(d.id)"
-                                            class="delete-btn">
-                                            <ion-icon name="trash-outline"></ion-icon>
-                                        </ion-button>
-                                    </ion-item>
-                                </ion-list>
-                            </ion-card>
-
-                            <ion-card class="empty-state-card" *ngIf="domains.length === 0">
-                                <ion-card-content>
-                                    <div class="no-data">
-                                        <ion-icon name="information-circle-outline"></ion-icon>
-                                        <p>Sin dominios registrados</p>
-                                        <small>Agrega dominios arriba para permitir usuarios</small>
-                                    </div>
-                                </ion-card-content>
-                            </ion-card>
-                        </ng-container>
-
-                        <ng-template #domainsLoading>
-                            <ion-card class="empty-state-card">
-                                <ion-card-content>
-                                    <div class="loading-state">
-                                        <ion-spinner name="crescent"></ion-spinner>
-                                        <p>Cargando dominios...</p>
-                                    </div>
-                                </ion-card-content>
-                            </ion-card>
-                        </ng-template>
+                        <app-data-list
+                            [items]="domains"
+                            [loaded]="isDomainsLoaded"
+                            title="Dominios registrados ({count})"
+                            loadingText="Cargando dominios..."
+                            emptyIcon="information-circle-outline"
+                            emptyTitle="Sin dominios registrados"
+                            emptySubtitle="Agrega dominios arriba para permitir usuarios"
+                            cardClass="domains-list-card">
+                            <ng-template #itemTemplate let-d let-i="index">
+                                <ion-item class="domain-item" lines="none">
+                                    <ion-label class="domain-name">{{ d.domain }}</ion-label>
+                                    <ion-button 
+                                        type="button"
+                                        fill="clear" 
+                                        color="danger" 
+                                        slot="end" 
+                                        (click)="RemoveDomain(d.id)"
+                                        class="delete-btn">
+                                        <ion-icon name="trash-outline"></ion-icon>
+                                    </ion-button>
+                                </ion-item>
+                            </ng-template>
+                        </app-data-list>
 
                         <div class="domains-section-spacer" aria-hidden="true"></div>
                     </div>

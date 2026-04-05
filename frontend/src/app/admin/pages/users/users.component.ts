@@ -10,7 +10,6 @@ import {
     IonToolbar,
     IonTitle,
     IonButtons,
-    IonList,
     IonItem,
     IonLabel,
     IonButton,
@@ -20,12 +19,12 @@ import {
     IonNote,
     IonBadge,
     IonFab,
-    IonFabButton,
-    IonSpinner
+    IonFabButton
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { personAddOutline, trashOutline, shieldCheckmarkOutline } from 'ionicons/icons';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { DataListComponent } from '../../../shared/components/data-list/data-list.component';
 import { DestroyRef } from '@angular/core';
 import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realtime-sync.service';
 import { RealtimeQueryCacheService } from '../../../core/services/realtime-query-cache.service';
@@ -70,7 +69,6 @@ const GET_ALLOWED_DOMAINS = gql`
         IonToolbar,
         IonTitle,
         IonButtons,
-        IonList,
         IonItem,
         IonLabel,
         IonButton,
@@ -81,17 +79,22 @@ const GET_ALLOWED_DOMAINS = gql`
         IonBadge,
         IonFab,
         IonFabButton,
-        IonSpinner,
-        PageHeaderComponent
+        PageHeaderComponent,
+        DataListComponent
     ],
     template: `
         <app-page-header title="Gestión de Usuarios" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content class="ion-padding users-content">
             <div class="users-container app-page-shell">
-                <ng-container *ngIf="isUsersLoaded; else usersLoading">
-                    <ion-list inset="true" *ngIf="users.length > 0; else noUsers">
-                        <ion-item *ngFor="let u of users">
+                <app-data-list
+                    [items]="users"
+                    [loaded]="isUsersLoaded"
+                    loadingText="Cargando usuarios..."
+                    emptyTitle="No hay usuarios registrados"
+                    emptySubtitle="Usa el botón + para crear el primer administrador.">
+                    <ng-template #itemTemplate let-u>
+                        <ion-item>
                             <ion-icon slot="start" name="shield-checkmark-outline" color="medium"></ion-icon>
                             <ion-label>
                                 <h2>{{ u.fullName || 'Sin Nombre' }}</h2>
@@ -101,22 +104,8 @@ const GET_ALLOWED_DOMAINS = gql`
                                 {{ u.role }}
                             </ion-badge>
                         </ion-item>
-                    </ion-list>
-
-                    <ng-template #noUsers>
-                        <div class="empty-state">
-                            <p>No hay usuarios registrados</p>
-                            <small>Usa el botón + para crear el primer administrador.</small>
-                        </div>
                     </ng-template>
-                </ng-container>
-
-                <ng-template #usersLoading>
-                    <div class="users-loading-state">
-                        <ion-spinner name="crescent"></ion-spinner>
-                        <p>Cargando usuarios...</p>
-                    </div>
-                </ng-template>
+                </app-data-list>
 
                 <ion-fab vertical="bottom" horizontal="end" slot="fixed">
                     <ion-fab-button (click)="SetOpen(true)">

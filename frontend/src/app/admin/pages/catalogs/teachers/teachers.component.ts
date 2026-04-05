@@ -13,6 +13,7 @@ import { addIcons } from 'ionicons';
 import { personOutline, trashOutline, addOutline, pencilOutline, mailOutline, cardOutline } from 'ionicons/icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
@@ -60,7 +61,7 @@ const REMOVE_TEACHER = gql`
         CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, 
         IonTitle, IonButtons, IonList, IonItem, 
         IonLabel, IonAvatar, IonIcon, IonSearchbar, IonFab, 
-        IonFabButton, IonModal, IonInput, IonFooter, IonButton, PageHeaderComponent
+        IonFabButton, IonModal, IonInput, IonFooter, IonButton, PageHeaderComponent, DataListComponent
     ],
     template: `
         <app-page-header title="Docentes" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
@@ -70,31 +71,34 @@ const REMOVE_TEACHER = gql`
                 <div class="app-page-section">
                     <ion-searchbar placeholder="Buscar docente..." (ionInput)="Filter($event)"></ion-searchbar>
                 </div>
-                <ion-list lines="inset">
-                    <ion-item *ngFor="let t of filteredTeachers">
-                        <ion-avatar slot="start" class="teacher-avatar">
-                            <span class="teacher-initials">{{ GetInitials(t.name) }}</span>
-                        </ion-avatar>
-                        <ion-label>
-                            <h2 class="teacher-name">{{ t.name }}</h2>
-                            <p>No. Empleado: {{ t.employeeNumber }}</p>
-                            <p>{{ t.email || 'Sin correo' }}</p>
-                        </ion-label>
-                        <ion-buttons slot="end">
-                            <ion-button color="medium" (click)="OpenModal(t)">
-                                <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
-                            </ion-button>
-                            <ion-button color="danger" (click)="RemoveTeacher(t.id)">
-                                <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
-                            </ion-button>
-                        </ion-buttons>
-                    </ion-item>
-                </ion-list>
-
-                <div *ngIf="filteredTeachers.length === 0" class="teacher-empty-state">
-                    <ion-icon name="person-outline" class="teacher-empty-icon"></ion-icon>
-                    <p>No se encontraron docentes</p>
-                </div>
+                <app-data-list
+                    [items]="filteredTeachers"
+                    [loaded]="isTeachersLoaded"
+                    loadingText="Cargando docentes..."
+                    emptyIcon="person-outline"
+                    [emptyTitle]="searchQuery ? 'No se encontraron docentes' : 'No hay docentes registrados'"
+                    [emptySubtitle]="searchQuery ? 'Prueba con otro nombre o número de empleado' : 'Usa el botón + para crear el primer docente.'">
+                    <ng-template #itemTemplate let-t>
+                        <ion-item>
+                            <ion-avatar slot="start" class="teacher-avatar">
+                                <span class="teacher-initials">{{ GetInitials(t.name) }}</span>
+                            </ion-avatar>
+                            <ion-label>
+                                <h2 class="teacher-name">{{ t.name }}</h2>
+                                <p>No. Empleado: {{ t.employeeNumber }}</p>
+                                <p>{{ t.email || 'Sin correo' }}</p>
+                            </ion-label>
+                            <ion-buttons slot="end">
+                                <ion-button color="medium" (click)="OpenModal(t)">
+                                    <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
+                                </ion-button>
+                                <ion-button color="danger" (click)="RemoveTeacher(t.id)">
+                                    <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+                                </ion-button>
+                            </ion-buttons>
+                        </ion-item>
+                    </ng-template>
+                </app-data-list>
 
                 <ion-fab vertical="bottom" horizontal="end" slot="fixed">
                     <ion-fab-button (click)="OpenModal()">
@@ -155,6 +159,7 @@ export class TeachersComponent implements OnInit
     teachers: any[] = [];
     filteredTeachers: any[] = [];
     searchQuery: string = '';
+    isTeachersLoaded = false;
     isModalOpen = false;
     editingItem: any = null;
     formData = {
@@ -183,9 +188,11 @@ export class TeachersComponent implements OnInit
             next: (teachers: any[]) => {
                 this.teachers = teachers;
                 this.ApplyFilter();
+                this.isTeachersLoaded = true;
             },
             error: (err) => {
                 console.error('Error loading teachers:', err);
+                this.isTeachersLoaded = true;
             }
         });
     }

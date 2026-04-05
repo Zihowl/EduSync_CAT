@@ -13,6 +13,7 @@ import { addIcons } from 'ionicons';
 import { trashOutline, addOutline, pencilOutline, businessOutline } from 'ionicons/icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
@@ -58,35 +59,38 @@ const REMOVE_BUILDING = gql`
         CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, 
         IonTitle, IonButtons, IonList, IonItem, 
         IonLabel, IonButton, IonIcon, IonFab, IonFabButton, 
-        IonModal, IonInput, IonTextarea, IonFooter, PageHeaderComponent
+        IonModal, IonInput, IonTextarea, IonFooter, PageHeaderComponent, DataListComponent
     ],
     template: `
         <app-page-header title="Edificios" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content class="ion-padding">
             <div class="app-page-shell app-page-shell--medium">
-                <ion-list lines="inset">
-                    <ion-item *ngFor="let b of buildings">
-                        <ion-icon name="business-outline" slot="start" color="primary"></ion-icon>
-                        <ion-label>
-                            <h2 class="building-name">{{ b.name }}</h2>
-                            <p>{{ b.description || 'Sin descripción' }}</p>
-                        </ion-label>
-                        <ion-buttons slot="end">
-                            <ion-button color="medium" (click)="OpenModal(b)">
-                                <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
-                            </ion-button>
-                            <ion-button color="danger" (click)="RemoveBuilding(b.id)">
-                                <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
-                            </ion-button>
-                        </ion-buttons>
-                    </ion-item>
-                </ion-list>
-
-                <div *ngIf="buildings.length === 0" class="building-empty-state">
-                    <ion-icon name="business-outline" class="building-empty-icon"></ion-icon>
-                    <p>No hay edificios registrados</p>
-                </div>
+                <app-data-list
+                    [items]="buildings"
+                    [loaded]="isBuildingsLoaded"
+                    loadingText="Cargando edificios..."
+                    emptyIcon="business-outline"
+                    emptyTitle="No hay edificios registrados"
+                    emptySubtitle="Agrega el primer edificio con el botón +">
+                    <ng-template #itemTemplate let-b>
+                        <ion-item>
+                            <ion-icon name="business-outline" slot="start" color="primary"></ion-icon>
+                            <ion-label>
+                                <h2 class="building-name">{{ b.name }}</h2>
+                                <p>{{ b.description || 'Sin descripción' }}</p>
+                            </ion-label>
+                            <ion-buttons slot="end">
+                                <ion-button color="medium" (click)="OpenModal(b)">
+                                    <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
+                                </ion-button>
+                                <ion-button color="danger" (click)="RemoveBuilding(b.id)">
+                                    <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+                                </ion-button>
+                            </ion-buttons>
+                        </ion-item>
+                    </ng-template>
+                </app-data-list>
 
                 <ion-fab vertical="bottom" horizontal="end" slot="fixed">
                     <ion-fab-button (click)="OpenModal()">
@@ -137,6 +141,7 @@ export class BuildingsComponent implements OnInit
     private destroyRef = inject(DestroyRef);
 
     buildings: any[] = [];
+    isBuildingsLoaded = false;
     isModalOpen = false;
     editingItem: any = null;
     formData = {
@@ -163,9 +168,11 @@ export class BuildingsComponent implements OnInit
         ).subscribe({
             next: (buildings: any[]) => {
                 this.buildings = buildings;
+                this.isBuildingsLoaded = true;
             },
             error: (err) => {
                 console.error('Error loading buildings:', err);
+                this.isBuildingsLoaded = true;
             }
         });
     }

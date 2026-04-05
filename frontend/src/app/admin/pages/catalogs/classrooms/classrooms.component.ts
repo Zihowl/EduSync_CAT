@@ -13,6 +13,7 @@ import { addIcons } from 'ionicons';
 import { trashOutline, addOutline, pencilOutline, homeOutline } from 'ionicons/icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
@@ -63,36 +64,39 @@ const REMOVE_CLASSROOM = gql`
         CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, 
         IonTitle, IonButtons, IonList, IonItem, 
         IonLabel, IonSelect, IonSelectOption, IonButton, IonIcon, 
-        IonFab, IonFabButton, IonModal, IonInput, IonFooter, PageHeaderComponent
+        IonFab, IonFabButton, IonModal, IonInput, IonFooter, PageHeaderComponent, DataListComponent
     ],
     template: `
         <app-page-header title="Aulas" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content class="ion-padding">
             <div class="app-page-shell app-page-shell--medium">
-                <ion-list lines="inset">
-                    <ion-item *ngFor="let c of classrooms">
-                        <ion-icon name="home-outline" slot="start" color="primary"></ion-icon>
-                        <ion-label>
-                            <h2 class="classroom-name">{{ c.name }}</h2>
-                            <p *ngIf="c.building">Edificio: <strong>{{ c.building.name }}</strong></p>
-                            <p *ngIf="!c.building" class="classroom-no-building">Sin edificio asignado</p>
-                        </ion-label>
-                        <ion-buttons slot="end">
-                            <ion-button color="medium" (click)="OpenModal(c)">
-                                <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
-                            </ion-button>
-                            <ion-button color="danger" (click)="RemoveClassroom(c.id)">
-                                <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
-                            </ion-button>
-                        </ion-buttons>
-                    </ion-item>
-                </ion-list>
-
-                <div *ngIf="classrooms.length === 0" class="classroom-empty-state">
-                    <ion-icon name="home-outline" class="classroom-empty-icon"></ion-icon>
-                    <p>No hay aulas registradas</p>
-                </div>
+                <app-data-list
+                    [items]="classrooms"
+                    [loaded]="isClassroomsLoaded"
+                    loadingText="Cargando aulas..."
+                    emptyIcon="home-outline"
+                    emptyTitle="No hay aulas registradas"
+                    emptySubtitle="Agrega la primera aula con el botón +">
+                    <ng-template #itemTemplate let-c>
+                        <ion-item>
+                            <ion-icon name="home-outline" slot="start" color="primary"></ion-icon>
+                            <ion-label>
+                                <h2 class="classroom-name">{{ c.name }}</h2>
+                                <p *ngIf="c.building">Edificio: <strong>{{ c.building.name }}</strong></p>
+                                <p *ngIf="!c.building" class="classroom-no-building">Sin edificio asignado</p>
+                            </ion-label>
+                            <ion-buttons slot="end">
+                                <ion-button color="medium" (click)="OpenModal(c)">
+                                    <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
+                                </ion-button>
+                                <ion-button color="danger" (click)="RemoveClassroom(c.id)">
+                                    <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+                                </ion-button>
+                            </ion-buttons>
+                        </ion-item>
+                    </ng-template>
+                </app-data-list>
 
                 <ion-fab vertical="bottom" horizontal="end" slot="fixed">
                     <ion-fab-button (click)="OpenModal()">
@@ -149,6 +153,7 @@ export class ClassroomsComponent implements OnInit
 
     classrooms: any[] = [];
     buildings: any[] = [];
+    isClassroomsLoaded = false;
     isModalOpen = false;
     editingItem: any = null;
     formData = {
@@ -190,6 +195,11 @@ export class ClassroomsComponent implements OnInit
         ).subscribe({
             next: (classrooms: any[]) => {
                 this.classrooms = classrooms;
+                this.isClassroomsLoaded = true;
+            },
+            error: (err) => {
+                console.error('Error loading classrooms:', err);
+                this.isClassroomsLoaded = true;
             }
         });
     }

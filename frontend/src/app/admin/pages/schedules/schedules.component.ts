@@ -20,6 +20,7 @@ import {
 } from 'ionicons/icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { DataListComponent } from '../../../shared/components/data-list/data-list.component';
 import { RealtimeQueryCacheService } from '../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realtime-sync.service';
 
@@ -97,7 +98,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
         IonSelect, IonSelectOption, IonButton, IonIcon, IonFab, IonFabButton,
         IonModal, IonFooter,
         IonSegment, IonSegmentButton, IonBadge, IonToggle,
-        IonDatetime, IonDatetimeButton, IonPopover, PageHeaderComponent
+        IonDatetime, IonDatetimeButton, IonPopover, PageHeaderComponent, DataListComponent
     ],
     template: `
         <app-page-header
@@ -134,54 +135,58 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                 </div>
             </div>
 
-            <ion-list lines="full">
-                <ion-item *ngFor="let s of schedules; trackBy: trackById" 
-                          [class.schedule-published]="s.isPublished"
-                          [class.schedule-updating]="isUpdating(s.id)">
-                    <ion-icon name="calendar-outline" slot="start" [color]="s.isPublished ? 'success' : 'medium'"></ion-icon>
-                    <ion-label>
-                        <h2 class="schedule-subject-title">
-                            {{ s.subject.name }}
-                            <ion-badge [color]="s.isPublished ? 'success' : 'warning'" class="schedule-badge">
-                                {{ s.isPublished ? 'Publicado' : 'Borrador' }}
-                            </ion-badge>
-                        </h2>
-                        <p>
-                            <ion-icon name="time-outline" class="schedule-inline-icon"></ion-icon>
-                            {{ getDayName(s.dayOfWeek) }} {{ formatTime(s.startTime) }} - {{ formatTime(s.endTime) }}
-                        </p>
-                        <p>
-                            <ion-icon name="person-outline" class="schedule-inline-icon"></ion-icon>
-                            {{ s.teacher.name }}
-                        </p>
-                        <p>
-                            <ion-icon name="layers-outline" class="schedule-inline-icon"></ion-icon>
-                            {{ s.group.parent ? s.group.parent.name + '-' : '' }}{{ s.group.name }}
-                            <span *ngIf="s.subgroup" class="schedule-subgroup">({{ s.subgroup }})</span>
-                        </p>
-                        <p>
-                            <ion-icon name="business-outline" class="schedule-inline-icon"></ion-icon>
-                            {{ s.classroom.name }}
-                        </p>
-                    </ion-label>
-                    <ion-buttons slot="end">
-                        <ion-button [color]="s.isPublished ? 'warning' : 'success'" (click)="TogglePublish(s)" [disabled]="isUpdating(s.id)">
-                            <ion-icon [name]="s.isPublished ? 'eye-off-outline' : 'eye-outline'" slot="icon-only"></ion-icon>
-                        </ion-button>
-                        <ion-button color="medium" (click)="OpenModal(s)">
-                            <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
-                        </ion-button>
-                        <ion-button color="danger" (click)="Remove(s.id)">
-                            <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
-                        </ion-button>
-                    </ion-buttons>
-                </ion-item>
-            </ion-list>
-
-            <div *ngIf="schedules.length === 0" class="schedule-empty-state">
-                <ion-icon name="calendar-outline" class="schedule-empty-icon"></ion-icon>
-                <p>No hay horarios registrados</p>
-            </div>
+            <app-data-list
+                [items]="schedules"
+                [loaded]="isSchedulesLoaded"
+                [trackByFn]="trackById"
+                loadingText="Cargando horarios..."
+                emptyIcon="calendar-outline"
+                emptyTitle="No hay horarios registrados"
+                emptySubtitle="Revisa los filtros o crea el primer horario con el botón +">
+                <ng-template #itemTemplate let-s>
+                    <ion-item lines="full"
+                              [class.schedule-published]="s.isPublished"
+                              [class.schedule-updating]="isUpdating(s.id)">
+                        <ion-icon name="calendar-outline" slot="start" [color]="s.isPublished ? 'success' : 'medium'"></ion-icon>
+                        <ion-label>
+                            <h2 class="schedule-subject-title">
+                                {{ s.subject.name }}
+                                <ion-badge [color]="s.isPublished ? 'success' : 'warning'" class="schedule-badge">
+                                    {{ s.isPublished ? 'Publicado' : 'Borrador' }}
+                                </ion-badge>
+                            </h2>
+                            <p>
+                                <ion-icon name="time-outline" class="schedule-inline-icon"></ion-icon>
+                                {{ getDayName(s.dayOfWeek) }} {{ formatTime(s.startTime) }} - {{ formatTime(s.endTime) }}
+                            </p>
+                            <p>
+                                <ion-icon name="person-outline" class="schedule-inline-icon"></ion-icon>
+                                {{ s.teacher.name }}
+                            </p>
+                            <p>
+                                <ion-icon name="layers-outline" class="schedule-inline-icon"></ion-icon>
+                                {{ s.group.parent ? s.group.parent.name + '-' : '' }}{{ s.group.name }}
+                                <span *ngIf="s.subgroup" class="schedule-subgroup">({{ s.subgroup }})</span>
+                            </p>
+                            <p>
+                                <ion-icon name="business-outline" class="schedule-inline-icon"></ion-icon>
+                                {{ s.classroom.name }}
+                            </p>
+                        </ion-label>
+                        <ion-buttons slot="end">
+                            <ion-button [color]="s.isPublished ? 'warning' : 'success'" (click)="TogglePublish(s)" [disabled]="isUpdating(s.id)">
+                                <ion-icon [name]="s.isPublished ? 'eye-off-outline' : 'eye-outline'" slot="icon-only"></ion-icon>
+                            </ion-button>
+                            <ion-button color="medium" (click)="OpenModal(s)">
+                                <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
+                            </ion-button>
+                            <ion-button color="danger" (click)="Remove(s.id)">
+                                <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+                            </ion-button>
+                        </ion-buttons>
+                    </ion-item>
+                </ng-template>
+            </app-data-list>
 
             <ion-fab vertical="bottom" horizontal="end" slot="fixed">
                 <ion-fab-button (click)="OpenModal()">
@@ -324,6 +329,7 @@ export class SchedulesComponent implements OnInit
     subjects: any[] = [];
     classrooms: any[] = [];
     groups: any[] = [];
+    isSchedulesLoaded = false;
 
     filterPublished: 'all' | 'published' | 'draft' = 'all';
     filterGroupId: number | null = null;
@@ -483,8 +489,12 @@ export class SchedulesComponent implements OnInit
         ).subscribe({
             next: (schedules: any[]) => {
                 this.schedules = schedules;
+                this.isSchedulesLoaded = true;
             },
-            error: (err) => console.error('Error loading schedules:', err)
+            error: (err) => {
+                console.error('Error loading schedules:', err);
+                this.isSchedulesLoaded = true;
+            }
         });
     }
 

@@ -13,6 +13,7 @@ import { addIcons } from 'ionicons';
 import { trashOutline, addOutline, pencilOutline, peopleOutline, personOutline, searchOutline, returnDownForward, addCircleOutline, people, person } from 'ionicons/icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
+import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
@@ -68,7 +69,7 @@ const REMOVE_GROUP = gql`
         CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, 
         IonTitle, IonButtons, IonList, IonItem, 
         IonLabel, IonButton, IonIcon, 
-        IonFab, IonFabButton, IonModal, IonInput, IonFooter, IonSearchbar, PageHeaderComponent
+        IonFab, IonFabButton, IonModal, IonInput, IonFooter, IonSearchbar, PageHeaderComponent, DataListComponent
     ],
     template: `
         <app-page-header title="Grupos" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
@@ -78,31 +79,34 @@ const REMOVE_GROUP = gql`
                 <div class="app-page-section">
                     <ion-searchbar (ionInput)="Filter($event)" placeholder="Buscar grupo..." show-clear-button="always"></ion-searchbar>
                 </div>
-                <ion-list lines="inset">
-                    <ion-item *ngFor="let g of filteredGroups" [class.groups-subgroup-item]="g.parent">
-                        <ion-icon [name]="g.parent ? 'return-down-forward' : 'people-outline'" slot="start" [color]="g.parent ? 'medium' : 'primary'"></ion-icon>
-                        <ion-label>
-                            <h2 class="groups-title"><span *ngIf="g.parent" class="groups-parent-prefix">{{ g.parent.name }}-</span>{{ g.name }}</h2>
-                            <p *ngIf="!g.parent">Grupo Base</p>
-                        </ion-label>
-                        <ion-buttons slot="end">
-                            <ion-button *ngIf="!g.parent" color="primary" (click)="AddSubgroup(g)">
-                                <ion-icon name="add-circle-outline" slot="icon-only"></ion-icon>
-                            </ion-button>
-                            <ion-button color="medium" (click)="OpenModal(g)">
-                                <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
-                            </ion-button>
-                            <ion-button color="danger" (click)="RemoveGroup(g)">
-                                <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
-                            </ion-button>
-                        </ion-buttons>
-                    </ion-item>
-                </ion-list>
-
-                <div *ngIf="filteredGroups.length === 0" class="groups-empty-state">
-                    <ion-icon name="people-outline" class="groups-empty-icon"></ion-icon>
-                    <p>{{ allGroups.length === 0 ? 'No hay grupos registrados' : 'No se encontraron resultados' }}</p>
-                </div>
+                <app-data-list
+                    [items]="filteredGroups"
+                    [loaded]="isGroupsLoaded"
+                    loadingText="Cargando grupos..."
+                    emptyIcon="people-outline"
+                    [emptyTitle]="allGroups.length === 0 ? 'No hay grupos registrados' : 'No se encontraron resultados'"
+                    [emptySubtitle]="allGroups.length === 0 ? 'Crea el primer grupo con el botón +' : 'Prueba con otro término de búsqueda'">
+                    <ng-template #itemTemplate let-g>
+                        <ion-item [class.groups-subgroup-item]="g.parent">
+                            <ion-icon [name]="g.parent ? 'return-down-forward' : 'people-outline'" slot="start" [color]="g.parent ? 'medium' : 'primary'"></ion-icon>
+                            <ion-label>
+                                <h2 class="groups-title"><span *ngIf="g.parent" class="groups-parent-prefix">{{ g.parent.name }}-</span>{{ g.name }}</h2>
+                                <p *ngIf="!g.parent">Grupo Base</p>
+                            </ion-label>
+                            <ion-buttons slot="end">
+                                <ion-button *ngIf="!g.parent" color="primary" (click)="AddSubgroup(g)">
+                                    <ion-icon name="add-circle-outline" slot="icon-only"></ion-icon>
+                                </ion-button>
+                                <ion-button color="medium" (click)="OpenModal(g)">
+                                    <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
+                                </ion-button>
+                                <ion-button color="danger" (click)="RemoveGroup(g)">
+                                    <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+                                </ion-button>
+                            </ion-buttons>
+                        </ion-item>
+                    </ng-template>
+                </app-data-list>
 
                 <ion-fab vertical="bottom" horizontal="end" slot="fixed">
                     <ion-fab-button (click)="OpenNewGroup()">
@@ -157,6 +161,7 @@ export class GroupsComponent implements OnInit
     groups: any[] = [];
     filteredGroups: any[] = [];
     searchQuery: string = '';
+    isGroupsLoaded = false;
     isModalOpen = false;
     editingItem: any = null;
     formData = {
@@ -243,10 +248,12 @@ export class GroupsComponent implements OnInit
                 this.groups = this.buildHierarchy(this.allGroups);
                 this.ApplyFilter();
                 console.log('Filtered groups:', this.filteredGroups);
+                this.isGroupsLoaded = true;
             },
             error: (err) => {
                 console.error('Error loading groups:', err);
                 alert('Error al cargar grupos: ' + err.message);
+                this.isGroupsLoaded = true;
             }
         });
     }
