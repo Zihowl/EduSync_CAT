@@ -238,6 +238,8 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
                                 </ion-card-content>
                             </ion-card>
                         </ng-template>
+
+                        <div class="domains-section-spacer" aria-hidden="true"></div>
                     </div>
                 </div>
             </div>

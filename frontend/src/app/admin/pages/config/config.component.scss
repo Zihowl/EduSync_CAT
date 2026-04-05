@@ -345,6 +345,11 @@ ion-card-content {
     color: rgba(203, 213, 225, 0.8);
 }
 
+.domains-section-spacer {
+    height: 1.25rem;
+    flex-shrink: 0;
+}
+
 @media (min-width: 576px) {
     .form-row {
         flex-direction: row;
