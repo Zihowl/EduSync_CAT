@@ -1,429 +1,488 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Config Page
+   ───────────────────────────────────────────────────────────────────────
+   Sections:  host tokens → Ionic resets → layout → section headers →
+              cards → forms → cycle info → domains → empty/loading →
+              responsive
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Design tokens ─────────────────────────────────────────────────── */
 :host {
-    display: block;
-    width: 100%;
-    --config-surface-bg: rgba(15, 23, 42, 0.45);
+  /* Surface palette */
+  --cfg-surface-bg: rgba(15, 23, 42, 0.45);
+  --cfg-border: rgba(148, 163, 184, 0.18);
+  --cfg-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+  --cfg-blur: 10px;
+
+  /* Typography palette */
+  --cfg-text: #f8fafc;
+  --cfg-text-muted: rgba(203, 213, 225, 0.8);
+  --cfg-text-subtle: rgba(226, 232, 240, 0.72);
+  --cfg-accent-blue: #93c5fd;
+  --cfg-accent-slate: #cbd5e1;
+
+  /* Interactive palette */
+  --cfg-focus: rgba(56, 189, 248, 0.28);
+  --cfg-focus-ring: 0 0 0 1px rgba(56, 189, 248, 0.12), 0 12px 24px rgba(0, 0, 0, 0.36);
+  --cfg-input-bg: rgba(8, 13, 23, 0.55);
+  --cfg-input-border: rgba(148, 163, 184, 0.28);
+  --cfg-input-focus: rgba(56, 189, 248, 0.78);
+  --cfg-input-highlight: rgba(56, 189, 248, 0.8);
+
+  /* Button gradient */
+  --cfg-btn-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.98));
+  --cfg-btn-hover: linear-gradient(135deg, rgba(96, 165, 250, 1), rgba(37, 99, 235, 1));
+  --cfg-btn-active: linear-gradient(135deg, rgba(37, 99, 235, 1), rgba(29, 78, 216, 1));
+  --cfg-btn-shadow: 0 10px 18px rgba(37, 99, 235, 0.24);
+
+  /* Section header accent */
+  --cfg-accent-from: rgba(96, 165, 250, 0.7);
+  --cfg-accent-to: rgba(34, 197, 94, 0.35);
+
+  /* Layout */
+  --cfg-container-width: min(100%, 760px);
+  --cfg-gap: 1rem;
+  --cfg-card-padding: 1rem 1rem 1.1rem;
+  --cfg-header-padding: 0.95rem 1rem 0.95rem 1.15rem;
+  --cfg-header-title-size: 1.08rem;
+
+  /* Transition */
+  --cfg-speed: 150ms;
+
+  display: block;
+  width: 100%;
+
+  // Expose surface-bg for child components (menu-card, etc.)
+  --config-surface-bg: var(--cfg-surface-bg);
 }
 
+/* ── Ionic content reset ───────────────────────────────────────────── */
 .config-content {
-    --background: transparent;
+  --background: transparent;
 }
 
-.config-content::part(background) {
-    background: transparent;
-}
-
+/* ── Page layout ───────────────────────────────────────────────────── */
 .config-wrapper {
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    width: 100%;
-    min-height: 100%;
-    box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
 }
 
 .config-container {
-    width: min(100%, 760px);
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1rem;
+  width: var(--cfg-container-width);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--cfg-gap);
 }
 
 .config-section {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cfg-gap);
+  min-width: 0;
 }
 
+/* ── Section headers ───────────────────────────────────────────────── */
 .section-header {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    margin: 0;
-    padding: 0.95rem 1rem 0.95rem 1.15rem;
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    border-radius: 0 1rem 1rem 0;
-    background: var(--config-surface-bg);
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    overflow: hidden;
-}
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin: 0;
+  padding: var(--cfg-header-padding);
+  border: 1px solid var(--cfg-border);
+  border-radius: 0 1rem 1rem 0;
+  background: var(--cfg-surface-bg);
+  box-shadow: var(--cfg-shadow);
+  backdrop-filter: blur(var(--cfg-blur));
+  -webkit-backdrop-filter: blur(var(--cfg-blur));
+  overflow: hidden;
 
-.section-header::before {
+  /* Left accent bar */
+  &::before {
     content: '';
     position: absolute;
     inset: 0 auto 0 0;
     width: 3px;
-    border-radius: 0;
-    background: linear-gradient(180deg, rgba(96, 165, 250, 0.7), rgba(34, 197, 94, 0.35));
+    background: linear-gradient(180deg, var(--cfg-accent-from), var(--cfg-accent-to));
     opacity: 0.55;
-}
+  }
 
-.section-header ion-icon {
+  ion-icon {
     flex-shrink: 0;
     font-size: 1.35rem;
     color: rgba(248, 250, 252, 0.9);
-}
+  }
 
-.section-header h2 {
+  h2 {
     margin: 0;
-    color: #f8fafc;
-    font-size: 1.08rem;
+    color: var(--cfg-text);
+    font-size: var(--cfg-header-title-size);
     line-height: 1.2;
     font-weight: 600;
     letter-spacing: -0.01em;
+  }
 }
 
+/* ── Cards (generic ion-card in this view) ─────────────────────────── */
 ion-card {
-    margin: 0;
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    border-radius: 1rem;
-    --background: var(--config-surface-bg);
-    --color: #f8fafc;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
-    color: #f8fafc;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    overflow: hidden;
-    transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
-}
+  margin: 0;
+  border: 1px solid var(--cfg-border);
+  border-radius: 1rem;
+  --background: var(--cfg-surface-bg);
+  --color: var(--cfg-text);
+  box-shadow: var(--cfg-shadow);
+  color: var(--cfg-text);
+  backdrop-filter: blur(var(--cfg-blur));
+  -webkit-backdrop-filter: blur(var(--cfg-blur));
+  overflow: hidden;
+  transition:
+    transform var(--cfg-speed) ease,
+    border-color var(--cfg-speed) ease,
+    box-shadow var(--cfg-speed) ease,
+    background-color var(--cfg-speed) ease;
 
-ion-card:hover,
-ion-card:focus-within {
+  &:hover,
+  &:focus-within {
     transform: translateY(-2px);
-    border-color: rgba(56, 189, 248, 0.28);
-    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.12), 0 12px 24px rgba(0, 0, 0, 0.36);
+    border-color: var(--cfg-focus);
+    box-shadow: var(--cfg-focus-ring);
+  }
 }
 
 ion-card-content {
-    padding: 1rem 1rem 1.1rem;
-    background: transparent;
+  padding: var(--cfg-card-padding);
+  background: transparent;
 }
 
+/* ── Panel / card subtitles (uppercase labels) ─────────────────────── */
 .panel-subtitle,
 .info-card-title,
 .domains-list-title {
-    margin: 0;
-    padding: 0.9rem 1rem 0.35rem;
-    color: rgba(226, 232, 240, 0.72);
-    font-size: 0.74rem;
-    font-weight: 700;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
+  margin: 0;
+  padding: 0.9rem 1rem 0.35rem;
+  color: var(--cfg-text-subtle);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
 }
 
+/* ── Forms ─────────────────────────────────────────────────────────── */
 .form-section {
-    width: 100%;
+  width: 100%;
 }
 
 .form-row {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 .form-group {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 0.45rem;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.45rem;
 }
 
+/* Shared input styles */
 .form-group ion-input,
 .domain-input-section ion-input {
-    --border-radius: 10px;
-    --background: rgba(8, 13, 23, 0.55);
-    --color: #f8fafc;
-    --placeholder-color: rgba(148, 163, 184, 0.82);
-    --highlight-color: rgba(56, 189, 248, 0.8);
-    --highlight-color-focused: rgba(56, 189, 248, 0.95);
-    --border-color: rgba(148, 163, 184, 0.28);
-    --border-color-focused: rgba(56, 189, 248, 0.78);
-    --padding-start: 0.75rem;
-    --padding-end: 0.75rem;
-    --padding-top: 0.65rem;
-    --padding-bottom: 0.65rem;
+  --border-radius: 10px;
+  --background: var(--cfg-input-bg);
+  --color: var(--cfg-text);
+  --placeholder-color: rgba(148, 163, 184, 0.82);
+  --highlight-color: var(--cfg-input-highlight);
+  --highlight-color-focused: rgba(56, 189, 248, 0.95);
+  --border-color: var(--cfg-input-border);
+  --border-color-focused: var(--cfg-input-focus);
+  --padding-start: 0.75rem;
+  --padding-end: 0.75rem;
+  --padding-top: 0.65rem;
+  --padding-bottom: 0.65rem;
 }
 
-.form-submit,
-.add-domain-btn {
-    --border-radius: 10px;
-    --padding-start: 1rem;
-    --padding-end: 1rem;
-    --padding-top: 0.78rem;
-    --padding-bottom: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
+/* Shared button base */
+%btn-base {
+  --border-radius: 10px;
+  --padding-start: 1rem;
+  --padding-end: 1rem;
+  --padding-top: 0.78rem;
+  --padding-bottom: 0.78rem;
+  --background: var(--cfg-btn-bg);
+  --background-hover: var(--cfg-btn-hover);
+  --background-activated: var(--cfg-btn-active);
+  --box-shadow: var(--cfg-btn-shadow);
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .form-submit {
-    margin-top: 0.25rem;
-    --background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.98));
-    --background-hover: linear-gradient(135deg, rgba(96, 165, 250, 1), rgba(37, 99, 235, 1));
-    --background-activated: linear-gradient(135deg, rgba(37, 99, 235, 1), rgba(29, 78, 216, 1));
-    --box-shadow: 0 10px 18px rgba(37, 99, 235, 0.24);
+  @extend %btn-base;
+  margin-top: 0.25rem;
+
+  ion-icon[slot='start'] {
+    margin-inline-start: 0;
+    margin-inline-end: 0.4rem;
+  }
 }
 
 .add-domain-btn {
-    --background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.98));
-    --background-hover: linear-gradient(135deg, rgba(96, 165, 250, 1), rgba(37, 99, 235, 1));
-    --background-activated: linear-gradient(135deg, rgba(37, 99, 235, 1), rgba(29, 78, 216, 1));
-    --box-shadow: 0 10px 18px rgba(37, 99, 235, 0.24);
-    align-self: center;
-    white-space: nowrap;
+  @extend %btn-base;
+  align-self: center;
+  white-space: nowrap;
 }
 
-.form-submit::part(native),
-.add-domain-btn::part(native) {
-    justify-content: center;
-}
-
-.form-submit ion-icon[slot='start'] {
-    margin-inline-start: 0;
-    margin-inline-end: 0.4rem;
-}
-
+/* ── Domain input section ──────────────────────────────────────────── */
 .domain-input-section {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.9rem;
 }
 
+/* ── Cycle info ────────────────────────────────────────────────────── */
 .current-cycle {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .cycle-range {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    padding: 0.15rem 0 0.2rem;
-    color: #f8fafc;
-    font-size: 1.03rem;
-    font-weight: 700;
-    line-height: 1.35;
-    word-break: break-word;
-}
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.15rem 0 0.2rem;
+  color: var(--cfg-text);
+  font-size: 1.03rem;
+  font-weight: 700;
+  line-height: 1.35;
+  word-break: break-word;
 
-.cycle-range ion-icon {
+  ion-icon {
     flex-shrink: 0;
-    color: #93c5fd;
+    color: var(--cfg-accent-blue);
     font-size: 1.2rem;
-}
+  }
 
-.cycle-range .arrow {
+  .arrow {
     margin: 0 0.25rem;
-    color: #cbd5e1;
+    color: var(--cfg-accent-slate);
     opacity: 0.65;
+  }
 }
 
 .cycle-saved {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    color: rgba(203, 213, 225, 0.82);
-    font-size: 0.82rem;
-    line-height: 1.35;
-}
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  color: rgba(203, 213, 225, 0.82);
+  font-size: 0.82rem;
+  line-height: 1.35;
 
-.cycle-saved ion-icon {
+  ion-icon {
     flex-shrink: 0;
     font-size: 0.95rem;
+  }
 }
 
+/* ── Domains list ──────────────────────────────────────────────────── */
 .domains-list-card {
-    border-left: none;
+  border-left: none;
 }
 
 .domains-list {
-    margin: 0;
-    padding: 0 0.15rem 0.15rem;
-    background: transparent;
-    border-radius: 0 0 1rem 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
+  margin: 0;
+  padding: 0 0.15rem 0.15rem;
+  background: transparent;
+  border-radius: 0 0 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
 .domain-item {
-    margin: 0;
-    --background: transparent;
-    --background-hover: transparent;
-    --background-focused: transparent;
-    --background-activated: transparent;
-    --padding-start: 0.9rem;
-    --padding-end: 0.65rem;
-    --min-height: 3rem;
-    --color: rgba(248, 250, 252, 0.94);
-    border: 0;
-    border-radius: 0;
-    transition: none;
-    --ripple-color: transparent;
-    --inner-border-width: 0;
-}
+  margin: 0;
+  --background: transparent;
+  --background-hover: transparent;
+  --background-focused: transparent;
+  --background-activated: transparent;
+  --padding-start: 0.9rem;
+  --padding-end: 0.65rem;
+  --min-height: 3rem;
+  --color: rgba(248, 250, 252, 0.94);
+  border: 0;
+  border-radius: 0;
+  transition: none;
+  --ripple-color: transparent;
+  --inner-border-width: 0;
 
-.domain-item::part(native) {
-    background: transparent;
-    border-radius: 0;
-}
-
-.domain-item:hover,
-.domain-item:focus-within {
+  &:hover,
+  &:focus-within {
     --background: transparent;
+  }
 }
 
 .domain-name {
-    padding-left: 0;
-    color: rgba(248, 250, 252, 0.94);
-    font-size: 0.98rem;
-    font-weight: 500;
+  padding-left: 0;
+  color: rgba(248, 250, 252, 0.94);
+  font-size: 0.98rem;
+  font-weight: 500;
 }
 
 .delete-btn {
-    margin-right: 0;
-    --color: rgba(248, 250, 252, 0.58);
-    --background-hover: transparent;
+  margin-right: 0;
+  --color: rgba(248, 250, 252, 0.58);
+  --background-hover: transparent;
 }
 
+/* ── Empty & loading states ────────────────────────────────────────── */
 .empty-state-card {
-    border-left: none;
+  border-left: none;
 }
 
 .no-data,
 .loading-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    padding: 1.35rem 0.5rem;
-    text-align: center;
-}
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.35rem 0.5rem;
+  text-align: center;
 
-.no-data ion-icon,
-.loading-state ion-spinner {
-    font-size: 2rem;
-    color: #93c5fd;
-}
-
-.no-data p,
-.loading-state p {
+  p {
     margin: 0;
-    color: #f8fafc;
+    color: var(--cfg-text);
     font-size: 1rem;
     font-weight: 600;
     line-height: 1.35;
+  }
 }
 
-.no-data small {
-    color: rgba(203, 213, 225, 0.8);
+.no-data {
+  ion-icon {
+    font-size: 2rem;
+    color: var(--cfg-accent-blue);
+  }
+
+  small {
+    color: var(--cfg-text-muted);
     font-size: 0.84rem;
     line-height: 1.35;
+  }
 }
 
 .loading-state {
-    min-height: 7rem;
-    color: rgba(203, 213, 225, 0.84);
-}
+  min-height: 7rem;
+  color: rgba(203, 213, 225, 0.84);
 
-.loading-state p {
+  ion-spinner {
+    font-size: 2rem;
+    color: var(--cfg-accent-blue);
+  }
+
+  p {
     color: rgba(248, 250, 252, 0.88);
     font-size: 0.92rem;
     font-weight: 500;
+  }
 }
 
+/* ── Utilities ─────────────────────────────────────────────────────── */
 .text-muted {
-    color: rgba(203, 213, 225, 0.8);
+  color: var(--cfg-text-muted);
 }
 
 .domains-section-spacer {
-    height: 1.25rem;
-    flex-shrink: 0;
+  height: 1.25rem;
+  flex-shrink: 0;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   Responsive — token overrides + structural changes
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── ≥ 576px: side-by-side forms ───────────────────────────────────── */
 @media (min-width: 576px) {
-    .form-row {
-        flex-direction: row;
-        gap: 0.9rem;
-    }
+  .form-row {
+    flex-direction: row;
+    gap: 0.9rem;
+  }
 
-    .domain-input-section {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 0.9rem;
-    }
+  .domain-input-section {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.9rem;
 
-    .domain-input-section ion-input {
-        flex: 1;
+    ion-input {
+      flex: 1;
     }
+  }
 }
 
+/* ── 768px – 1199px: wider container ───────────────────────────────── */
 @media (min-width: 768px) and (max-width: 1199px) {
-    .config-container {
-        width: min(100%, 820px);
-        gap: 0.9rem;
-    }
+  :host {
+    --cfg-container-width: min(100%, 820px);
+    --cfg-gap: 0.9rem;
+  }
 }
 
+/* ── ≥ 1200px: two-column grid ─────────────────────────────────────── */
 @media (min-width: 1200px) {
-    .config-container {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        width: 100%;
-        max-width: none;
-        gap: 1.2rem;
-    }
+  .config-container {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    max-width: none;
+    gap: 1.2rem;
+  }
 }
 
+/* ── ≤ 600px: compact spacing ──────────────────────────────────────── */
 @media (max-width: 600px) {
-    .section-header {
-        padding: 0.85rem 0.9rem 0.85rem 1rem;
-    }
+  :host {
+    --cfg-header-padding: 0.85rem 0.9rem 0.85rem 1rem;
+    --cfg-header-title-size: 1.02rem;
+    --cfg-card-padding: 0.95rem 0.9rem 1rem;
+  }
 
-    .section-header h2 {
-        font-size: 1.02rem;
-    }
+  .panel-subtitle,
+  .info-card-title,
+  .domains-list-title {
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+  }
 
-    ion-card-content {
-        padding: 0.95rem 0.9rem 1rem;
-    }
+  .cycle-range {
+    padding: 0.9rem;
+    font-size: 0.95rem;
+    gap: 0.4rem;
+  }
 
-    .panel-subtitle,
-    .info-card-title,
-    .domains-list-title {
-        padding-left: 0.9rem;
-        padding-right: 0.9rem;
-    }
-
-    .cycle-range {
-        padding: 0.9rem;
-        font-size: 0.95rem;
-        gap: 0.4rem;
-    }
-
-    .cycle-saved {
-        font-size: 0.78rem;
-    }
+  .cycle-saved {
+    font-size: 0.78rem;
+  }
 }
 
+/* ── ≤ 575px: full-width domain button ─────────────────────────────── */
 @media (max-width: 575px) {
-    .add-domain-btn {
-        width: 100%;
-    }
+  .add-domain-btn {
+    width: 100%;
+  }
 }
 
+/* ── ≤ 420px: hide submit icon ─────────────────────────────────────── */
 @media (max-width: 420px) {
-    .form-submit ion-icon[slot='start'] {
-        display: none;
-    }
+  .form-submit ion-icon[slot='start'] {
+    display: none;
+  }
 }
-
-

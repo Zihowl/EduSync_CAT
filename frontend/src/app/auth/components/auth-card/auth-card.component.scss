@@ -1,228 +1,291 @@
-app-auth-card {
-    display: block;
-    width: 100%;
-    max-width: 400px;
-    box-sizing: border-box;
+/* ═══════════════════════════════════════════════════════════════════════
+   Auth Card Component
+   ───────────────────────────────────────────────────────────────────────
+   BEM block: .auth-card  (modifier: .auth-card--login)
+   Elements:  __header, __title, __subtitle, __form-group, __label,
+              __field-icon, __validation, __popover, __input, __submit
+
+   Uses SCSS nesting to avoid repeating ".auth-card.login-card" 20+ times.
+   All tunable values live as custom properties on :host.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Design tokens ─────────────────────────────────────────────────── */
+:host {
+  /* Surface */
+  --auth-bg: rgba(15, 23, 42, 0.72);
+  --auth-border: rgba(148, 163, 184, 0.4);
+  --auth-radius: 1rem;
+  --auth-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  --auth-max-width: 400px;
+
+  /* Login card variant */
+  --login-max-width: 380px;
+  --login-padding: 1rem 1rem 1.1rem;
+
+  /* Typography */
+  --auth-text: var(--ion-text-color, #f8fafc);
+  --auth-text-dark: var(--ion-text-color, #0f172a);
+  --auth-text-muted: var(--ion-color-medium);
+
+  /* Input */
+  --auth-input-bg: rgba(8, 13, 23, 0.5);
+  --auth-input-border: rgba(148, 163, 184, 0.35);
+  --auth-input-radius: 10px;
+  --auth-focus-color: rgba(56, 189, 248, 0.85);
+  --auth-focus-ring: 0 0 0 2px rgba(56, 189, 248, 0.35);
+
+  /* Popover */
+  --auth-popover-bg: rgba(15, 23, 42, 0.98);
+  --auth-popover-border: rgba(148, 163, 184, 0.4);
+  --auth-popover-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+
+  /* Validation icon */
+  --auth-warning-color: #f59e0b;
+
+  /* Transition */
+  --auth-speed: 120ms;
+
+  display: block;
+  width: 100%;
+  max-width: var(--auth-max-width);
+  box-sizing: border-box;
 }
 
+/* ── Card shell ────────────────────────────────────────────────────── */
 .auth-card {
-    max-width: 400px;
-    width: 100%;
-    margin: 0;
-    background: rgba(15, 23, 42, 0.72);
-    border: 1px solid rgba(148, 163, 184, 0.4);
-    border-radius: 1rem;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
-    color: var(--ion-text-color, #f8fafc);
+  max-width: var(--auth-max-width);
+  width: 100%;
+  margin: 0;
+  background: var(--auth-bg);
+  border: 1px solid var(--auth-border);
+  border-radius: var(--auth-radius);
+  box-shadow: var(--auth-shadow);
+  color: var(--auth-text);
+  overflow: visible;
+  contain: none;
+
+  ion-card-content {
     overflow: visible;
     contain: none;
+  }
 }
 
+/* ── Login card variant ────────────────────────────────────────────── */
 .auth-card.login-card {
-    width: min(100%, 380px);
-    max-width: 380px;
-    margin: 0 auto;
-}
+  width: min(100%, var(--login-max-width));
+  max-width: var(--login-max-width);
+  margin: 0 auto;
 
-.auth-card ion-card-content {
-    overflow: visible;
-    contain: none;
-}
+  ion-card-content {
+    padding: var(--login-padding);
+  }
 
-.auth-card.login-card ion-card-content {
-    padding: 1rem 1rem 1.1rem;
-}
-
-.auth-card.login-card .text-center {
+  /* ── Header ────────────────────────────────────────────────────── */
+  .text-center {
     text-align: center;
     margin-bottom: 1rem;
-}
 
-.auth-card.login-card .text-center h1 {
-    margin: 0 0 0.35rem;
-    color: var(--ion-text-color, #0f172a);
-    font-size: 1.35rem;
-    line-height: 1.2;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-}
+    h1 {
+      margin: 0 0 0.35rem;
+      color: var(--auth-text-dark);
+      font-size: 1.35rem;
+      line-height: 1.2;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+  }
 
-.auth-card.login-card .text-muted {
-    color: var(--ion-color-medium);
+  .text-muted {
+    color: var(--auth-text-muted);
     font-size: 0.86rem;
     line-height: 1.35;
-}
+  }
 
-.auth-card.login-card .form-group {
+  /* ── Form groups ───────────────────────────────────────────────── */
+  .form-group {
     position: relative;
     margin-bottom: 0.85rem;
-}
+  }
 
-.auth-card.login-card .field-label {
+  .field-label {
     display: inline-flex;
     align-items: center;
     gap: 0.33rem;
     margin: 0 0 0.3rem;
     font-size: 0.82rem;
     font-weight: 600;
-    color: var(--ion-text-color, #0f172a);
-}
+    color: var(--auth-text-dark);
 
-.auth-card.login-card .field-icon {
+    &.error .field-icon {
+      opacity: 1;
+    }
+  }
+
+  .field-icon {
     font-size: 0.76rem;
-    color: #f59e0b;
+    color: var(--auth-warning-color);
     opacity: 0;
     transition: opacity 140ms ease;
-}
+  }
 
-.auth-card.login-card .field-validation-container {
+  /* ── Validation popover ────────────────────────────────────────── */
+  .field-validation-container {
     position: relative;
     display: inline-flex;
     align-items: center;
     cursor: pointer;
-}
 
-.auth-card.login-card .field-validation-container .popover-message {
-    position: absolute;
-    top: calc(100% + 0.35rem);
-    left: 0;
-    right: auto;
-    transform: translateY(-8px);
-    min-width: auto;
-    max-width: 280px;
-    width: max-content;
-    background: rgba(15, 23, 42, 0.98);
-    border: 1px solid rgba(148, 163, 184, 0.4);
-    border-radius: 0.45rem;
-    color: #f8fafc;
-    padding: 0.35rem 0.55rem;
-    font-size: 0.72rem;
-    line-height: 1.35;
-    text-align: left;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
-    z-index: 10;
-    white-space: normal;
-    word-break: break-word;
-}
+    .popover-message {
+      position: absolute;
+      top: calc(100% + 0.35rem);
+      left: 0;
+      right: auto;
+      transform: translateY(-8px);
+      min-width: auto;
+      max-width: 280px;
+      width: max-content;
+      background: var(--auth-popover-bg);
+      border: 1px solid var(--auth-popover-border);
+      border-radius: 0.45rem;
+      color: #f8fafc;
+      padding: 0.35rem 0.55rem;
+      font-size: 0.72rem;
+      line-height: 1.35;
+      text-align: left;
+      box-shadow: var(--auth-popover-shadow);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition:
+        opacity 0.18s ease,
+        transform 0.18s ease,
+        visibility 0.18s ease;
+      z-index: 10;
+      white-space: normal;
+      word-break: break-word;
 
-@media (max-width: 600px) {
-    .auth-card.login-card .field-validation-container {
-        position: static;
-    }
-
-    .auth-card.login-card .field-validation-container .popover-message {
+      /* Arrow tip */
+      &::after {
+        content: '';
         position: absolute;
-        left: 0 !important;
-        right: 0 !important;
-        width: auto !important;
-        max-width: none !important;
-        top: auto !important;
-        bottom: 0;
-        transform: translateY(100%) !important;
-        margin-top: 0;
-        padding: 0.4rem 0.6rem;
+        width: 0.52rem;
+        height: 0.52rem;
+        background: var(--auth-popover-bg);
+        border-left: 1px solid var(--auth-popover-border);
+        border-top: 1px solid var(--auth-popover-border);
+        left: 0.7rem;
+        top: -0.26rem;
+        transform: rotate(45deg);
+        z-index: -1;
+      }
     }
 
-    .auth-card.login-card .field-validation-container .popover-message::after {
-        display: none;
-    }
-}
-
-.auth-card.login-card .field-validation-container .popover-message::after {
-    content: '';
-    position: absolute;
-    width: 0.52rem;
-    height: 0.52rem;
-    background: rgba(15, 23, 42, 0.98);
-    border-left: 1px solid rgba(148, 163, 184, 0.4);
-    border-top: 1px solid rgba(148, 163, 184, 0.4);
-    left: 0.7rem;
-    top: -0.26rem;
-    transform: rotate(45deg);
-    z-index: -1;
-}
-
-@media (hover: hover) and (pointer: fine) {
-    .auth-card.login-card .field-validation-container .popover-message {
+    /* Show on hover (desktop) */
+    @media (hover: hover) and (pointer: fine) {
+      .popover-message {
         pointer-events: none;
-    }
+      }
 
-    .auth-card.login-card .field-validation-container:hover .popover-message {
+      &:hover .popover-message {
         opacity: 1;
         visibility: visible;
         transform: translateY(0);
+      }
     }
-}
 
-.auth-card.login-card .field-validation-container.popover-visible .popover-message {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    transform: translateY(0);
-}
+    /* Show on tap (mobile) */
+    &.popover-visible .popover-message {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+  }
 
-.auth-card.login-card .field-label.error .field-icon {
-    opacity: 1;
-}
-
-.auth-card.login-card .native-login-input {
+  /* ── Native input ──────────────────────────────────────────────── */
+  .native-login-input {
     width: 100%;
-    border: 1px solid rgba(148, 163, 184, 0.35);
-    border-radius: 10px;
-    background: rgba(8, 13, 23, 0.5);
-    color: var(--ion-text-color, #f8fafc);
+    border: 1px solid var(--auth-input-border);
+    border-radius: var(--auth-input-radius);
+    background: var(--auth-input-bg);
+    color: var(--auth-text);
     padding: 0.64rem 0.78rem;
     font-size: 0.92rem;
     line-height: 1.2;
-    transition: border-color 120ms ease, box-shadow 120ms ease;
-}
+    transition:
+      border-color var(--auth-speed) ease,
+      box-shadow var(--auth-speed) ease;
 
-.auth-card.login-card .native-login-input::placeholder {
-    color: var(--ion-color-medium);
-}
+    &::placeholder {
+      color: var(--auth-text-muted);
+    }
 
-.auth-card.login-card .native-login-input:focus {
-    outline: none;
-    border-color: rgba(56, 189, 248, 0.85);
-    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
-}
+    &:focus {
+      outline: none;
+      border-color: var(--auth-focus-color);
+      box-shadow: var(--auth-focus-ring);
+    }
 
-.auth-card.login-card .native-login-input[readonly],
-.auth-card.login-card .native-login-input[disabled] {
-    background: rgba(148, 163, 184, 0.12);
-    border-color: rgba(148, 163, 184, 0.25);
-    color: var(--ion-color-medium);
-    cursor: not-allowed;
-    box-shadow: none;
-}
+    &[readonly],
+    &[disabled] {
+      background: rgba(148, 163, 184, 0.12);
+      border-color: rgba(148, 163, 184, 0.25);
+      color: var(--auth-text-muted);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
 
-.auth-card.login-card .native-login-input.ng-invalid.ng-touched,
-.auth-card.login-card .email-input.ng-invalid.ng-touched,
-.auth-card.login-card .password-input.ng-invalid.ng-touched {
-    border-color: rgba(148, 163, 184, 0.18);
-    box-shadow: none;
-}
+    /* Invalid but touched — subtle border, no loud red */
+    &.ng-invalid.ng-touched {
+      border-color: var(--auth-border);
+      box-shadow: none;
+    }
+  }
 
-.auth-card.login-card .email-input:focus,
-.auth-card.login-card .email-input.ng-invalid.ng-touched:focus,
-.auth-card.login-card .password-input:focus,
-.auth-card.login-card .password-input.ng-invalid.ng-touched:focus,
-.auth-card.login-card .native-login-input:focus {
-    border-color: rgba(56, 189, 248, 0.85);
-    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
-}
+  /* Focus always wins over invalid state */
+  .email-input:focus,
+  .password-input:focus,
+  .native-login-input:focus {
+    border-color: var(--auth-focus-color);
+    box-shadow: var(--auth-focus-ring);
+  }
 
-.auth-card.login-card ion-button {
+  /* ── Submit button ─────────────────────────────────────────────── */
+  ion-button {
     --padding-top: 0.72rem;
     --padding-bottom: 0.72rem;
     --padding-start: 1rem;
     --padding-end: 1rem;
-    --border-radius: 10px;
+    --border-radius: var(--auth-input-radius);
     font-size: 0.9rem;
     font-weight: 600;
     letter-spacing: 0.01em;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Responsive
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 600px) {
+  .auth-card.login-card .field-validation-container {
+    position: static;
+
+    .popover-message {
+      position: absolute;
+      left: 0 !important;
+      right: 0 !important;
+      width: auto !important;
+      max-width: none !important;
+      top: auto !important;
+      bottom: 0;
+      transform: translateY(100%) !important;
+      margin-top: 0;
+      padding: 0.4rem 0.6rem;
+
+      &::after {
+        display: none;
+      }
+    }
+  }
 }
