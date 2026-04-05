@@ -1,76 +1,116 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Menu Card Component
+   ───────────────────────────────────────────────────────────────────────
+   BEM block: .menu-card
+   Elements:  __content, __icon-shell, __icon, __body, __title,
+              __description, __chevron
+
+   All tunable values live as custom properties on :host so you can
+   override any of them from a parent without touching this file.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Design tokens ─────────────────────────────────────────────────── */
 :host {
-    display: block;
-    width: 100%;
-    height: 100%;
+  /* Layout */
+  --card-min-height: 5.1rem;
+  --card-padding-block: 0.95rem;
+  --card-padding-left: 0.75rem;
+  --card-padding-right: 0.85rem;
+  --card-gap: 1rem;
+  --card-radius: 0 1rem 1rem 0;
+
+  /* Surface */
+  --card-bg: var(--config-surface-bg, rgba(15, 23, 42, 0.45));
+  --card-border: rgba(148, 163, 184, 0.18);
+  --card-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+  --card-blur: 10px;
+
+  /* Accent bar (left edge) */
+  --accent-width: 3px;
+  --accent-from: rgba(96, 165, 250, 0.82);
+  --accent-to: rgba(37, 99, 235, 0.42);
+  --accent-opacity: 0.65;
+
+  /* Icon shell */
+  --icon-size: 2.2rem;
+  --icon-font-size: 1.1rem;
+  --icon-radius: 0.7rem;
+  --icon-bg: rgba(15, 23, 42, 0.42);
+  --icon-color: rgba(248, 250, 252, 0.84);
+
+  /* Typography */
+  --title-size: 1rem;
+  --title-color: rgba(248, 250, 252, 0.98);
+  --desc-size: 0.83rem;
+  --desc-color: rgba(226, 232, 240, 0.72);
+
+  /* Chevron */
+  --chevron-size: 0.98rem;
+  --chevron-color: rgba(203, 213, 225, 0.78);
+
+  /* Hover / focus */
+  --hover-border: rgba(56, 189, 248, 0.28);
+  --hover-shadow: 0 0 0 1px rgba(56, 189, 248, 0.12),
+    0 12px 24px rgba(0, 0, 0, 0.36);
+
+  /* Transition */
+  --transition-speed: 150ms;
+
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-/* ─── Card shell ──────────────────────────────────────────────────────
-   Strategy to avoid double background while keeping frosted effect:
-     • HOST  → paints background + backdrop-filter (the visible surface)
-     • shadow-DOM card-native → fully transparent
-   ──────────────────────────────────────────────────────────────────── */
+/* ── Card shell ────────────────────────────────────────────────────── */
 .menu-card {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    min-height: 5.1rem;
-    margin: 0;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: var(--card-min-height);
+  margin: 0;
 
-    /* Kill shadow-DOM native background */
-    --background: transparent;
-    --color: #f8fafc;
+  // Ionic Shadow-DOM overrides — kill native backgrounds
+  --background: transparent;
+  --color: var(--title-color);
 
-    /* Single visual surface on HOST */
-    background: var(--config-surface-bg, rgba(15, 23, 42, 0.45));
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  color: var(--title-color);
 
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    border-radius: 0 1rem 1rem 0;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
-    color: #f8fafc;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    overflow: hidden;
-    contain: none;
-    transition: transform 150ms ease, border-color 150ms ease,
-        box-shadow 150ms ease, background-color 150ms ease;
-}
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
 
-/* Shadow-DOM native: fully transparent, fill the card */
-.menu-card::part(native) {
-    border-radius: inherit;
-    background: transparent;
-    display: flex;
-    align-items: stretch;
-    height: 100%;
-    min-height: inherit;
-}
+  overflow: hidden;
+  contain: none;
+  transition:
+    transform var(--transition-speed) ease,
+    border-color var(--transition-speed) ease,
+    box-shadow var(--transition-speed) ease,
+    background-color var(--transition-speed) ease;
 
-/* Left accent bar */
-.menu-card::before {
+  /* ── Left accent bar ─────────────────────────────────────────────── */
+  &::before {
     content: '';
     position: absolute;
     inset: 0 auto 0 0;
-    width: 3px;
+    width: var(--accent-width);
     z-index: 1;
-    background: linear-gradient(
-        180deg,
-        rgba(96, 165, 250, 0.82),
-        rgba(37, 99, 235, 0.42)
-    );
-    opacity: 0.65;
-}
+    background: linear-gradient(180deg, var(--accent-from), var(--accent-to));
+    opacity: var(--accent-opacity);
+  }
 
-/* Hover / focus lift */
-.menu-card:hover,
-.menu-card:focus-within {
+  /* ── Hover / focus lift ──────────────────────────────────────────── */
+  &:hover,
+  &:focus-within {
     transform: translateY(-2px);
-    border-color: rgba(56, 189, 248, 0.28);
-    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.12),
-        0 12px 24px rgba(0, 0, 0, 0.36);
-}
+    border-color: var(--hover-border);
+    box-shadow: var(--hover-shadow);
+  }
 
-/* ─── Card content ────────────────────────────────────────────────── */
-.menu-card ion-card-content {
+  /* ── Ionic ion-card-content reset ────────────────────────────────── */
+  ion-card-content {
     width: 100%;
     flex: 1 1 auto;
     padding: 0;
@@ -82,136 +122,126 @@
     background: transparent;
     display: flex;
     align-items: stretch;
+  }
 }
 
-/* ─── Inner layout ────────────────────────────────────────────────── */
+/* ── Inner grid layout ─────────────────────────────────────────────── */
 .menu-card__content {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 1rem;
-    width: 100%;
-    padding: 0.95rem 0.85rem 0.95rem 0.75rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--card-gap);
+  width: 100%;
+  padding:
+    var(--card-padding-block)
+    var(--card-padding-right)
+    var(--card-padding-block)
+    var(--card-padding-left);
 }
 
+/* ── Icon ──────────────────────────────────────────────────────────── */
 .menu-card__icon-shell {
-    width: 2.2rem;
-    height: 2.2rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0.7rem;
-    background: rgba(15, 23, 42, 0.42);
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    box-shadow: none;
-    flex: 0 0 auto;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--icon-radius);
+  background: var(--icon-bg);
+  border: 1px solid var(--card-border);
+  flex: 0 0 auto;
 }
 
 .menu-card__icon {
-    font-size: 1.1rem;
-    color: rgba(248, 250, 252, 0.84);
+  font-size: var(--icon-font-size);
+  color: var(--icon-color);
 }
 
+/* ── Text body ─────────────────────────────────────────────────────── */
 .menu-card__body {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-    justify-content: center;
-    gap: 0.15rem;
-    min-width: 0;
-}
-
-.menu-card__chevron {
-    font-size: 0.98rem;
-    color: rgba(203, 213, 225, 0.78);
-    opacity: 0.72;
-    transition: transform 150ms ease, opacity 150ms ease;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.15rem;
+  min-width: 0;
 }
 
 .menu-card__title {
-    margin: 0;
-    color: rgba(248, 250, 252, 0.98);
-    font-size: 1rem;
-    line-height: 1.2;
-    font-weight: 600;
-    letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--title-color);
+  font-size: var(--title-size);
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .menu-card__description {
-    margin: 0;
-    color: rgba(226, 232, 240, 0.72);
-    font-size: 0.83rem;
-    line-height: 1.25;
-    display: -webkit-box;
-    overflow: hidden;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+  margin: 0;
+  color: var(--desc-color);
+  font-size: var(--desc-size);
+  line-height: 1.25;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
-.menu-card:hover .menu-card__chevron,
-.menu-card:focus-within .menu-card__chevron {
+/* ── Chevron ───────────────────────────────────────────────────────── */
+.menu-card__chevron {
+  font-size: var(--chevron-size);
+  color: var(--chevron-color);
+  opacity: 0.72;
+  transition:
+    transform var(--transition-speed) ease,
+    opacity var(--transition-speed) ease;
+
+  .menu-card:hover &,
+  .menu-card:focus-within & {
     transform: translateX(0.18rem);
     opacity: 1;
+  }
 }
 
-/* ─── Responsive ──────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════
+   Responsive overrides — only token changes, no structural re-declarations
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Small screens (≤ 600px) ───────────────────────────────────────── */
 @media (max-width: 600px) {
-    .menu-card {
-        min-height: 4.85rem;
-    }
-
-    .menu-card__content {
-        padding: 0.85rem 0.75rem 0.85rem 0.7rem;
-        gap: 0.9rem;
-    }
-
-    .menu-card__title {
-        font-size: 0.99rem;
-    }
-
-    .menu-card__chevron {
-        font-size: 0.92rem;
-    }
+  :host {
+    --card-min-height: 4.85rem;
+    --card-padding-block: 0.85rem;
+    --card-padding-left: 0.7rem;
+    --card-padding-right: 0.75rem;
+    --card-gap: 0.9rem;
+    --title-size: 0.99rem;
+    --chevron-size: 0.92rem;
+  }
 }
 
+/* ── Large screens (≥ 1200px) ──────────────────────────────────────── */
 @media (min-width: 1200px) {
-    .menu-card {
-        min-height: 5.25rem;
-    }
+  :host {
+    --card-min-height: 5.25rem;
+    --card-padding-block: 1.1rem;
+    --card-padding-left: 0.8rem;
+    --card-padding-right: 0.9rem;
+    --card-gap: 1.05rem;
+    --icon-size: 2.35rem;
+    --icon-font-size: 1.15rem;
+    --title-size: 1.02rem;
+    --desc-size: 0.84rem;
+    --chevron-size: 1rem;
+  }
 
-    .menu-card__content {
-        padding: 1.1rem 0.9rem 1.1rem 0.8rem;
-        gap: 1.05rem;
-    }
+  .menu-card__body {
+    align-items: flex-start;
+    gap: 0.1rem;
+  }
 
-    .menu-card__icon-shell {
-        width: 2.35rem;
-        height: 2.35rem;
-    }
-
-    .menu-card__icon {
-        font-size: 1.15rem;
-    }
-
-    .menu-card__body {
-        align-items: flex-start;
-        gap: 0.1rem;
-    }
-
-    .menu-card__description {
-        max-width: none;
-    }
-
-    .menu-card__title {
-        font-size: 1.02rem;
-    }
-
-    .menu-card__description {
-        font-size: 0.84rem;
-    }
-
-    .menu-card__chevron {
-        font-size: 1rem;
-    }
+  .menu-card__description {
+    max-width: none;
+  }
 }
