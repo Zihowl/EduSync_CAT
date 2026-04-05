@@ -427,6 +427,7 @@ export class ConfigComponent implements OnInit
                     this.isDomainsLoaded = true;
                     this.cdr.detectChanges();
                 });
+                this.LoadDomains(true);
             },
             error: (err) => {
                 this.runInZone(() => {
@@ -475,6 +476,7 @@ export class ConfigComponent implements OnInit
                     this.newSchoolYearEnd = '';
                     this.cdr.detectChanges();
                 });
+                this.LoadCurrentSchoolYear(true);
             },
             error: (err) => {
                 this.runInZone(() => {
@@ -511,6 +513,7 @@ export class ConfigComponent implements OnInit
                 this.runInZone(() => {
                     this.cdr.detectChanges();
                 });
+                this.LoadDomains(true);
             },
             error: (err) => {
                 this.runInZone(() => {
@@ -528,8 +531,8 @@ export class ConfigComponent implements OnInit
         this.realtimeSync.watchScopes([RealtimeScope.AllowedDomains, RealtimeScope.CurrentSchoolYear])
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe(() => {
-                this.LoadDomains();
-                this.LoadCurrentSchoolYear();
+                this.LoadDomains(true);
+                this.LoadCurrentSchoolYear(true);
             });
     }
 }

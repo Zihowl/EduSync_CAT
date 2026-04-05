@@ -1,8 +1,12 @@
-use async_graphql::{ID, SimpleObject};
+use std::sync::Arc;
+
+use async_graphql::{ComplexObject, Context, ID, SimpleObject};
 
 use crate::domain::models::group::Group;
+use crate::domain::services::group_service::GroupService;
 
 #[derive(SimpleObject, Clone)]
+#[graphql(complex)]
 pub struct GroupType {
     pub id: ID,
     pub name: String,
@@ -16,5 +20,19 @@ impl From<Group> for GroupType {
             name: v.name,
             parent_id: v.parent_id,
         }
+    }
+}
+
+#[ComplexObject]
+impl GroupType {
+    async fn parent(&self, ctx: &Context<'_>) -> async_graphql::Result<Option<GroupType>> {
+        let Some(parent_id) = self.parent_id else {
+            return Ok(None);
+        };
+
+        let svc = ctx.data::<Arc<GroupService>>()?;
+        let parent = svc.find_one(parent_id).await?;
+
+        Ok(parent.map(Into::into))
     }
 }

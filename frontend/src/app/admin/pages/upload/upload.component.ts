@@ -41,7 +41,7 @@ import { environment } from '../../../../environments/environment';
                             <h2>Subir Archivo Excel</h2>
                             <p class="text-muted">
                                 El archivo debe contener las columnas: <br>
-                                <strong>ClaveMateria, Materia, NoEmpleado, Docente, Grupo, Aula, Dia, HoraInicio, HoraFin</strong>
+                                <strong>ClaveMateria, Materia, NoEmpleado (opcional), Docente (opcional), Grupo, Subgrupo (opcional), Aula, Edificio, Dia, HoraInicio, HoraFin</strong>
                             </p>
                         </div>
 
@@ -49,7 +49,7 @@ import { environment } from '../../../../environments/environment';
                             type="file"
                             #fileInput
                             (change)="OnFileSelected($event)"
-                            accept=".xlsx, .xls"
+                            accept=".xlsx, .csv"
                             class="upload-file-input">
 
                         <div *ngIf="!selectedFile" class="button-area">
@@ -68,7 +68,7 @@ import { environment } from '../../../../environments/environment';
                                 <ion-button expand="block" color="success" (click)="Upload()" [disabled]="isLoading">
                                     {{ isLoading ? 'Procesando...' : 'Confirmar Carga' }}
                                 </ion-button>
-                                <ion-button expand="block" fill="clear" color="danger" (click)="selectedFile = null" [disabled]="isLoading">
+                                <ion-button expand="block" fill="clear" color="danger" (click)="clearSelection(fileInput)" [disabled]="isLoading">
                                     Cancelar
                                 </ion-button>
                             </div>
@@ -77,7 +77,7 @@ import { environment } from '../../../../environments/environment';
                         <ion-progress-bar *ngIf="isLoading" type="indeterminate" class="upload-progress"></ion-progress-bar>
 
                         <ion-alert
-                            [isOpen]="!!uploadResult && uploadResult.processed > 0"
+                            [isOpen]="!!uploadResult?.success && uploadResult.processed > 0"
                             header="Carga Exitosa"
                             [message]="'Se procesaron ' + uploadResult?.processed + ' registros correctamente.'"
                             [buttons]="['OK']"
@@ -88,7 +88,7 @@ import { environment } from '../../../../environments/environment';
                             *ngIf="uploadResult && uploadResult.errors.length > 0"
                             [isOpen]="!!uploadResult && uploadResult.errors.length > 0"
                             header="Errores en la Carga"
-                            [subHeader]="'Hubo errores en algunas filas (total: ' + uploadResult.errors.length + ')'"
+                            [subHeader]="'Se procesaron ' + uploadResult.processed + ' registros, pero hubo errores en algunas filas (total: ' + uploadResult.errors.length + ')'"
                             [message]="uploadResult.errors.slice(0, 5).join(' | ')"
                             [buttons]="['OK']"
                             (didDismiss)="uploadResult = null">
@@ -104,6 +104,7 @@ export class UploadComponent implements OnInit
 {
     private http = inject(HttpClient);
     private apiUrl = environment.apiUrl;
+    private fileInputElement: HTMLInputElement | null = null;
 
     selectedFile: File | null = null;
     isLoading = false;
@@ -116,8 +117,19 @@ export class UploadComponent implements OnInit
 
     OnFileSelected(event: any) 
     {
-        this.selectedFile = event.target.files[0];
+        this.fileInputElement = event.target as HTMLInputElement;
+        this.selectedFile = this.fileInputElement.files?.[0] ?? null;
         this.uploadResult = null;
+    }
+
+    clearSelection(input: HTMLInputElement | null = this.fileInputElement)
+    {
+        this.selectedFile = null;
+        this.uploadResult = null;
+
+        if (input) {
+            input.value = '';
+        }
     }
 
     Upload() 
@@ -137,7 +149,7 @@ export class UploadComponent implements OnInit
             {
                     this.isLoading = false;
                     this.uploadResult = res.details;
-                    this.selectedFile = null;
+                    this.clearSelection();
                 },
             error: (err) =>
             {

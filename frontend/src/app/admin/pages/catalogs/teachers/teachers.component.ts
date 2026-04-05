@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
@@ -155,6 +155,7 @@ export class TeachersComponent implements OnInit
     private queryCache = inject(RealtimeQueryCacheService);
     private realtimeSync = inject(RealtimeSyncService);
     private destroyRef = inject(DestroyRef);
+    private cdr = inject(ChangeDetectorRef);
 
     teachers: any[] = [];
     filteredTeachers: any[] = [];
@@ -177,22 +178,45 @@ export class TeachersComponent implements OnInit
         this.LoadTeachers();
     }
 
-    LoadTeachers() {
-        this.queryCache.load(
-            'admin-teachers',
-            [RealtimeScope.Teachers],
-            () => this.apollo.query<any>({ query: GET_TEACHERS, fetchPolicy: 'network-only' }).pipe(
-                map((res: any) => res?.data?.GetTeachers ?? [])
+    LoadTeachers(forceRefresh = false) {
+        if (forceRefresh) {
+            this.isTeachersLoaded = false;
+        }
+
+        const request$ = forceRefresh
+            ? this.queryCache.refresh(
+                'admin-teachers',
+                [RealtimeScope.Teachers],
+                () => this.apollo.query<any>({ query: GET_TEACHERS, fetchPolicy: 'network-only' }).pipe(
+                    map((res: any) => res?.data?.GetTeachers ?? [])
+                )
             )
-        ).subscribe({
+            : this.queryCache.load(
+                'admin-teachers',
+                [RealtimeScope.Teachers],
+                () => this.apollo.query<any>({ query: GET_TEACHERS, fetchPolicy: 'network-only' }).pipe(
+                    map((res: any) => res?.data?.GetTeachers ?? [])
+                )
+            );
+
+        request$.subscribe({
             next: (teachers: any[]) => {
-                this.teachers = teachers;
-                this.ApplyFilter();
-                this.isTeachersLoaded = true;
+                this.teachers = teachers ?? [];
+
+                try {
+                    this.ApplyFilter();
+                } catch (err) {
+                    console.error('Error filtering teachers:', err);
+                    this.filteredTeachers = [...this.teachers];
+                } finally {
+                    this.isTeachersLoaded = true;
+                    this.cdr.detectChanges();
+                }
             },
             error: (err) => {
                 console.error('Error loading teachers:', err);
                 this.isTeachersLoaded = true;
+                this.cdr.detectChanges();
             }
         });
     }
@@ -209,8 +233,8 @@ export class TeachersComponent implements OnInit
         }
 
         this.filteredTeachers = this.teachers.filter(t => 
-            t.name.toLowerCase().includes(this.searchQuery) || 
-            t.employeeNumber.toLowerCase().includes(this.searchQuery)
+            String(t?.name ?? '').toLowerCase().includes(this.searchQuery) || 
+            String(t?.employeeNumber ?? '').toLowerCase().includes(this.searchQuery)
         );
     }
 
@@ -221,7 +245,7 @@ export class TeachersComponent implements OnInit
     }
 
     GetInitials(name: string): string {
-        return name
+        return (name ?? '')
             .split(' ')
             .map(n => n[0])
             .slice(0, 2)
@@ -274,7 +298,7 @@ export class TeachersComponent implements OnInit
                 next: () => { 
                     this.isModalOpen = false;
                     this.editingItem = null;
-                    this.LoadTeachers();
+                    this.LoadTeachers(true);
                 },
                 error: (err) => {
                     console.error('Update teacher error:', err);
@@ -288,7 +312,7 @@ export class TeachersComponent implements OnInit
             }).subscribe({
                 next: () => { 
                     this.isModalOpen = false; 
-                    this.LoadTeachers();
+                    this.LoadTeachers(true);
                 },
                 error: (err) => {
                     console.error('Create teacher error:', err);
@@ -304,7 +328,7 @@ export class TeachersComponent implements OnInit
             mutation: REMOVE_TEACHER,
             variables: { id: parseInt(id.toString()) },
         }).subscribe({
-            next: () => this.LoadTeachers(),
+            next: () => this.LoadTeachers(true),
             error: (err) => alert('Error al eliminar: ' + err.message)
         });
     }

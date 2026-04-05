@@ -23,7 +23,7 @@ impl PgScheduleSlotRepository {
 #[derive(FromRow)]
 struct SlotRow {
     id: i32,
-    teacher_id: i32,
+    teacher_id: Option<i32>,
     subject_id: i32,
     classroom_id: i32,
     group_id: i32,

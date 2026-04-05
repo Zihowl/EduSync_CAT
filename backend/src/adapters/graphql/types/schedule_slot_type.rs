@@ -1,9 +1,15 @@
-use async_graphql::{ID, SimpleObject};
+use std::sync::Arc;
+
+use async_graphql::{ComplexObject, Context, ID, SimpleObject};
+
+use crate::adapters::graphql::types::{classroom_type::ClassroomType, group_type::GroupType, subject_type::SubjectType, teacher_type::TeacherType};
+use crate::domain::services::{classroom_service::ClassroomService, group_service::GroupService, subject_service::SubjectService, teacher_service::TeacherService};
 
 #[derive(SimpleObject, Clone)]
+#[graphql(complex)]
 pub struct ScheduleSlotType {
     pub id: ID,
-    pub teacher_id: i32,
+    pub teacher_id: Option<i32>,
     pub subject_id: i32,
     pub classroom_id: i32,
     pub group_id: i32,
@@ -34,5 +40,49 @@ impl From<crate::domain::models::schedule_slot::ScheduleSlot> for ScheduleSlotTy
             created_at: v.created_at,
             updated_at: v.updated_at,
         }
+    }
+}
+
+#[ComplexObject]
+impl ScheduleSlotType {
+    async fn teacher(&self, ctx: &Context<'_>) -> async_graphql::Result<Option<TeacherType>> {
+        let Some(teacher_id) = self.teacher_id else {
+            return Ok(None);
+        };
+
+        let svc = ctx.data::<Arc<TeacherService>>()?;
+        let teacher = svc.find_one(teacher_id).await?;
+
+        Ok(teacher.map(Into::into))
+    }
+
+    async fn subject(&self, ctx: &Context<'_>) -> async_graphql::Result<SubjectType> {
+        let svc = ctx.data::<Arc<SubjectService>>()?;
+        let subject = svc
+            .find_one(self.subject_id)
+            .await?
+            .ok_or_else(|| async_graphql::Error::new("Materia no encontrada"))?;
+
+        Ok(SubjectType::from(subject))
+    }
+
+    async fn classroom(&self, ctx: &Context<'_>) -> async_graphql::Result<ClassroomType> {
+        let svc = ctx.data::<Arc<ClassroomService>>()?;
+        let classroom = svc
+            .find_one(self.classroom_id)
+            .await?
+            .ok_or_else(|| async_graphql::Error::new("Salon no encontrado"))?;
+
+        Ok(ClassroomType::from(classroom))
+    }
+
+    async fn group(&self, ctx: &Context<'_>) -> async_graphql::Result<GroupType> {
+        let svc = ctx.data::<Arc<GroupService>>()?;
+        let group = svc
+            .find_one(self.group_id)
+            .await?
+            .ok_or_else(|| async_graphql::Error::new("Grupo no encontrado"))?;
+
+        Ok(GroupType::from(group))
     }
 }

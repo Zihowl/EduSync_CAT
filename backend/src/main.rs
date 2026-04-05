@@ -8,7 +8,7 @@ use std::{net::SocketAddr, sync::Arc};
 use adapters::{
     auth::middleware::read_auth_user_from_headers,
     graphql::{realtime::RealtimeBroadcaster, schema::{build_schema, AppSchema}},
-    rest::{public_handler::public_schedules, upload_handler::upload_schedule},
+    rest::{public_schedules, upload_handler::upload_schedule},
 };
 use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
@@ -67,6 +67,10 @@ pub struct AppState {
     pub config: Arc<AppConfig>,
     pub schema: AppSchema,
     pub realtime: Arc<RealtimeBroadcaster>,
+    pub teacher_service: Arc<TeacherService>,
+    pub subject_service: Arc<SubjectService>,
+    pub classroom_service: Arc<ClassroomService>,
+    pub group_service: Arc<GroupService>,
     pub schedule_service: Arc<ScheduleService>,
     pub excel_service: Arc<ExcelService>,
 }
@@ -143,6 +147,10 @@ async fn main() -> anyhow::Result<()> {
         config: config.clone(),
         schema,
         realtime,
+        teacher_service: teacher_service.clone(),
+        subject_service: subject_service.clone(),
+        classroom_service: classroom_service.clone(),
+        group_service: group_service.clone(),
         schedule_service,
         excel_service,
     };

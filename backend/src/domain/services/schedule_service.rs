@@ -25,7 +25,7 @@ pub struct ScheduleService {
 
 #[derive(Clone)]
 pub struct CreateScheduleSlot {
-    pub teacher_id: i32,
+    pub teacher_id: Option<i32>,
     pub subject_id: i32,
     pub classroom_id: i32,
     pub group_id: i32,
@@ -40,7 +40,7 @@ pub struct CreateScheduleSlot {
 #[derive(Clone)]
 pub struct UpdateScheduleSlot {
     pub id: i32,
-    pub teacher_id: Option<i32>,
+    pub teacher_id: Option<Option<i32>>,
     pub subject_id: Option<i32>,
     pub classroom_id: Option<i32>,
     pub group_id: Option<i32>,
@@ -188,13 +188,15 @@ impl ScheduleService {
 
     async fn ensure_dependencies(
         &self,
-        teacher_id: i32,
+        teacher_id: Option<i32>,
         subject_id: i32,
         classroom_id: i32,
         group_id: i32,
     ) -> Result<(), DomainError> {
-        if self.teacher_repo.find_by_id(teacher_id).await?.is_none() {
-            return Err(DomainError::NotFound("Profesor no encontrado".to_string()));
+        if let Some(teacher_id) = teacher_id {
+            if self.teacher_repo.find_by_id(teacher_id).await?.is_none() {
+                return Err(DomainError::NotFound("Profesor no encontrado".to_string()));
+            }
         }
         if self.subject_repo.find_by_id(subject_id).await?.is_none() {
             return Err(DomainError::NotFound("Materia no encontrada".to_string()));
@@ -210,28 +212,30 @@ impl ScheduleService {
 
     async fn ensure_collisions(
         &self,
-        teacher_id: i32,
+        teacher_id: Option<i32>,
         classroom_id: i32,
         day_of_week: i32,
         start_time: &str,
         end_time: &str,
         exclude_id: Option<i32>,
     ) -> Result<(), DomainError> {
-        if let Some(conflict) = self
-            .repo
-            .find_conflict_for_teacher(
-                teacher_id,
-                day_of_week,
-                start_time,
-                end_time,
-                exclude_id,
-            )
-            .await?
-        {
-            return Err(DomainError::Conflict(format!(
-                "El profesor ya tiene horario de {} a {}",
-                conflict.start_time, conflict.end_time
-            )));
+        if let Some(teacher_id) = teacher_id {
+            if let Some(conflict) = self
+                .repo
+                .find_conflict_for_teacher(
+                    teacher_id,
+                    day_of_week,
+                    start_time,
+                    end_time,
+                    exclude_id,
+                )
+                .await?
+            {
+                return Err(DomainError::Conflict(format!(
+                    "El profesor ya tiene horario de {} a {}",
+                    conflict.start_time, conflict.end_time
+                )));
+            }
         }
 
         if let Some(conflict) = self

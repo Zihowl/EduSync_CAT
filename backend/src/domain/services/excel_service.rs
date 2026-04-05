@@ -1,6 +1,7 @@
 use std::{io::Cursor, sync::Arc};
 
-use calamine::{Data, Reader, Xlsx};
+use calamine::{open_workbook_auto_from_rs, Data, Reader};
+use csv::ReaderBuilder;
 
 use crate::domain::{
     errors::DomainError,
@@ -31,6 +32,11 @@ pub struct ExcelImportResult {
     pub errors: Vec<String>,
 }
 
+struct ParsedScheduleTable {
+    headers: Vec<String>,
+    rows: Vec<Vec<String>>,
+}
+
 impl ExcelService {
     pub fn new(
         teacher_service: Arc<TeacherService>,
@@ -55,29 +61,11 @@ impl ExcelService {
         file: &[u8],
         uploaded_by: Option<uuid::Uuid>,
     ) -> Result<ExcelImportResult, DomainError> {
-        let mut workbook: Xlsx<Cursor<Vec<u8>>> = Xlsx::new(Cursor::new(file.to_vec()))
-            .map_err(|e| DomainError::BadRequest(format!("No se pudo leer Excel: {e}")))?;
-
-        let sheet_name = workbook
-            .sheet_names()
-            .first()
-            .cloned()
-            .ok_or_else(|| DomainError::BadRequest("El archivo Excel esta vacio".to_string()))?;
-
-        let range = workbook
-            .worksheet_range(&sheet_name)
-            .map_err(|e| DomainError::BadRequest(format!("No se pudo leer hoja: {e}")))?;
-
-        let mut rows = range.rows();
-        let header = rows
-            .next()
-            .ok_or_else(|| DomainError::BadRequest("El archivo no contiene filas".to_string()))?;
-
-        let headers: Vec<String> = header.iter().map(cell_to_string).collect();
+        let ParsedScheduleTable { headers, rows } = parse_uploaded_schedule_table(file)?;
 
         let mut processed = 0usize;
         let mut errors = Vec::new();
-        for (idx, row) in rows.enumerate() {
+        for (idx, row) in rows.iter().enumerate() {
             let row_number = idx + 2;
             match self.process_row(&headers, row, uploaded_by).await {
                 Ok(_) => processed += 1,
@@ -86,7 +74,7 @@ impl ExcelService {
         }
 
         Ok(ExcelImportResult {
-            success: true,
+            success: errors.is_empty(),
             processed,
             errors,
         })
@@ -95,30 +83,29 @@ impl ExcelService {
     async fn process_row(
         &self,
         headers: &[String],
-        row: &[Data],
+        row: &[String],
         uploaded_by: Option<uuid::Uuid>,
     ) -> Result<(), DomainError> {
-        let value = |name: &str| -> String {
+        let value = |names: &[&str]| -> String {
             headers
                 .iter()
-                .position(|h| h == name)
+                .position(|h| names.iter().any(|name| h.eq_ignore_ascii_case(name)))
                 .and_then(|i| row.get(i))
-                .map(cell_to_string)
+                .map(|v| v.trim().to_string())
                 .unwrap_or_default()
-                .trim()
-                .to_string()
         };
 
-        let clave_materia = value("ClaveMateria");
-        let materia = value("Materia");
-        let no_empleado = value("NoEmpleado");
-        let docente = value("Docente");
-        let grupo = value("Grupo");
-        let aula = value("Aula");
-        let edificio = value("Edificio");
-        let dia = value("Dia");
-        let hora_inicio = normalize_time(&value("HoraInicio"));
-        let hora_fin = normalize_time(&value("HoraFin"));
+        let clave_materia = value(&["ClaveMateria"]);
+        let materia = value(&["Materia"]);
+        let no_empleado = value(&["NoEmpleado"]);
+        let docente = value(&["Docente"]);
+        let grupo = value(&["Grupo"]);
+        let subgroup = value(&["Subgrupo", "SubGrupo"]);
+        let aula = value(&["Aula"]);
+        let edificio = value(&["Edificio"]);
+        let dia = value(&["Dia"]);
+        let hora_inicio = normalize_time(&value(&["HoraInicio"]));
+        let hora_fin = normalize_time(&value(&["HoraFin"]));
 
         if clave_materia.is_empty() || grupo.is_empty() || dia.is_empty() || hora_inicio.is_empty() {
             return Err(DomainError::BadRequest(
@@ -132,11 +119,17 @@ impl ExcelService {
             Err(e) => return Err(e),
         };
 
-        let emp = if no_empleado.is_empty() { format!("SIN_NUM_{}", chrono::Utc::now().timestamp_millis()) } else { no_empleado };
-        let teacher = match self.teacher_service.create(&emp, if docente.is_empty() { "Docente Por Asignar" } else { &docente }, None).await {
-            Ok(v) => v,
-            Err(DomainError::Conflict(_)) => self.teacher_service.find_all().await?.into_iter().find(|t| t.employee_number == emp).ok_or_else(|| DomainError::NotFound("Docente no encontrado".to_string()))?,
-            Err(e) => return Err(e),
+        let teacher_id = if no_empleado.is_empty() && docente.is_empty() {
+            None
+        } else {
+            let emp = if no_empleado.is_empty() { format!("SIN_NUM_{}", chrono::Utc::now().timestamp_millis()) } else { no_empleado };
+            let teacher = match self.teacher_service.create(&emp, if docente.is_empty() { "Docente Por Asignar" } else { &docente }, None).await {
+                Ok(v) => v,
+                Err(DomainError::Conflict(_)) => self.teacher_service.find_all().await?.into_iter().find(|t| t.employee_number == emp).ok_or_else(|| DomainError::NotFound("Docente no encontrado".to_string()))?,
+                Err(e) => return Err(e),
+            };
+
+            Some(teacher.id)
         };
 
         if !edificio.is_empty() {
@@ -160,14 +153,14 @@ impl ExcelService {
 
         self.schedule_service
             .create(CreateScheduleSlot {
-                teacher_id: teacher.id,
+                teacher_id,
                 subject_id: subject.id,
                 classroom_id: classroom.id,
                 group_id: group.id,
                 day_of_week,
                 start_time: hora_inicio,
                 end_time: if hora_fin.is_empty() { "00:00:00".to_string() } else { hora_fin },
-                subgroup: None,
+                subgroup: if subgroup.is_empty() { None } else { Some(subgroup) },
                 is_published: false,
                 created_by_id: uploaded_by,
             })
@@ -200,6 +193,67 @@ fn normalize_time(value: &str) -> String {
         return format!("{:0>2}:{:0>2}:{:0>2}", parts[0], parts[1], parts[2]);
     }
     "00:00:00".to_string()
+}
+
+fn parse_uploaded_schedule_table(file: &[u8]) -> Result<ParsedScheduleTable, DomainError> {
+    match open_workbook_auto_from_rs(Cursor::new(file.to_vec())) {
+        Ok(mut workbook) => {
+            let sheet_name = workbook
+                .sheet_names()
+                .first()
+                .cloned()
+                .ok_or_else(|| DomainError::BadRequest("El archivo esta vacio".to_string()))?;
+
+            let range = workbook
+                .worksheet_range(&sheet_name)
+                .map_err(|e| DomainError::BadRequest(format!("No se pudo leer hoja: {e}")))?;
+
+            let mut rows = range.rows();
+            let header = rows
+                .next()
+                .ok_or_else(|| DomainError::BadRequest("El archivo no contiene filas".to_string()))?;
+
+            let headers: Vec<String> = header.iter().map(cell_to_string).map(normalize_header).collect();
+            let rows = rows
+                .map(|row| row.iter().map(cell_to_string).collect::<Vec<String>>())
+                .collect::<Vec<Vec<String>>>();
+
+            Ok(ParsedScheduleTable { headers, rows })
+        }
+        Err(workbook_error) => parse_uploaded_csv(file).map_err(|csv_error| {
+            DomainError::BadRequest(format!(
+                "No se pudo leer el archivo como Excel ni CSV: {workbook_error}; {csv_error}"
+            ))
+        }),
+    }
+}
+
+fn parse_uploaded_csv(file: &[u8]) -> Result<ParsedScheduleTable, String> {
+    let mut reader = ReaderBuilder::new()
+        .flexible(true)
+        .from_reader(Cursor::new(file));
+
+    let headers_record = reader
+        .headers()
+        .map_err(|e| format!("No se pudo leer encabezados CSV: {e}"))?
+        .clone();
+
+    let headers = headers_record
+        .iter()
+        .map(|header| normalize_header(header.to_string()))
+        .collect::<Vec<String>>();
+
+    let mut rows = Vec::new();
+    for record in reader.records() {
+        let record = record.map_err(|e| format!("No se pudo leer una fila CSV: {e}"))?;
+        rows.push(record.iter().map(|cell| cell.trim().to_string()).collect());
+    }
+
+    Ok(ParsedScheduleTable { headers, rows })
+}
+
+fn normalize_header(value: String) -> String {
+    value.trim_start_matches('\u{feff}').trim().to_string()
 }
 
 fn cell_to_string(cell: &Data) -> String {

@@ -11,6 +11,7 @@ async-graphql-axum = "7"
 async-trait = "0.1"
 axum = { version = "0.8", features = ["multipart", "macros"] }
 calamine = "0.34"
+csv = "1"
 chrono = { version = "0.4", features = ["serde"] }
 dotenvy = "0.15"
 jsonwebtoken = { version = "10", features = ["rust_crypto"] }

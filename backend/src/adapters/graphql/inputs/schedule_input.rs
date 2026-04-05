@@ -2,7 +2,7 @@ use async_graphql::InputObject;
 
 #[derive(InputObject, Clone)]
 pub struct CreateScheduleSlotInput {
-    pub teacher_id: i32,
+    pub teacher_id: Option<i32>,
     pub subject_id: i32,
     pub classroom_id: i32,
     pub group_id: i32,
@@ -16,7 +16,7 @@ pub struct CreateScheduleSlotInput {
 #[derive(InputObject, Clone)]
 pub struct UpdateScheduleSlotInput {
     pub id: i32,
-    pub teacher_id: Option<i32>,
+    pub teacher_id: Option<Option<i32>>,
     pub subject_id: Option<i32>,
     pub classroom_id: Option<i32>,
     pub group_id: Option<i32>,

@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
@@ -161,7 +161,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                             </p>
                             <p>
                                 <ion-icon name="person-outline" class="schedule-inline-icon"></ion-icon>
-                                {{ s.teacher.name }}
+                                {{ s.teacher?.name || 'Sin docente' }}
                             </p>
                             <p>
                                 <ion-icon name="layers-outline" class="schedule-inline-icon"></ion-icon>
@@ -235,8 +235,9 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                             </ion-item>
 
                             <ion-item fill="outline" class="schedule-form-item">
-                                <ion-label position="stacked">Docente *</ion-label>
+                                <ion-label position="stacked">Docente (opcional)</ion-label>
                                 <ion-select [(ngModel)]="formData.teacherId" interface="popover" placeholder="Seleccionar docente" [compareWith]="compareIds">
+                                    <ion-select-option [value]="null">Sin docente</ion-select-option>
                                     <ion-select-option *ngFor="let t of teachers" [value]="t.id">{{ t.name }}</ion-select-option>
                                 </ion-select>
                                 <ion-icon name="person-outline" slot="start"></ion-icon>
@@ -323,6 +324,7 @@ export class SchedulesComponent implements OnInit
     private queryCache = inject(RealtimeQueryCacheService);
     private realtimeSync = inject(RealtimeSyncService);
     private destroyRef = inject(DestroyRef);
+    private cdr = inject(ChangeDetectorRef);
 
     schedules: any[] = [];
     teachers: any[] = [];
@@ -422,25 +424,45 @@ export class SchedulesComponent implements OnInit
         }
     }
 
-    LoadCatalogs()
+    LoadCatalogs(forceRefresh = false)
     {
-        this.queryCache.load(
-            'admin-schedules-catalogs',
-            [RealtimeScope.Teachers, RealtimeScope.Subjects, RealtimeScope.Classrooms, RealtimeScope.Groups],
-            () => this.apollo.query<any>({ query: GET_CATALOGS, fetchPolicy: 'network-only' }).pipe(
-                map((res: any) => ({
-                    teachers: res?.data?.GetTeachers ?? [],
-                    subjects: res?.data?.GetSubjects ?? [],
-                    classrooms: res?.data?.GetClassrooms ?? [],
-                    groups: res?.data?.GetGroups ?? [],
-                }))
+        const request$ = forceRefresh
+            ? this.queryCache.refresh(
+                'admin-schedules-catalogs',
+                [RealtimeScope.Teachers, RealtimeScope.Subjects, RealtimeScope.Classrooms, RealtimeScope.Groups],
+                () => this.apollo.query<any>({ query: GET_CATALOGS, fetchPolicy: 'network-only' }).pipe(
+                    map((res: any) => ({
+                        teachers: res?.data?.GetTeachers ?? [],
+                        subjects: res?.data?.GetSubjects ?? [],
+                        classrooms: res?.data?.GetClassrooms ?? [],
+                        groups: res?.data?.GetGroups ?? [],
+                    }))
+                )
             )
-        ).subscribe({
+            : this.queryCache.load(
+                'admin-schedules-catalogs',
+                [RealtimeScope.Teachers, RealtimeScope.Subjects, RealtimeScope.Classrooms, RealtimeScope.Groups],
+                () => this.apollo.query<any>({ query: GET_CATALOGS, fetchPolicy: 'network-only' }).pipe(
+                    map((res: any) => ({
+                        teachers: res?.data?.GetTeachers ?? [],
+                        subjects: res?.data?.GetSubjects ?? [],
+                        classrooms: res?.data?.GetClassrooms ?? [],
+                        groups: res?.data?.GetGroups ?? [],
+                    }))
+                )
+            );
+
+        request$.subscribe({
             next: (catalogs: any) => {
                 this.teachers = catalogs.teachers;
                 this.subjects = catalogs.subjects;
                 this.classrooms = catalogs.classrooms;
                 this.groups = catalogs.groups;
+                this.cdr.detectChanges();
+            },
+            error: (err) => {
+                console.error('Error loading schedule catalogs:', err);
+                this.cdr.detectChanges();
             }
         });
     }
@@ -456,12 +478,12 @@ export class SchedulesComponent implements OnInit
         ])
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe(() => {
-                this.LoadCatalogs();
-                this.LoadSchedules();
+                this.LoadCatalogs(true);
+                this.LoadSchedules(true);
             });
     }
 
-    LoadSchedules()
+    LoadSchedules(forceRefresh = false)
     {
         const filter: any = {};
         if (this.filterGroupId) filter.groupId = this.filterGroupId;
@@ -476,24 +498,44 @@ export class SchedulesComponent implements OnInit
             this.filterDay ?? 'all'
         ].join(':');
 
-        this.queryCache.load(
-            scheduleKey,
-            [RealtimeScope.Schedules, RealtimeScope.Teachers, RealtimeScope.Subjects, RealtimeScope.Classrooms, RealtimeScope.Groups],
-            () => this.apollo.query<any>({
-                query: GET_SCHEDULES,
-                variables: { filter: Object.keys(filter).length > 0 ? filter : null },
-                fetchPolicy: 'network-only'
-            }).pipe(
-                map((res: any) => res?.data?.GetSchedules ?? [])
+        if (forceRefresh) {
+            this.isSchedulesLoaded = false;
+        }
+
+        const request$ = forceRefresh
+            ? this.queryCache.refresh(
+                scheduleKey,
+                [RealtimeScope.Schedules, RealtimeScope.Teachers, RealtimeScope.Subjects, RealtimeScope.Classrooms, RealtimeScope.Groups],
+                () => this.apollo.query<any>({
+                    query: GET_SCHEDULES,
+                    variables: { filter: Object.keys(filter).length > 0 ? filter : null },
+                    fetchPolicy: 'network-only'
+                }).pipe(
+                    map((res: any) => res?.data?.GetSchedules ?? [])
+                )
             )
-        ).subscribe({
+            : this.queryCache.load(
+                scheduleKey,
+                [RealtimeScope.Schedules, RealtimeScope.Teachers, RealtimeScope.Subjects, RealtimeScope.Classrooms, RealtimeScope.Groups],
+                () => this.apollo.query<any>({
+                    query: GET_SCHEDULES,
+                    variables: { filter: Object.keys(filter).length > 0 ? filter : null },
+                    fetchPolicy: 'network-only'
+                }).pipe(
+                    map((res: any) => res?.data?.GetSchedules ?? [])
+                )
+            );
+
+        request$.subscribe({
             next: (schedules: any[]) => {
                 this.schedules = schedules;
                 this.isSchedulesLoaded = true;
+                this.cdr.detectChanges();
             },
             error: (err) => {
                 console.error('Error loading schedules:', err);
                 this.isSchedulesLoaded = true;
+                this.cdr.detectChanges();
             }
         });
     }
@@ -505,7 +547,7 @@ export class SchedulesComponent implements OnInit
             this.formData = {
                 groupId: Number(item.group.id),
                 subjectId: Number(item.subject.id),
-                teacherId: Number(item.teacher.id),
+                teacherId: item.teacher ? Number(item.teacher.id) : null,
                 classroomId: Number(item.classroom.id),
                 dayOfWeek: item.dayOfWeek,
                 startTime: item.startTime.substring(0, 5),
@@ -547,7 +589,6 @@ export class SchedulesComponent implements OnInit
         return !!(
             this.formData.groupId &&
             this.formData.subjectId &&
-            this.formData.teacherId &&
             this.formData.classroomId &&
             this.formData.dayOfWeek &&
             this.formData.startTime &&
@@ -583,7 +624,7 @@ export class SchedulesComponent implements OnInit
         const input: any = {
             groupId: Number(this.formData.groupId),
             subjectId: Number(this.formData.subjectId),
-            teacherId: Number(this.formData.teacherId),
+            teacherId: this.formData.teacherId === null ? null : Number(this.formData.teacherId),
             classroomId: Number(this.formData.classroomId),
             dayOfWeek: Number(this.formData.dayOfWeek),
             startTime: this.formData.startTime,
@@ -600,7 +641,7 @@ export class SchedulesComponent implements OnInit
             }).subscribe({
                 next: () => {
                     this.CloseModal();
-                    this.LoadSchedules();
+                    this.LoadSchedules(true);
                     this.showToast('Horario actualizado correctamente');
                 },
                 error: (err) => this.showToast('Error: ' + err.message, 'danger')
@@ -612,7 +653,7 @@ export class SchedulesComponent implements OnInit
             }).subscribe({
                 next: () => {
                     this.CloseModal();
-                    this.LoadSchedules();
+                    this.LoadSchedules(true);
                     this.showToast('Horario creado correctamente');
                 },
                 error: (err) => this.showToast('Error: ' + err.message, 'danger')
@@ -629,7 +670,7 @@ export class SchedulesComponent implements OnInit
             variables: { id: Number(id) }
         }).subscribe({
             next: () => {
-                this.schedules = this.schedules.filter(s => Number(s.id) !== Number(id));
+                this.LoadSchedules(true);
                 this.showToast('Horario eliminado');
             },
             error: (err) => this.showToast('Error al eliminar: ' + err.message, 'danger')
@@ -652,13 +693,7 @@ export class SchedulesComponent implements OnInit
                 // Remover de lista de actualizando
                 this.updatingIds = this.updatingIds.filter(id => id !== scheduleId);
 
-                // Actualizar el elemento en la lista
-                this.schedules = this.schedules.map(s => {
-                    if (Number(s.id) === scheduleId) {
-                        return { ...s, isPublished: newValue };
-                    }
-                    return s;
-                });
+                this.LoadSchedules(true);
 
                 this.showToast(
                     newValue ? 'Horario publicado' : 'Horario ocultado',
@@ -682,12 +717,7 @@ export class SchedulesComponent implements OnInit
             variables: { ids, isPublished: true }
         }).subscribe({
             next: () => {
-                this.schedules = this.schedules.map(s => {
-                    if (ids.includes(Number(s.id))) {
-                        return { ...s, isPublished: true };
-                    }
-                    return s;
-                });
+                this.LoadSchedules(true);
                 this.selectedIds.clear();
                 this.showToast(`${ids.length} horario(s) publicado(s)`);
             },

@@ -28,7 +28,7 @@ interface ScheduleSlot {
     startTime: string;
     endTime: string;
     subgroup: string | null;
-    teacher: { id: number; name: string };
+    teacher?: { id: number; name: string } | null;
     subject: { id: number; name: string };
     classroom: { id: number; name: string };
     group: { id: number; name: string; parent?: { id: number; name: string } };
@@ -107,7 +107,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                                                 <p>{{ s.startTime.substring(0,5) }} - {{ s.endTime.substring(0,5) }}</p>
                                                 <p>
                                                     <ion-icon name="person-outline" class="kiosk-inline-icon"></ion-icon>
-                                                    {{ s.teacher.name }}
+                                                    {{ s.teacher?.name || 'Sin docente' }}
                                                 </p>
                                                 <p>
                                                     <ion-icon name="business-outline" class="kiosk-inline-icon"></ion-icon>
@@ -149,7 +149,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                                                                     {{ s.startTime.substring(0,5) }} - {{ s.endTime.substring(0,5) }}
                                                                 </ion-chip>
                                                             </p>
-                                                            <p>{{ s.teacher.name }} · {{ s.classroom.name }}</p>
+                                                            <p>{{ s.teacher?.name || 'Sin docente' }} · {{ s.classroom.name }}</p>
                                                         </ion-label>
                                                         <ion-chip *ngIf="s.subgroup" slot="end" color="tertiary">{{ s.subgroup }}</ion-chip>
                                                     </ion-item>

@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
@@ -150,6 +150,7 @@ export class ClassroomsComponent implements OnInit
     private queryCache = inject(RealtimeQueryCacheService);
     private realtimeSync = inject(RealtimeSyncService);
     private destroyRef = inject(DestroyRef);
+    private cdr = inject(ChangeDetectorRef);
 
     classrooms: any[] = [];
     buildings: any[] = [];
@@ -171,35 +172,66 @@ export class ClassroomsComponent implements OnInit
         this.LoadClassrooms();
     }
 
-    LoadBuildings() {
-        this.queryCache.load(
-            'admin-classrooms-buildings',
-            [RealtimeScope.Buildings],
-            () => this.apollo.query<any>({ query: GET_BUILDINGS, fetchPolicy: 'network-only' }).pipe(
-                map((res: any) => res?.data?.GetBuildings ?? [])
+    LoadBuildings(forceRefresh = false) {
+        const request$ = forceRefresh
+            ? this.queryCache.refresh(
+                'admin-classrooms-buildings',
+                [RealtimeScope.Buildings],
+                () => this.apollo.query<any>({ query: GET_BUILDINGS, fetchPolicy: 'network-only' }).pipe(
+                    map((res: any) => res?.data?.GetBuildings ?? [])
+                )
             )
-        ).subscribe({
+            : this.queryCache.load(
+                'admin-classrooms-buildings',
+                [RealtimeScope.Buildings],
+                () => this.apollo.query<any>({ query: GET_BUILDINGS, fetchPolicy: 'network-only' }).pipe(
+                    map((res: any) => res?.data?.GetBuildings ?? [])
+                )
+            );
+
+        request$.subscribe({
             next: (buildings: any[]) => {
                 this.buildings = buildings;
+                this.cdr.detectChanges();
+            },
+            error: (err) => {
+                console.error('Error loading classroom buildings:', err);
+                this.cdr.detectChanges();
             }
         });
     }
 
-    LoadClassrooms() {
-        this.queryCache.load(
-            'admin-classrooms-list',
-            [RealtimeScope.Classrooms],
-            () => this.apollo.query<any>({ query: GET_CLASSROOMS, fetchPolicy: 'network-only' }).pipe(
-                map((res: any) => res?.data?.GetClassrooms ?? [])
+    LoadClassrooms(forceRefresh = false) {
+        if (forceRefresh) {
+            this.isClassroomsLoaded = false;
+        }
+
+        const request$ = forceRefresh
+            ? this.queryCache.refresh(
+                'admin-classrooms-list',
+                [RealtimeScope.Classrooms],
+                () => this.apollo.query<any>({ query: GET_CLASSROOMS, fetchPolicy: 'network-only' }).pipe(
+                    map((res: any) => res?.data?.GetClassrooms ?? [])
+                )
             )
-        ).subscribe({
+            : this.queryCache.load(
+                'admin-classrooms-list',
+                [RealtimeScope.Classrooms],
+                () => this.apollo.query<any>({ query: GET_CLASSROOMS, fetchPolicy: 'network-only' }).pipe(
+                    map((res: any) => res?.data?.GetClassrooms ?? [])
+                )
+            );
+
+        request$.subscribe({
             next: (classrooms: any[]) => {
                 this.classrooms = classrooms;
                 this.isClassroomsLoaded = true;
+                this.cdr.detectChanges();
             },
             error: (err) => {
                 console.error('Error loading classrooms:', err);
                 this.isClassroomsLoaded = true;
+                this.cdr.detectChanges();
             }
         });
     }
@@ -249,8 +281,8 @@ export class ClassroomsComponent implements OnInit
                 next: () => { 
                     this.isModalOpen = false;
                     this.editingItem = null;
-                    this.LoadBuildings();
-                    this.LoadClassrooms();
+                    this.LoadBuildings(true);
+                    this.LoadClassrooms(true);
                 },
                 error: (err) => {
                     console.error('Update classroom error:', err);
@@ -264,8 +296,8 @@ export class ClassroomsComponent implements OnInit
             }).subscribe({
                 next: () => {
                     this.isModalOpen = false;
-                    this.LoadBuildings();
-                    this.LoadClassrooms();
+                    this.LoadBuildings(true);
+                    this.LoadClassrooms(true);
                 },
                 error: (err) => {
                     console.error('Create classroom error:', err);
@@ -282,8 +314,8 @@ export class ClassroomsComponent implements OnInit
             variables: { id: parseInt(id.toString()) },
         }).subscribe({
             next: () => {
-                this.LoadBuildings();
-                this.LoadClassrooms();
+                this.LoadBuildings(true);
+                this.LoadClassrooms(true);
             },
             error: (err) => alert('Error al eliminar: ' + err.message)
         });

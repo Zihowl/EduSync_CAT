@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
@@ -139,6 +139,7 @@ export class BuildingsComponent implements OnInit
     private queryCache = inject(RealtimeQueryCacheService);
     private realtimeSync = inject(RealtimeSyncService);
     private destroyRef = inject(DestroyRef);
+    private cdr = inject(ChangeDetectorRef);
 
     buildings: any[] = [];
     isBuildingsLoaded = false;
@@ -158,21 +159,33 @@ export class BuildingsComponent implements OnInit
         this.LoadBuildings();
     }
 
-    LoadBuildings() {
-        this.queryCache.load(
-            'admin-buildings',
-            [RealtimeScope.Buildings],
-            () => this.apollo.query<any>({ query: GET_BUILDINGS, fetchPolicy: 'network-only' }).pipe(
-                map((res: any) => res?.data?.GetBuildings ?? [])
+    LoadBuildings(forceRefresh = false) {
+        const request$ = forceRefresh
+            ? this.queryCache.refresh(
+                'admin-buildings',
+                [RealtimeScope.Buildings],
+                () => this.apollo.query<any>({ query: GET_BUILDINGS, fetchPolicy: 'network-only' }).pipe(
+                    map((res: any) => res?.data?.GetBuildings ?? [])
+                )
             )
-        ).subscribe({
+            : this.queryCache.load(
+                'admin-buildings',
+                [RealtimeScope.Buildings],
+                () => this.apollo.query<any>({ query: GET_BUILDINGS, fetchPolicy: 'network-only' }).pipe(
+                    map((res: any) => res?.data?.GetBuildings ?? [])
+                )
+            );
+
+        request$.subscribe({
             next: (buildings: any[]) => {
                 this.buildings = buildings;
                 this.isBuildingsLoaded = true;
+                this.cdr.detectChanges();
             },
-            error: (err) => {
+            error: (err: any) => {
                 console.error('Error loading buildings:', err);
                 this.isBuildingsLoaded = true;
+                this.cdr.detectChanges();
             }
         });
     }
@@ -214,7 +227,7 @@ export class BuildingsComponent implements OnInit
                 next: () => { 
                     this.isModalOpen = false;
                     this.editingItem = null;
-                    this.LoadBuildings();
+                    this.LoadBuildings(true);
                 },
                 error: (err) => {
                     console.error('Update building error:', err);
@@ -228,7 +241,7 @@ export class BuildingsComponent implements OnInit
             }).subscribe({
                 next: () => {
                     this.isModalOpen = false;
-                    this.LoadBuildings();
+                    this.LoadBuildings(true);
                 },
                 error: (err) => {
                     console.error('Create building error:', err);
@@ -244,7 +257,7 @@ export class BuildingsComponent implements OnInit
             mutation: REMOVE_BUILDING,
             variables: { id: parseInt(id.toString()) },
         }).subscribe({
-            next: () => this.LoadBuildings(),
+            next: () => this.LoadBuildings(true),
             error: (err) => alert('Error al eliminar: ' + err.message)
         });
     }

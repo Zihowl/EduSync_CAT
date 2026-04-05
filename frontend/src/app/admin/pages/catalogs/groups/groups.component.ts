@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
@@ -156,6 +156,7 @@ export class GroupsComponent implements OnInit
     private queryCache = inject(RealtimeQueryCacheService);
     private realtimeSync = inject(RealtimeSyncService);
     private destroyRef = inject(DestroyRef);
+    private cdr = inject(ChangeDetectorRef);
 
     allGroups: any[] = [];
     groups: any[] = [];
@@ -200,7 +201,7 @@ export class GroupsComponent implements OnInit
     private buildHierarchy(groups: any[], allowedIds?: Set<number>): any[] {
         const roots = groups
             .filter(g => !g.parent && (!allowedIds || allowedIds.has(Number(g.id))))
-            .sort((a, b) => a.name.localeCompare(b.name));
+            .sort((a, b) => String(a?.name ?? '').localeCompare(String(b?.name ?? '')));
 
         const childrenByParent = new Map<number, any[]>();
         groups.forEach(g => {
@@ -216,7 +217,7 @@ export class GroupsComponent implements OnInit
         roots.forEach(root => {
             result.push(root);
             const children = childrenByParent.get(Number(root.id)) ?? [];
-            children.sort((a, b) => a.name.localeCompare(b.name));
+            children.sort((a, b) => String(a?.name ?? '').localeCompare(String(b?.name ?? '')));
             result.push(...children);
         });
 
@@ -232,28 +233,52 @@ export class GroupsComponent implements OnInit
         this.LoadGroups();
     }
 
-    LoadGroups() {
-        this.queryCache.load(
-            'admin-groups',
-            [RealtimeScope.Groups],
-            () => this.apollo.query<any>({ query: GET_GROUPS, fetchPolicy: 'network-only' }).pipe(
-                map((res: any) => res?.data?.GetGroups ?? [])
+    LoadGroups(forceRefresh = false) {
+        if (forceRefresh) {
+            this.isGroupsLoaded = false;
+        }
+
+        const request$ = forceRefresh
+            ? this.queryCache.refresh(
+                'admin-groups',
+                [RealtimeScope.Groups],
+                () => this.apollo.query<any>({ query: GET_GROUPS, fetchPolicy: 'network-only' }).pipe(
+                    map((res: any) => res?.data?.GetGroups ?? [])
+                )
             )
-        ).subscribe({
+            : this.queryCache.load(
+                'admin-groups',
+                [RealtimeScope.Groups],
+                () => this.apollo.query<any>({ query: GET_GROUPS, fetchPolicy: 'network-only' }).pipe(
+                    map((res: any) => res?.data?.GetGroups ?? [])
+                )
+            );
+
+        request$.subscribe({
             next: (rawGroups: any[]) => {
                 console.log('GetGroups response:', rawGroups);
                 console.log('Raw groups:', rawGroups);
-                const normalized = this.normalizeParents(rawGroups);
-                this.allGroups = [...normalized];
-                this.groups = this.buildHierarchy(this.allGroups);
-                this.ApplyFilter();
-                console.log('Filtered groups:', this.filteredGroups);
-                this.isGroupsLoaded = true;
+                try {
+                    const normalized = this.normalizeParents(rawGroups ?? []);
+                    this.allGroups = [...normalized];
+                    this.groups = this.buildHierarchy(this.allGroups);
+                    this.ApplyFilter();
+                    console.log('Filtered groups:', this.filteredGroups);
+                } catch (err) {
+                    console.error('Error processing groups:', err);
+                    this.allGroups = [];
+                    this.groups = [];
+                    this.filteredGroups = [];
+                } finally {
+                    this.isGroupsLoaded = true;
+                    this.cdr.detectChanges();
+                }
             },
             error: (err) => {
                 console.error('Error loading groups:', err);
                 alert('Error al cargar grupos: ' + err.message);
                 this.isGroupsLoaded = true;
+                this.cdr.detectChanges();
             }
         });
     }
@@ -261,7 +286,7 @@ export class GroupsComponent implements OnInit
     private setupRealtimeRefresh(): void {
         this.realtimeSync.watchScopes([RealtimeScope.Groups])
             .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe(() => this.LoadGroups());
+            .subscribe(() => this.LoadGroups(true));
     }
 
     Filter(event: any) {
@@ -276,8 +301,8 @@ export class GroupsComponent implements OnInit
         }
 
         const matched = this.allGroups.filter(g => 
-            g.name.toLowerCase().includes(this.searchQuery) || 
-            (g.parent && g.parent.name.toLowerCase().includes(this.searchQuery))
+            String(g?.name ?? '').toLowerCase().includes(this.searchQuery) || 
+            (g.parent && String(g.parent.name ?? '').toLowerCase().includes(this.searchQuery))
         );
 
         const allowedIds = new Set<number>();
@@ -359,7 +384,7 @@ export class GroupsComponent implements OnInit
                 next: () => { 
                     this.isModalOpen = false;
                     this.editingItem = null;
-                    this.LoadGroups();
+                    this.LoadGroups(true);
                 },
                 error: (err) => {
                     console.error('Update group error:', err);
@@ -373,7 +398,7 @@ export class GroupsComponent implements OnInit
             }).subscribe({
                 next: () => {
                     this.isModalOpen = false;
-                    this.LoadGroups();
+                    this.LoadGroups(true);
                 },
                 error: (err) => {
                     console.error('Create group error:', err);
@@ -395,7 +420,7 @@ export class GroupsComponent implements OnInit
             mutation: REMOVE_GROUP,
             variables: { id: Number(group.id) },
         }).subscribe({
-            next: () => this.LoadGroups(),
+            next: () => this.LoadGroups(true),
             error: (err) => {
                 console.error('Delete group error:', err);
                 alert('Error al eliminar: ' + err.message);

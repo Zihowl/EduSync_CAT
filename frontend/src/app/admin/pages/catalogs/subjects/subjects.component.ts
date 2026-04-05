@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
@@ -139,6 +139,7 @@ export class SubjectsComponent implements OnInit
     private queryCache = inject(RealtimeQueryCacheService);
     private realtimeSync = inject(RealtimeSyncService);
     private destroyRef = inject(DestroyRef);
+    private cdr = inject(ChangeDetectorRef);
 
     subjects: any[] = [];
     isSubjectsLoaded = false;
@@ -158,21 +159,37 @@ export class SubjectsComponent implements OnInit
         this.LoadSubjects();
     }
 
-    LoadSubjects() {
-        this.queryCache.load(
-            'admin-subjects',
-            [RealtimeScope.Subjects],
-            () => this.apollo.query<any>({ query: GET_SUBJECTS, fetchPolicy: 'network-only' }).pipe(
-                map((res: any) => res?.data?.GetSubjects ?? [])
+    LoadSubjects(forceRefresh = false) {
+        if (forceRefresh) {
+            this.isSubjectsLoaded = false;
+        }
+
+        const request$ = forceRefresh
+            ? this.queryCache.refresh(
+                'admin-subjects',
+                [RealtimeScope.Subjects],
+                () => this.apollo.query<any>({ query: GET_SUBJECTS, fetchPolicy: 'network-only' }).pipe(
+                    map((res: any) => res?.data?.GetSubjects ?? [])
+                )
             )
-        ).subscribe({
+            : this.queryCache.load(
+                'admin-subjects',
+                [RealtimeScope.Subjects],
+                () => this.apollo.query<any>({ query: GET_SUBJECTS, fetchPolicy: 'network-only' }).pipe(
+                    map((res: any) => res?.data?.GetSubjects ?? [])
+                )
+            );
+
+        request$.subscribe({
             next: (res: any) => {
                 this.subjects = res ?? [];
                 this.isSubjectsLoaded = true;
+                this.cdr.detectChanges();
             },
             error: (err) => {
                 console.error('Error loading subjects:', err);
                 this.isSubjectsLoaded = true;
+                this.cdr.detectChanges();
             }
         });
     }
@@ -214,7 +231,7 @@ export class SubjectsComponent implements OnInit
                 next: () => { 
                     this.isModalOpen = false;
                     this.editingItem = null;
-                    this.LoadSubjects();
+                    this.LoadSubjects(true);
                 },
                 error: (err) => {
                     console.error('Update subject error:', err);
@@ -228,7 +245,7 @@ export class SubjectsComponent implements OnInit
             }).subscribe({
                 next: () => {
                     this.isModalOpen = false;
-                    this.LoadSubjects();
+                    this.LoadSubjects(true);
                 },
                 error: (err) => {
                     console.error('Create subject error:', err);
@@ -244,7 +261,7 @@ export class SubjectsComponent implements OnInit
             mutation: REMOVE_SUBJECT,
             variables: { id: parseInt(id.toString()) },
         }).subscribe({
-            next: () => this.LoadSubjects(),
+            next: () => this.LoadSubjects(true),
             error: (err) => alert('Error al eliminar: ' + err.message)
         });
     }

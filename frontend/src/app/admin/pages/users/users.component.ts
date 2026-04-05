@@ -208,15 +208,25 @@ export class UsersComponent implements OnInit
         this.LoadAllowedDomains();
     }
 
-    LoadAllowedDomains()
+    LoadAllowedDomains(forceRefresh: boolean = false)
     {
-        this.queryCache.load(
-            'admin-users-allowed-domains',
-            [RealtimeScope.AllowedDomains],
-            () => this.apollo.query<any>({ query: GET_ALLOWED_DOMAINS, fetchPolicy: 'network-only' }).pipe(
-                map((res: any) => (res?.data?.GetAllowedDomains ?? []).map((d: any) => d.domain.toLowerCase()))
+        const loadAllowedDomains = () => this.apollo.query<any>({ query: GET_ALLOWED_DOMAINS, fetchPolicy: 'network-only' }).pipe(
+            map((res: any) => (res?.data?.GetAllowedDomains ?? []).map((d: any) => d.domain.toLowerCase()))
+        );
+
+        const request$ = forceRefresh
+            ? this.queryCache.refresh(
+                'admin-users-allowed-domains',
+                [RealtimeScope.AllowedDomains],
+                loadAllowedDomains
             )
-        )
+            : this.queryCache.load(
+                'admin-users-allowed-domains',
+                [RealtimeScope.AllowedDomains],
+                loadAllowedDomains
+            );
+
+        request$
         .subscribe({
             next: (domains: string[]) => {
                 this.runInZone(() => {
@@ -261,15 +271,25 @@ export class UsersComponent implements OnInit
         return this.allowedDomains.includes(d);
     }
 
-    LoadUsers() 
+    LoadUsers(forceRefresh: boolean = false) 
     {
-        this.queryCache.load(
-            'admin-users-list',
-            [RealtimeScope.Users],
-            () => this.apollo.query<any>({ query: GET_USERS, fetchPolicy: 'network-only' }).pipe(
-                map((res: any) => res?.data?.GetUsers ?? [])
+        const loadUsers = () => this.apollo.query<any>({ query: GET_USERS, fetchPolicy: 'network-only' }).pipe(
+            map((res: any) => res?.data?.GetUsers ?? [])
+        );
+
+        const request$ = forceRefresh
+            ? this.queryCache.refresh(
+                'admin-users-list',
+                [RealtimeScope.Users],
+                loadUsers
             )
-        )
+            : this.queryCache.load(
+                'admin-users-list',
+                [RealtimeScope.Users],
+                loadUsers
+            );
+
+        request$
         .subscribe({
             next: (users: any[]) => {
                 this.runInZone(() => {
@@ -319,7 +339,7 @@ export class UsersComponent implements OnInit
                     this.cdr.detectChanges();
                     alert('Usuario creado con éxito.\nRevisa la consola del servidor para ver la contraseña temporal.');
                 });
-                this.LoadUsers();
+                this.LoadUsers(true);
             },
           error: (err) =>
           {
@@ -338,8 +358,8 @@ export class UsersComponent implements OnInit
         this.realtimeSync.watchScopes([RealtimeScope.Users, RealtimeScope.AllowedDomains])
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe(() => {
-                this.LoadUsers();
-                this.LoadAllowedDomains();
+                this.LoadUsers(true);
+                this.LoadAllowedDomains(true);
             });
     }
 }
