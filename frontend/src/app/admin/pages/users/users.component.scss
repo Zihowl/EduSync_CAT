@@ -1,10 +1,11 @@
 .users-content {
+    --background: transparent;
     display: flex;
     justify-content: center;
+    align-items: flex-start;
 }
 
 .users-container {
-    max-width: 800px;
     width: 100%;
 }
 
@@ -42,11 +43,6 @@
 
 .ion-margin-top {
     margin-top: 0.5rem !important;
-}
-
-.user-item {
-    --padding-top: 0.9rem;
-    --padding-bottom: 0.9rem;
 }
 
 .user-info {
@@ -89,10 +85,6 @@
 }
 
 @media (max-width: 640px) {
-    .user-item {
-        align-items: flex-start;
-    }
-
     .user-actions {
         width: 100%;
         min-width: 0;

@@ -126,7 +126,7 @@ const GET_ALLOWED_DOMAINS = gql`
         <app-page-header title="Gestión de Usuarios" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content class="ion-padding users-content">
-            <div class="users-container app-page-shell">
+            <div class="users-container app-page-shell app-page-shell--medium">
                 <app-data-list
                     [items]="users"
                     [loaded]="isUsersLoaded"
@@ -134,7 +134,7 @@ const GET_ALLOWED_DOMAINS = gql`
                     emptyTitle="No hay usuarios registrados"
                     emptySubtitle="Usa el botón + para crear el primer administrador.">
                     <ng-template #itemTemplate let-u>
-                        <ion-item class="user-item">
+                        <ion-item lines="none">
                             <ion-icon slot="start" name="shield-checkmark-outline" color="medium"></ion-icon>
                             <ion-label class="user-info">
                                 <h2>{{ u.fullName || 'Sin Nombre' }}</h2>
@@ -344,7 +344,7 @@ export class UsersComponent implements OnInit
     LoadUsers(forceRefresh: boolean = false) 
     {
         const loadUsers = () => this.apollo.query<any>({ query: GET_USERS, fetchPolicy: 'network-only' }).pipe(
-            map((res: any) => res?.data?.GetUsers ?? [])
+            map((res: any) => this.sortUsers(res?.data?.GetUsers ?? []))
         );
 
         const request$ = forceRefresh
@@ -376,6 +376,21 @@ export class UsersComponent implements OnInit
                 });
             }
         });
+    }
+
+    private sortUsers(users: AdminUserRow[]): AdminUserRow[] {
+        return [...users]
+            .map((user, index) => ({ user, index }))
+            .sort((left, right) => {
+                const rolePriority = Number(right.user.role === 'SUPER_ADMIN') - Number(left.user.role === 'SUPER_ADMIN');
+
+                if (rolePriority !== 0) {
+                    return rolePriority;
+                }
+
+                return left.index - right.index;
+            })
+            .map(({ user }) => user);
     }
 
     SetOpen(isOpen: boolean) 
