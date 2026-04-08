@@ -22,7 +22,7 @@ import {
     IonFabButton
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { personAddOutline, shieldCheckmarkOutline, lockClosedOutline, lockOpenOutline, refreshOutline } from 'ionicons/icons';
+import { personAddOutline, personOutline, shieldCheckmarkOutline, lockClosedOutline, lockOpenOutline, refreshOutline } from 'ionicons/icons';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../shared/components/data-list/data-list.component';
 import { DestroyRef } from '@angular/core';
@@ -134,15 +134,19 @@ const GET_ALLOWED_DOMAINS = gql`
                     emptyTitle="No hay usuarios registrados"
                     emptySubtitle="Usa el botón + para crear el primer administrador.">
                     <ng-template #itemTemplate let-u>
-                        <ion-item lines="none">
-                            <ion-icon slot="start" name="shield-checkmark-outline" color="medium"></ion-icon>
+                        <ion-item class="user-item" lines="none">
+                            <ion-icon
+                                slot="start"
+                                class="user-role-icon"
+                                [class.user-role-icon--super]="u.role === 'SUPER_ADMIN'"
+                                [class.user-role-icon--admin]="u.role !== 'SUPER_ADMIN'"
+                                [name]="u.role === 'SUPER_ADMIN' ? 'shield-checkmark-outline' : 'person-outline'"
+                                [attr.aria-label]="u.role === 'SUPER_ADMIN' ? 'Súper administrador' : 'Administrador de horarios'">
+                            </ion-icon>
                             <ion-label class="user-info">
                                 <h2>{{ u.fullName || 'Sin Nombre' }}</h2>
                                 <p>{{ u.email }}</p>
                                 <div class="user-badges">
-                                    <ion-badge [color]="u.role === 'SUPER_ADMIN' ? 'primary' : 'tertiary'">
-                                        {{ u.role === 'SUPER_ADMIN' ? 'Súper Administrador' : 'Administrador de Horarios' }}
-                                    </ion-badge>
                                     <ion-badge [color]="u.isActive ? 'success' : 'medium'">
                                         {{ u.isActive ? 'Activo' : 'Inhabilitado' }}
                                     </ion-badge>
@@ -268,7 +272,7 @@ export class UsersComponent implements OnInit
 
     ngOnInit() 
     {
-        addIcons({ personAddOutline, shieldCheckmarkOutline, lockClosedOutline, lockOpenOutline, refreshOutline });
+        addIcons({ personAddOutline, personOutline, shieldCheckmarkOutline, lockClosedOutline, lockOpenOutline, refreshOutline });
         this.setupRealtimeRefresh();
     }
 

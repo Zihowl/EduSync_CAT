@@ -45,43 +45,84 @@
     margin-top: 0.5rem !important;
 }
 
+.user-item {
+    --padding-start: 0.8rem;
+    --padding-end: 0.6rem;
+    --min-height: 2.7rem;
+    align-items: center;
+}
+
+.user-role-icon {
+    margin-inline-end: 1.0rem;
+    font-size: 2.0rem;
+    flex-shrink: 0;
+}
+
+.user-role-icon--super {
+    color: var(--ion-color-primary);
+}
+
+.user-role-icon--admin {
+    color: var(--ion-color-tertiary);
+}
+
 .user-info {
     display: flex;
     flex-direction: column;
-    gap: 0.55rem;
+    gap: 0.35rem;
 }
 
 .user-info h2 {
     margin: 0;
-    font-size: 1rem;
+    font-size: 0.92rem;
     font-weight: 700;
-    color: var(--ion-color-light-shade);
+    color: #ffffff;
+    line-height: 1.2;
 }
 
 .user-info p {
     margin: 0;
     color: var(--ion-color-medium);
-    font-size: 0.9rem;
+    font-size: 0.8rem;
+    line-height: 1.25;
     word-break: break-word;
 }
 
 .user-badges {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: 0.3rem;
+}
+
+.user-badges ion-badge {
+    --padding-start: 0.45rem;
+    --padding-end: 0.45rem;
+    --padding-top: 0.18rem;
+    --padding-bottom: 0.18rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.01em;
 }
 
 .user-actions {
     display: flex;
     flex-direction: column;
-    gap: 0.45rem;
+    gap: 0.3rem;
     align-items: stretch;
-    min-width: 11rem;
-    margin-left: 0.75rem;
+    min-width: 9.5rem;
+    margin-left: 0.6rem;
 }
 
 .user-actions ion-button {
-    min-height: 2.2rem;
+    min-height: 2rem;
+    --padding-start: 0.65rem;
+    --padding-end: 0.65rem;
+    --padding-top: 0.45rem;
+    --padding-bottom: 0.45rem;
+    font-size: 0.75rem;
+}
+
+.user-actions ion-button ion-icon {
+    font-size: 0.8rem;
 }
 
 @media (max-width: 640px) {
@@ -89,7 +130,7 @@
         width: 100%;
         min-width: 0;
         margin-left: 0;
-        margin-top: 0.75rem;
+        margin-top: 0.6rem;
     }
 }
 
