@@ -63,7 +63,7 @@
 }
 
 .user-role-icon--admin {
-    color: var(--ion-color-tertiary);
+    color: var(--ion-color-success);
 }
 
 .user-info {
@@ -99,8 +99,29 @@
     --padding-end: 0.45rem;
     --padding-top: 0.18rem;
     --padding-bottom: 0.18rem;
+    --border-radius: 999px;
+    --border-style: solid;
+    --border-width: 1px;
     font-size: 0.68rem;
     letter-spacing: 0.01em;
+}
+
+.user-badges ion-badge[color='success'] {
+    --background: rgba(var(--ion-color-success-rgb), 0.14);
+    --color: rgba(236, 253, 245, 0.96);
+    --border-color: rgba(var(--ion-color-success-rgb), 0.22);
+}
+
+.user-badges ion-badge[color='medium'] {
+    --background: rgba(var(--ion-color-medium-rgb), 0.12);
+    --color: rgba(226, 232, 240, 0.92);
+    --border-color: rgba(var(--ion-color-medium-rgb), 0.2);
+}
+
+.user-badges ion-badge[color='warning'] {
+    --background: rgba(var(--ion-color-warning-rgb), 0.15);
+    --color: rgba(255, 251, 235, 0.96);
+    --border-color: rgba(var(--ion-color-warning-rgb), 0.22);
 }
 
 .user-actions {
@@ -114,11 +135,44 @@
 
 .user-actions ion-button {
     min-height: 2rem;
+    --background: rgba(255, 255, 255, 0.05);
+    --background-hover: rgba(255, 255, 255, 0.1);
+    --background-activated: rgba(255, 255, 255, 0.14);
+    --border-style: solid;
+    --border-width: 1px;
+    --border-color: rgba(255, 255, 255, 0.16);
+    --border-radius: 10px;
+    --box-shadow: none;
+    --color: rgba(248, 250, 252, 0.94);
     --padding-start: 0.65rem;
     --padding-end: 0.65rem;
     --padding-top: 0.45rem;
     --padding-bottom: 0.45rem;
     font-size: 0.75rem;
+}
+
+.user-actions ion-button[color='success'] {
+    --background: rgba(var(--ion-color-success-rgb), 0.12);
+    --background-hover: rgba(var(--ion-color-success-rgb), 0.18);
+    --background-activated: rgba(var(--ion-color-success-rgb), 0.24);
+    --border-color: rgba(var(--ion-color-success-rgb), 0.28);
+    --color: rgba(236, 253, 245, 0.96);
+}
+
+.user-actions ion-button[color='warning'] {
+    --background: rgba(var(--ion-color-warning-rgb), 0.12);
+    --background-hover: rgba(var(--ion-color-warning-rgb), 0.18);
+    --background-activated: rgba(var(--ion-color-warning-rgb), 0.24);
+    --border-color: rgba(var(--ion-color-warning-rgb), 0.28);
+    --color: rgba(255, 251, 235, 0.96);
+}
+
+.user-actions ion-button[color='medium'] {
+    --background: rgba(var(--ion-color-medium-rgb), 0.11);
+    --background-hover: rgba(var(--ion-color-medium-rgb), 0.16);
+    --background-activated: rgba(var(--ion-color-medium-rgb), 0.22);
+    --border-color: rgba(var(--ion-color-medium-rgb), 0.22);
+    --color: rgba(226, 232, 240, 0.92);
 }
 
 .user-actions ion-button ion-icon {
