@@ -1,5 +1,7 @@
 CREATE TABLE IF NOT EXISTS subjects (
     id SERIAL PRIMARY KEY,
     code VARCHAR(100) NOT NULL UNIQUE,
-    name VARCHAR(255) NOT NULL
+    name VARCHAR(255) NOT NULL,
+    grade INTEGER NULL,
+    division VARCHAR(255) NULL
 );

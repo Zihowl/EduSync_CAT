@@ -7,6 +7,8 @@ pub struct SubjectType {
     pub id: ID,
     pub code: String,
     pub name: String,
+    pub grade: Option<i32>,
+    pub division: Option<String>,
 }
 
 impl From<Subject> for SubjectType {
@@ -15,6 +17,8 @@ impl From<Subject> for SubjectType {
             id: ID(v.id.to_string()),
             code: v.code,
             name: v.name,
+            grade: v.grade,
+            division: v.division,
         }
     }
 }

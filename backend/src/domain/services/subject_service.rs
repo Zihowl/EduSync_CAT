@@ -6,6 +6,10 @@ use crate::domain::{
     ports::subject_repository::SubjectRepository,
 };
 
+fn normalize_optional_text(value: Option<&str>) -> Option<&str> {
+    value.map(str::trim).filter(|text| !text.is_empty())
+}
+
 #[derive(Clone)]
 pub struct SubjectService {
     repo: Arc<dyn SubjectRepository>,
@@ -24,15 +28,32 @@ impl SubjectService {
         self.repo.find_by_id(id).await
     }
 
-    pub async fn create(&self, code: &str, name: &str) -> Result<Subject, DomainError> {
+    pub async fn create(
+        &self,
+        code: &str,
+        name: &str,
+        grade: Option<i32>,
+        division: Option<&str>,
+    ) -> Result<Subject, DomainError> {
         if self.repo.find_by_code(code).await?.is_some() {
             return Err(DomainError::Conflict("El codigo de materia ya existe".to_string()));
         }
-        self.repo.create(code, name).await
+        self.repo
+            .create(code, name, grade, normalize_optional_text(division))
+            .await
     }
 
-    pub async fn update(&self, id: i32, code: Option<&str>, name: Option<&str>) -> Result<Subject, DomainError> {
-        self.repo.update(id, code, name).await
+    pub async fn update(
+        &self,
+        id: i32,
+        code: Option<&str>,
+        name: Option<&str>,
+        grade: Option<i32>,
+        division: Option<&str>,
+    ) -> Result<Subject, DomainError> {
+        self.repo
+            .update(id, code, name, grade, normalize_optional_text(division))
+            .await
     }
 
     pub async fn delete(&self, id: i32) -> Result<bool, DomainError> {

@@ -113,7 +113,12 @@ impl ExcelService {
             ));
         }
 
-        let subject = match self.subject_service.create(&clave_materia, if materia.is_empty() { "Materia Sin Nombre" } else { &materia }).await {
+        let subject = match self.subject_service.create(
+            &clave_materia,
+            if materia.is_empty() { "Materia Sin Nombre" } else { &materia },
+            None,
+            None,
+        ).await {
             Ok(v) => v,
             Err(DomainError::Conflict(_)) => self.subject_service.find_all().await?.into_iter().find(|s| s.code == clave_materia).ok_or_else(|| DomainError::NotFound("Materia no encontrada".to_string()))?,
             Err(e) => return Err(e),

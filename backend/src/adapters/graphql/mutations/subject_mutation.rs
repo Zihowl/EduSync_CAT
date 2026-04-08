@@ -24,7 +24,7 @@ impl SubjectMutation {
     async fn create_subject(&self, ctx: &Context<'_>, input: CreateSubjectInput) -> async_graphql::Result<SubjectType> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<SubjectService>>()?;
-        let result = svc.create(&input.code, &input.name)
+        let result = svc.create(&input.code, &input.name, input.grade, input.division.as_deref())
             .await
             .map(Into::into)
             .map_err(to_gql_error);
@@ -38,7 +38,13 @@ impl SubjectMutation {
     async fn update_subject(&self, ctx: &Context<'_>, input: UpdateSubjectInput) -> async_graphql::Result<SubjectType> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<SubjectService>>()?;
-        let result = svc.update(input.id, input.code.as_deref(), input.name.as_deref())
+        let result = svc.update(
+            input.id,
+            input.code.as_deref(),
+            input.name.as_deref(),
+            input.grade,
+            input.division.as_deref(),
+        )
             .await
             .map(Into::into)
             .map_err(to_gql_error);
