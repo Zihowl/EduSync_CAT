@@ -1,5 +1,5 @@
 .notification-card {
-  position: absolute;
+  position: fixed;
   top: 1rem;
   left: 0;
   right: 0;
@@ -7,7 +7,7 @@
   width: min(calc(100% - 2rem), 400px);
   box-sizing: border-box;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
-  z-index: 100;
+  z-index: 100000;
 
   /* CSS Variables for theming */
   border: 1px solid var(--card-border);
@@ -37,6 +37,14 @@
   --card-text: #e0f2fe;
   --card-icon: #38bdf8;
   --card-subtext: #e0f2fe;
+}
+
+.notification-card--success {
+  --card-border: rgba(34, 197, 94, 0.35);
+  --card-bg: rgba(34, 197, 94, 0.18);
+  --card-text: #ecfdf5;
+  --card-icon: #4ade80;
+  --card-subtext: #dcfce7;
 }
 
 
@@ -71,6 +79,21 @@
   margin: 0;
   font-size: 0.85rem;
   color: var(--card-subtext);
+  white-space: pre-line;
+}
+
+.notification-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.notification-card-close-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.25rem;
 }
 
 .notification-card-close {

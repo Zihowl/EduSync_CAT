@@ -9,7 +9,7 @@ import {
     IonSelectOption, IonButton, IonIcon, IonFab, IonFabButton,
     IonModal, IonInput, IonFooter, IonChip,
     IonSegment, IonSegmentButton, IonBadge, IonToggle, IonNote,
-    IonDatetime, IonDatetimeButton, IonPopover, ToastController
+    IonDatetime, IonDatetimeButton, IonPopover
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
@@ -21,6 +21,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../shared/components/data-list/data-list.component';
+import { NotificationService } from '../../../shared/services/notification.service';
 import { RealtimeQueryCacheService } from '../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realtime-sync.service';
 
@@ -320,7 +321,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
 export class SchedulesComponent implements OnInit
 {
     private apollo = inject(Apollo);
-    private toastController = inject(ToastController);
+    private notifications = inject(NotificationService);
     private queryCache = inject(RealtimeQueryCacheService);
     private realtimeSync = inject(RealtimeSyncService);
     private destroyRef = inject(DestroyRef);
@@ -606,15 +607,19 @@ export class SchedulesComponent implements OnInit
         return true;
     }
 
-    async showToast(message: string, color: 'success' | 'warning' | 'danger' = 'success')
+    showToast(message: string, color: 'success' | 'warning' | 'danger' = 'success')
     {
-        const toast = await this.toastController.create({
-            message,
-            duration: 2000,
-            position: 'bottom',
-            color
-        });
-        await toast.present();
+        if (color === 'danger') {
+            this.notifications.danger(message, 'Error');
+            return;
+        }
+
+        if (color === 'warning') {
+            this.notifications.warning(message, 'Atención');
+            return;
+        }
+
+        this.notifications.success(message, 'Horario');
     }
 
     Save()
@@ -661,9 +666,16 @@ export class SchedulesComponent implements OnInit
         }
     }
 
-    Remove(id: number)
+    async Remove(id: number)
     {
-        if (!confirm('¿Eliminar este horario?')) return;
+        if (!(await this.notifications.confirm({
+            title: 'Eliminar horario',
+            message: '¿Eliminar este horario?',
+            confirmText: 'Eliminar',
+            cancelText: 'Cancelar',
+            confirmColor: 'danger',
+            styleType: 'danger'
+        }))) return;
 
         this.apollo.mutate({
             mutation: REMOVE_SCHEDULE,

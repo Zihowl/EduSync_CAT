@@ -70,6 +70,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+    min-width: 0;
 }
 
 .user-info h2 {
@@ -179,12 +180,126 @@
     font-size: 0.8rem;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+    .user-role-icon {
+        margin-inline-end: 0.8rem;
+        font-size: 1.7rem;
+    }
+
+    .user-info {
+        gap: 0.3rem;
+    }
+
+    .user-info h2 {
+        font-size: 0.88rem;
+    }
+
+    .user-info p {
+        font-size: 0.77rem;
+    }
+
+    .user-badges {
+        gap: 0.25rem;
+    }
+
+    .user-badges ion-badge {
+        font-size: 0.64rem;
+    }
+
     .user-actions {
+        min-width: 8.5rem;
+        margin-left: 0.5rem;
+    }
+
+    .user-actions ion-button {
+        font-size: 0.72rem;
+    }
+
+    .user-actions ion-button ion-icon {
+        font-size: 0.76rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .user-item {
+        --padding-start: 0.7rem;
+        --padding-end: 0.5rem;
+        --min-height: 0;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        row-gap: 0.45rem;
+    }
+
+    .user-role-icon {
+        margin-inline-end: 0.6rem;
+        margin-top: 0.1rem;
+        font-size: 1.55rem;
+    }
+
+    .user-info {
+        gap: 0.25rem;
+        flex: 1 1 0;
+    }
+
+    .user-info h2 {
+        font-size: 0.86rem;
+    }
+
+    .user-info p {
+        font-size: 0.74rem;
+    }
+
+    .user-badges {
+        gap: 0.22rem;
+    }
+
+    .user-badges ion-badge {
+        font-size: 0.61rem;
+    }
+
+    .user-actions {
+        flex: 1 1 100%;
         width: 100%;
         min-width: 0;
         margin-left: 0;
-        margin-top: 0.6rem;
+        margin-top: 0.1rem;
+    }
+
+    .user-actions ion-button {
+        width: 100%;
+        --padding-start: 0.6rem;
+        --padding-end: 0.6rem;
+    }
+}
+
+@media (max-width: 420px) {
+    .user-actions {
+        margin-top: 0.05rem;
+    }
+
+    .user-role-icon {
+        margin-inline-end: 0.5rem;
+        font-size: 1.4rem;
+    }
+
+    .user-info h2 {
+        font-size: 0.84rem;
+    }
+
+    .user-info p {
+        font-size: 0.72rem;
+    }
+
+    .user-badges ion-badge {
+        font-size: 0.58rem;
+    }
+
+    .user-actions ion-button {
+        font-size: 0.7rem;
+    }
+
+    .user-actions ion-button ion-icon {
+        font-size: 0.72rem;
     }
 }
 

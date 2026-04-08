@@ -14,6 +14,7 @@ import { personOutline, trashOutline, addOutline, pencilOutline, mailOutline, ca
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
+import { NotificationService } from '../../../../shared/services/notification.service';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
@@ -156,6 +157,7 @@ export class TeachersComponent implements OnInit
     private realtimeSync = inject(RealtimeSyncService);
     private destroyRef = inject(DestroyRef);
     private cdr = inject(ChangeDetectorRef);
+    private notifications = inject(NotificationService);
 
     teachers: any[] = [];
     filteredTeachers: any[] = [];
@@ -215,6 +217,7 @@ export class TeachersComponent implements OnInit
             },
             error: (err) => {
                 console.error('Error loading teachers:', err);
+                this.notifications.danger('Error al cargar docentes: ' + err.message);
                 this.isTeachersLoaded = true;
                 this.cdr.detectChanges();
             }
@@ -274,7 +277,7 @@ export class TeachersComponent implements OnInit
         if (this.formData.email) {
             const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
             if (!emailRegex.test(this.formData.email)) {
-                alert('Por favor, ingresa un correo electrónico válido (ej. usuario@dominio.com)');
+                this.notifications.warning('Por favor, ingresa un correo electrónico válido (ej. usuario@dominio.com)', 'Correo inválido');
                 return;
             }
         }
@@ -302,7 +305,7 @@ export class TeachersComponent implements OnInit
                 },
                 error: (err) => {
                     console.error('Update teacher error:', err);
-                    alert('Error al actualizar: ' + (err.message || 'Error desconocido'));
+                    this.notifications.danger('Error al actualizar: ' + (err.message || 'Error desconocido'));
                 }
             });
         } else {
@@ -316,20 +319,27 @@ export class TeachersComponent implements OnInit
                 },
                 error: (err) => {
                     console.error('Create teacher error:', err);
-                    alert('Error al crear: ' + (err.message || 'Error desconocido'));
+                    this.notifications.danger('Error al crear: ' + (err.message || 'Error desconocido'));
                 }
             });
         }
     }
 
-    RemoveTeacher(id: number) {
-        if (!confirm('¿Seguro que desea eliminar este docente?')) return;
+    async RemoveTeacher(id: number) {
+        if (!(await this.notifications.confirm({
+            title: 'Eliminar docente',
+            message: '¿Seguro que desea eliminar este docente?',
+            confirmText: 'Eliminar',
+            cancelText: 'Cancelar',
+            confirmColor: 'danger',
+            styleType: 'danger'
+        }))) return;
         this.apollo.mutate({
             mutation: REMOVE_TEACHER,
             variables: { id: parseInt(id.toString()) },
         }).subscribe({
             next: () => this.LoadTeachers(true),
-            error: (err) => alert('Error al eliminar: ' + err.message)
+            error: (err) => this.notifications.danger('Error al eliminar: ' + err.message)
         });
     }
 }

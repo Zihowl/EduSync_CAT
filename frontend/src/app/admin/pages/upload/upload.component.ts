@@ -2,14 +2,14 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { NotificationService } from '../../../shared/services/notification.service';
 import {
     IonContent,
   IonCard,
   IonCardContent,
   IonButton,
   IonIcon,
-  IonProgressBar,
-  IonAlert
+    IonProgressBar
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { cloudUploadOutline, documentTextOutline } from 'ionicons/icons';
@@ -26,7 +26,6 @@ import { environment } from '../../../../environments/environment';
         IonButton,
         IonIcon,
         IonProgressBar,
-        IonAlert,
         PageHeaderComponent
     ],
     template: `
@@ -75,24 +74,6 @@ import { environment } from '../../../../environments/environment';
                         </div>
 
                         <ion-progress-bar *ngIf="isLoading" type="indeterminate" class="upload-progress"></ion-progress-bar>
-
-                        <ion-alert
-                            [isOpen]="!!uploadResult?.success && uploadResult.processed > 0"
-                            header="Carga Exitosa"
-                            [message]="'Se procesaron ' + uploadResult?.processed + ' registros correctamente.'"
-                            [buttons]="['OK']"
-                            (didDismiss)="uploadResult = null">
-                        </ion-alert>
-
-                        <ion-alert
-                            *ngIf="uploadResult && uploadResult.errors.length > 0"
-                            [isOpen]="!!uploadResult && uploadResult.errors.length > 0"
-                            header="Errores en la Carga"
-                            [subHeader]="'Se procesaron ' + uploadResult.processed + ' registros, pero hubo errores en algunas filas (total: ' + uploadResult.errors.length + ')'"
-                            [message]="uploadResult.errors.slice(0, 5).join(' | ')"
-                            [buttons]="['OK']"
-                            (didDismiss)="uploadResult = null">
-                        </ion-alert>
                     </ion-card-content>
                 </ion-card>
             </div>
@@ -103,6 +84,7 @@ import { environment } from '../../../../environments/environment';
 export class UploadComponent implements OnInit
 {
     private http = inject(HttpClient);
+    private notifications = inject(NotificationService);
     private apiUrl = environment.apiUrl;
     private fileInputElement: HTMLInputElement | null = null;
 
@@ -149,12 +131,27 @@ export class UploadComponent implements OnInit
             {
                     this.isLoading = false;
                     this.uploadResult = res.details;
+                    const details = res.details ?? res;
+                    const processed = Number(details?.processed ?? 0);
+                    const errors = Array.isArray(details?.errors) ? details.errors : [];
+
+                    if (errors.length > 0) {
+                        const preview = errors.slice(0, 5).join('\n');
+                        const title = processed > 0 ? 'Carga parcial' : 'Error en la carga';
+                        const message = processed > 0
+                            ? `Se procesaron ${processed} registros, pero hubo errores en algunas filas (total: ${errors.length}).\n${preview}`
+                            : `Hubo errores en la carga (total: ${errors.length}).\n${preview}`;
+
+                        this.notifications.warning(message, title, { autoDismissMs: 0 });
+                    } else {
+                        this.notifications.success(`Se procesaron ${processed} registros correctamente.`, 'Carga exitosa');
+                    }
                     this.clearSelection();
                 },
             error: (err) =>
             {
                     this.isLoading = false;
-                    alert('Error en la carga: ' + (err.error?.message || err.message));
+                    this.notifications.danger('Error en la carga: ' + (err.error?.message || err.message), 'Error en la carga', { autoDismissMs: 0 });
                 }
             });
     }

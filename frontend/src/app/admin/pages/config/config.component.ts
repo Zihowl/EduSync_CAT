@@ -9,6 +9,7 @@ import { addIcons } from 'ionicons';
 import { alertCircleOutline, calendarOutline, checkmarkOutline, globeOutline, informationCircleOutline, trashOutline } from 'ionicons/icons';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../shared/components/data-list/data-list.component';
+import { NotificationService } from '../../../shared/services/notification.service';
 import { DestroyRef } from '@angular/core';
 import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realtime-sync.service';
 import { RealtimeQueryCacheService } from '../../../core/services/realtime-query-cache.service';
@@ -239,6 +240,7 @@ export class ConfigComponent implements OnInit
     private destroyRef = inject(DestroyRef);
     private realtimeSync = inject(RealtimeSyncService);
     private queryCache = inject(RealtimeQueryCacheService);
+    private notifications = inject(NotificationService);
     private readonly userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     domains: any[] = [];
@@ -436,7 +438,7 @@ export class ConfigComponent implements OnInit
                     this.isDomainsLoaded = true;
                     this.cdr.detectChanges();
                 });
-                alert('Error al agregar dominio: ' + err.message)
+                this.notifications.danger('Error al agregar dominio: ' + err.message);
             }
         });
     }
@@ -471,7 +473,7 @@ export class ConfigComponent implements OnInit
                     if (updatedSchoolYear) {
                         this.currentSchoolYear = updatedSchoolYear;
                     }
-                    alert('Ciclo en curso actualizado: ' + startDate + ' - ' + endDate);
+                    this.notifications.success('Ciclo en curso actualizado: ' + startDate + ' - ' + endDate, 'Ciclo escolar actualizado');
                     this.newSchoolYearStart = '';
                     this.newSchoolYearEnd = '';
                     this.cdr.detectChanges();
@@ -485,17 +487,23 @@ export class ConfigComponent implements OnInit
                     this.newSchoolYearEnd = endDate;
                     this.cdr.detectChanges();
                 });
-                alert('Error al guardar ciclo escolar: ' + err.message)
+                this.notifications.danger('Error al guardar ciclo escolar: ' + err.message);
             }
         });
     }
 
-    RemoveDomain(id: number) 
+    async RemoveDomain(id: number)
     {
-      if (!confirm('¿Eliminar este dominio?'))
-      {
-        return;
-      }
+        if (!(await this.notifications.confirm({
+            title: 'Eliminar dominio',
+            message: '¿Eliminar este dominio?',
+            confirmText: 'Eliminar',
+            cancelText: 'Cancelar',
+            confirmColor: 'danger',
+            styleType: 'danger'
+        }))) {
+            return;
+        }
 
         const domainId = Number(id);
         const previousDomains = [...this.domains];
@@ -521,7 +529,7 @@ export class ConfigComponent implements OnInit
                     this.isDomainsLoaded = true;
                     this.cdr.detectChanges();
                 });
-                alert('Error al eliminar dominio: ' + err.message)
+                this.notifications.danger('Error al eliminar dominio: ' + err.message);
             }
         });
     }

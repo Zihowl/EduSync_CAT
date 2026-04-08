@@ -14,6 +14,7 @@ import { trashOutline, addOutline, pencilOutline, businessOutline } from 'ionico
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
+import { NotificationService } from '../../../../shared/services/notification.service';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
@@ -140,6 +141,7 @@ export class BuildingsComponent implements OnInit
     private realtimeSync = inject(RealtimeSyncService);
     private destroyRef = inject(DestroyRef);
     private cdr = inject(ChangeDetectorRef);
+    private notifications = inject(NotificationService);
 
     buildings: any[] = [];
     isBuildingsLoaded = false;
@@ -184,6 +186,7 @@ export class BuildingsComponent implements OnInit
             },
             error: (err: any) => {
                 console.error('Error loading buildings:', err);
+                this.notifications.danger('Error al cargar edificios: ' + err.message);
                 this.isBuildingsLoaded = true;
                 this.cdr.detectChanges();
             }
@@ -231,7 +234,7 @@ export class BuildingsComponent implements OnInit
                 },
                 error: (err) => {
                     console.error('Update building error:', err);
-                    alert('Error al actualizar: ' + err.message);
+                    this.notifications.danger('Error al actualizar: ' + err.message);
                 }
             });
         } else {
@@ -245,20 +248,27 @@ export class BuildingsComponent implements OnInit
                 },
                 error: (err) => {
                     console.error('Create building error:', err);
-                    alert('Error al crear: ' + err.message);
+                    this.notifications.danger('Error al crear: ' + err.message);
                 }
             });
         }
     }
 
-    RemoveBuilding(id: number) {
-        if (!confirm('¿Seguro que desea eliminar este edificio? Esta acción no se puede deshacer.')) return;
+    async RemoveBuilding(id: number) {
+        if (!(await this.notifications.confirm({
+            title: 'Eliminar edificio',
+            message: '¿Seguro que desea eliminar este edificio? Esta acción no se puede deshacer.',
+            confirmText: 'Eliminar',
+            cancelText: 'Cancelar',
+            confirmColor: 'danger',
+            styleType: 'danger'
+        }))) return;
         this.apollo.mutate({
             mutation: REMOVE_BUILDING,
             variables: { id: parseInt(id.toString()) },
         }).subscribe({
             next: () => this.LoadBuildings(true),
-            error: (err) => alert('Error al eliminar: ' + err.message)
+            error: (err) => this.notifications.danger('Error al eliminar: ' + err.message)
         });
     }
 }

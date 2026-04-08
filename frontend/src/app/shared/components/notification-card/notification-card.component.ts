@@ -2,7 +2,9 @@ import { Component, Input, Output, EventEmitter, SimpleChanges } from '@angular/
 import { CommonModule } from '@angular/common';
 import { IonCard, IonCardContent, IonIcon, IonButton } from '@ionic/angular/standalone';
 
-export const DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS = 6000;
+import { DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS, NotificationCardAction, NotificationCardStyle } from './notification-card.types';
+
+export { DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS } from './notification-card.types';
 
 @Component({
   selector: 'app-notification-card',
@@ -15,25 +17,31 @@ export class NotificationCardComponent {
   @Input() title = 'Error';
   @Input() message = '';
   @Input() icon: string = 'alert-circle';
-  @Input() styleType: 'danger' | 'warning' | 'info' = 'danger';
+  @Input() styleType: NotificationCardStyle = 'danger';
   @Input() autoDismissMs: number = DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS;
   @Input() countdown?: number;
   @Input() showClose = true;
+  @Input() actions: NotificationCardAction[] = [];
   @Output() closed = new EventEmitter<void>();
+  @Output() actionSelected = new EventEmitter<NotificationCardAction>();
 
-  private autoDismissTimer: any;
+  private autoDismissTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit() {
     this.setupAutoDismiss();
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    // Auto-dismiss timer should reset sólo cuando cambia el contenido principal
+    // Auto-dismiss timer should reset when the visible content changes.
     if (
       changes['title'] ||
       changes['message'] ||
       changes['icon'] ||
-      changes['autoDismissMs']
+      changes['styleType'] ||
+      changes['autoDismissMs'] ||
+      changes['countdown'] ||
+      changes['showClose'] ||
+      changes['actions']
     ) {
       this.setupAutoDismiss();
     }
@@ -62,5 +70,10 @@ export class NotificationCardComponent {
   close(): void {
     this.clearAutoDismiss();
     this.closed.emit();
+  }
+
+  triggerAction(action: NotificationCardAction): void {
+    this.clearAutoDismiss();
+    this.actionSelected.emit(action);
   }
 }

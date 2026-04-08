@@ -14,6 +14,7 @@ import { trashOutline, addOutline, pencilOutline, peopleOutline, personOutline, 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
+import { NotificationService } from '../../../../shared/services/notification.service';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
@@ -157,6 +158,7 @@ export class GroupsComponent implements OnInit
     private realtimeSync = inject(RealtimeSyncService);
     private destroyRef = inject(DestroyRef);
     private cdr = inject(ChangeDetectorRef);
+    private notifications = inject(NotificationService);
 
     allGroups: any[] = [];
     groups: any[] = [];
@@ -276,7 +278,7 @@ export class GroupsComponent implements OnInit
             },
             error: (err) => {
                 console.error('Error loading groups:', err);
-                alert('Error al cargar grupos: ' + err.message);
+                this.notifications.danger('Error al cargar grupos: ' + err.message);
                 this.isGroupsLoaded = true;
                 this.cdr.detectChanges();
             }
@@ -388,7 +390,7 @@ export class GroupsComponent implements OnInit
                 },
                 error: (err) => {
                     console.error('Update group error:', err);
-                    alert('Error al actualizar: ' + err.message);
+                    this.notifications.danger('Error al actualizar: ' + err.message);
                 }
             });
         } else {
@@ -402,19 +404,26 @@ export class GroupsComponent implements OnInit
                 },
                 error: (err) => {
                     console.error('Create group error:', err);
-                    alert('Error al crear: ' + err.message);
+                    this.notifications.danger('Error al crear: ' + err.message);
                 }
             });
         }
     }
 
-    RemoveGroup(group: any) {
+    async RemoveGroup(group: any) {
         if (this.hasChildren(group.id)) {
-            alert('No se puede eliminar un grupo que contiene subgrupos. Elimina primero los subgrupos.');
+            this.notifications.warning('No se puede eliminar un grupo que contiene subgrupos. Elimina primero los subgrupos.', 'No se puede eliminar');
             return;
         }
 
-        if (!confirm(`¿Seguro que desea eliminar el grupo "${group.parent ? group.parent.name + '-' : ''}${group.name}"?`)) return;
+        if (!(await this.notifications.confirm({
+            title: 'Eliminar grupo',
+            message: `¿Seguro que desea eliminar el grupo "${group.parent ? group.parent.name + '-' : ''}${group.name}"?`,
+            confirmText: 'Eliminar',
+            cancelText: 'Cancelar',
+            confirmColor: 'danger',
+            styleType: 'danger'
+        }))) return;
         
         this.apollo.mutate({
             mutation: REMOVE_GROUP,
@@ -423,7 +432,7 @@ export class GroupsComponent implements OnInit
             next: () => this.LoadGroups(true),
             error: (err) => {
                 console.error('Delete group error:', err);
-                alert('Error al eliminar: ' + err.message);
+                this.notifications.danger('Error al eliminar: ' + err.message);
             }
         });
     }

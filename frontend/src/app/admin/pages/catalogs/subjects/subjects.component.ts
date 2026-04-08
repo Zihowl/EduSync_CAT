@@ -14,6 +14,7 @@ import { trashOutline, addOutline, pencilOutline, bookOutline } from 'ionicons/i
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
+import { NotificationService } from '../../../../shared/services/notification.service';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
@@ -140,6 +141,7 @@ export class SubjectsComponent implements OnInit
     private realtimeSync = inject(RealtimeSyncService);
     private destroyRef = inject(DestroyRef);
     private cdr = inject(ChangeDetectorRef);
+    private notifications = inject(NotificationService);
 
     subjects: any[] = [];
     isSubjectsLoaded = false;
@@ -188,6 +190,7 @@ export class SubjectsComponent implements OnInit
             },
             error: (err) => {
                 console.error('Error loading subjects:', err);
+                this.notifications.danger('Error al cargar materias: ' + err.message);
                 this.isSubjectsLoaded = true;
                 this.cdr.detectChanges();
             }
@@ -235,7 +238,7 @@ export class SubjectsComponent implements OnInit
                 },
                 error: (err) => {
                     console.error('Update subject error:', err);
-                    alert('Error al actualizar: ' + err.message);
+                    this.notifications.danger('Error al actualizar: ' + err.message);
                 }
             });
         } else {
@@ -249,20 +252,27 @@ export class SubjectsComponent implements OnInit
                 },
                 error: (err) => {
                     console.error('Create subject error:', err);
-                    alert('Error al crear: ' + err.message);
+                    this.notifications.danger('Error al crear: ' + err.message);
                 }
             });
         }
     }
 
-    RemoveSubject(id: number) {
-        if (!confirm('¿Seguro que desea eliminar esta materia? Esta acción no se puede deshacer.')) return;
+    async RemoveSubject(id: number) {
+        if (!(await this.notifications.confirm({
+            title: 'Eliminar materia',
+            message: '¿Seguro que desea eliminar esta materia? Esta acción no se puede deshacer.',
+            confirmText: 'Eliminar',
+            cancelText: 'Cancelar',
+            confirmColor: 'danger',
+            styleType: 'danger'
+        }))) return;
         this.apollo.mutate({
             mutation: REMOVE_SUBJECT,
             variables: { id: parseInt(id.toString()) },
         }).subscribe({
             next: () => this.LoadSubjects(true),
-            error: (err) => alert('Error al eliminar: ' + err.message)
+            error: (err) => this.notifications.danger('Error al eliminar: ' + err.message)
         });
     }
 }

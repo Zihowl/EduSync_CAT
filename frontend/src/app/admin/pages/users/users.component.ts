@@ -25,6 +25,7 @@ import { addIcons } from 'ionicons';
 import { personAddOutline, personOutline, shieldCheckmarkOutline, lockClosedOutline, lockOpenOutline, refreshOutline } from 'ionicons/icons';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../shared/components/data-list/data-list.component';
+import { NotificationService } from '../../../shared/services/notification.service';
 import { DestroyRef } from '@angular/core';
 import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realtime-sync.service';
 import { RealtimeQueryCacheService } from '../../../core/services/realtime-query-cache.service';
@@ -252,6 +253,7 @@ export class UsersComponent implements OnInit
     private destroyRef = inject(DestroyRef);
     private realtimeSync = inject(RealtimeSyncService);
     private queryCache = inject(RealtimeQueryCacheService);
+    private notifications = inject(NotificationService);
 
     users: AdminUserRow[] = [];
     allowedDomains: string[] = [];
@@ -411,13 +413,20 @@ export class UsersComponent implements OnInit
         return user.role === 'ADMIN_HORARIOS';
     }
 
-    toggleAdminAccess(user: AdminUserRow): void {
+    async toggleAdminAccess(user: AdminUserRow): Promise<void> {
         const actionLabel = user.isActive ? 'Inhabilitar' : 'Reactivar';
         const message = user.isActive
             ? `¿Inhabilitar el acceso de ${user.fullName || user.email}?`
             : `¿Reactivar el acceso de ${user.fullName || user.email}?`;
 
-        if (!confirm(message)) {
+        if (!(await this.notifications.confirm({
+            title: 'Confirmar cambio de acceso',
+            message,
+            confirmText: actionLabel,
+            cancelText: 'Cancelar',
+            confirmColor: user.isActive ? 'warning' : 'success',
+            styleType: 'warning'
+        }))) {
             return;
         }
 
@@ -428,8 +437,15 @@ export class UsersComponent implements OnInit
         );
     }
 
-    forceResetAdminPassword(user: AdminUserRow): void {
-        if (!confirm(`¿Forzar el restablecimiento de contraseña de ${user.fullName || user.email}?`)) {
+    async forceResetAdminPassword(user: AdminUserRow): Promise<void> {
+        if (!(await this.notifications.confirm({
+            title: 'Confirmar restablecimiento',
+            message: `¿Forzar el restablecimiento de contraseña de ${user.fullName || user.email}?`,
+            confirmText: 'Restablecer',
+            cancelText: 'Cancelar',
+            confirmColor: 'danger',
+            styleType: 'danger'
+        }))) {
             return;
         }
 
@@ -451,7 +467,7 @@ export class UsersComponent implements OnInit
                 this.runInZone(() => {
                     this.isActionLoading = false;
                     this.cdr.detectChanges();
-                    alert(successMessage);
+                    this.notifications.success(successMessage);
                 });
                 this.LoadUsers(true);
             },
@@ -460,7 +476,7 @@ export class UsersComponent implements OnInit
                     this.isActionLoading = false;
                     this.cdr.detectChanges();
                     const msg = err.graphQLErrors?.[0]?.message || err.message;
-                    alert('Error: ' + msg);
+                    this.notifications.danger('Error: ' + msg);
                 });
             }
         });
@@ -485,7 +501,10 @@ export class UsersComponent implements OnInit
                     this.isLoading = false;
                     this.SetOpen(false);
                     this.cdr.detectChanges();
-                    alert('Usuario creado con éxito.\nRevisa la consola del servidor para ver la contraseña temporal.');
+                    this.notifications.success(
+                        'Usuario creado con éxito.\nRevisa la consola del servidor para ver la contraseña temporal.',
+                        'Usuario creado'
+                    );
                 });
                 this.LoadUsers(true);
             },
@@ -495,7 +514,7 @@ export class UsersComponent implements OnInit
                     this.isLoading = false;
                     this.cdr.detectChanges();
                     const msg = err.graphQLErrors?.[0]?.message || err.message;
-                    alert('Error: ' + msg);
+                    this.notifications.danger('Error: ' + msg);
                 });
             }
         });
