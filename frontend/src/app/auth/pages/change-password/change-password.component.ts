@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectorRef, signal, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, Validators, NonNullableFormBuilder, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -6,7 +6,7 @@ import { IonContent, IonButton } from '@ionic/angular/standalone';
 import { Subject, takeUntil } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth.service';
-import { NotificationCardComponent, DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS } from '../../../shared/components/notification-card/notification-card.component';
+import { NotificationService } from '../../../shared/services/notification.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { AuthCardComponent } from '../../components/auth-card/auth-card.component';
 
@@ -28,7 +28,6 @@ type ChangePasswordForm = {
     ReactiveFormsModule,
     IonContent,
     IonButton,
-    NotificationCardComponent,
     PageHeaderComponent,
     AuthCardComponent,
   ],
@@ -44,7 +43,7 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
   private fb = inject(NonNullableFormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
-  private cdr = inject(ChangeDetectorRef);
+  private notifications = inject(NotificationService);
   private destroy$ = new Subject<void>();
 
   form = this.fb.group({
@@ -55,28 +54,7 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
     confirm_password: ['', [Validators.required]],
   }, { validators: [this.passwordsMatchValidator, this.passwordsNotEqualValidator] });
 
-  private errorTitleSignal = signal('');
-  private errorMessageSignal = signal('');
-  private errorIconSignal = signal('alert-circle');
-  private errorStyleSignal = signal<'danger' | 'warning' | 'info'>('danger');
   private isLoadingSignal = signal(false);
-  readonly errorCardAutoDismissMs = DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS;
-
-  get errorTitle(): string {
-    return this.errorTitleSignal();
-  }
-
-  get errorMessage(): string {
-    return this.errorMessageSignal();
-  }
-
-  get errorIcon(): string {
-    return this.errorIconSignal();
-  }
-
-  get errorStyle(): 'danger' | 'warning' | 'info' {
-    return this.errorStyleSignal();
-  }
 
   get isLoading(): boolean {
     return this.isLoadingSignal();
@@ -99,14 +77,17 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
   }
 
   private setError(title: string, message: string, icon: string = 'alert-circle', style: 'danger' | 'warning' | 'info' = 'danger'): void {
-    this.errorTitleSignal.set(title);
-    this.errorMessageSignal.set(message);
-    this.errorIconSignal.set(icon);
-    this.errorStyleSignal.set(style);
-    this.cdr.markForCheck();
+    this.notifications.show({
+      title,
+      message,
+      icon,
+      styleType: style,
+    });
   }
 
   ngOnInit(): void {
+    this.notifications.clear();
+
     const currentUser = this.authService.getCurrentUser();
     const state = this.router.getCurrentNavigation()?.extras?.state as
       | { email?: string; message?: string; changeEmailAllowed?: boolean }
@@ -137,10 +118,7 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
   }
 
   resetError(): void {
-    this.errorTitleSignal.set('');
-    this.errorMessageSignal.set('');
-    this.errorIconSignal.set('alert-circle');
-    this.cdr.markForCheck();
+    this.notifications.clear();
   }
 
   private passwordsMatchValidator(control: AbstractControl): ValidationErrors | null {
@@ -258,7 +236,12 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.isLoadingSignal.set(false);
-          this.router.navigateByUrl('/auth/login');
+          this.router.navigateByUrl('/auth/login', {
+            state: {
+              message: 'Credenciales actualizadas con éxito.',
+              showOnce: true,
+            },
+          });
         },
         error: (err: unknown) => {
           this.isLoadingSignal.set(false);
@@ -268,7 +251,7 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
             this.authCard.startLockoutCountdown(parsed.lockoutSeconds);
           }
 
-          this.setError(parsed.title, parsed.message, 'alert-circle', parsed.style);
+          this.setError(parsed.title, parsed.message, parsed.lockoutSeconds ? 'lock-closed' : 'alert-circle', parsed.style);
         },
       });
   }

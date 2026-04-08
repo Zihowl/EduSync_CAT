@@ -1,12 +1,12 @@
-import { Component, inject, ChangeDetectorRef, signal, OnDestroy, ViewChild } from '@angular/core';
+import { Component, inject, signal, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormGroup, Validators, NonNullableFormBuilder } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router } from '@angular/router';
 import { IonContent, IonButton } from '@ionic/angular/standalone';
 import { Subject, takeUntil } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth.service';
-import { NotificationCardComponent, DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS } from '../../../shared/components/notification-card/notification-card.component';
+import { NotificationService } from '../../../shared/services/notification.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { AuthCardComponent } from '../../components/auth-card/auth-card.component';
 
@@ -25,7 +25,6 @@ type LoginForm = {
     ReactiveFormsModule,
     IonContent,
     IonButton,
-    NotificationCardComponent,
     PageHeaderComponent,
     AuthCardComponent,
   ],
@@ -39,8 +38,7 @@ export class LoginComponent {
   private fb = inject(NonNullableFormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
-  private route = inject(ActivatedRoute);
-  private cdr = inject(ChangeDetectorRef);
+  private notifications = inject(NotificationService);
   private destroy$ = new Subject<void>();
 
   loginForm = this.fb.group({
@@ -48,20 +46,10 @@ export class LoginComponent {
     password: ['', [Validators.required]],
   });
 
-  private errorTitleSignal = signal('');
-  private errorMessageSignal = signal('');
-  private errorIconSignal = signal('alert-circle');
-  private errorStyleSignal = signal<'danger' | 'warning' | 'info'>('danger');
   private isLoadingSignal = signal(false);
 
-  readonly errorCardAutoDismissMs = DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS;
   private returnUrlSignal = signal('/admin');
   currentYear = new Date().getFullYear();
-
-  get errorTitle(): string { return this.errorTitleSignal(); }
-  get errorMessage(): string { return this.errorMessageSignal(); }
-  get errorIcon(): string { return this.errorIconSignal(); }
-  get errorStyle(): 'danger' | 'warning' | 'info' { return this.errorStyleSignal(); }
   get isLoading(): boolean { return this.isLoadingSignal(); }
   get returnUrl(): string { return this.returnUrlSignal(); }
 
@@ -82,6 +70,8 @@ export class LoginComponent {
   }
 
   ngOnInit(): void {
+    this.notifications.clear();
+
     const state = (this.router.getCurrentNavigation()?.extras?.state as
       | { message?: string; returnUrl?: string; showOnce?: boolean }
       | undefined) ?? undefined;
@@ -102,18 +92,16 @@ export class LoginComponent {
   }
 
   private setError(title: string, message: string, icon: string = 'alert-circle', style: 'danger' | 'warning' | 'info' = 'danger'): void {
-    this.errorTitleSignal.set(title);
-    this.errorMessageSignal.set(message);
-    this.errorIconSignal.set(icon);
-    this.errorStyleSignal.set(style);
-    this.cdr.markForCheck();
+    this.notifications.show({
+      title,
+      message,
+      icon,
+      styleType: style,
+    });
   }
 
   resetError(): void {
-    this.errorTitleSignal.set('');
-    this.errorMessageSignal.set('');
-    this.errorIconSignal.set('alert-circle');
-    this.cdr.markForCheck();
+    this.notifications.clear();
   }
 
 

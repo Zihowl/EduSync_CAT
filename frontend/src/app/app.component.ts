@@ -11,20 +11,21 @@ import { NotificationService } from './shared/services/notification.service';
   standalone: true,
   imports: [CommonModule, IonApp, IonRouterOutlet, NotificationCardComponent],
   template: `
+    <app-notification-card
+      *ngIf="notification() as currentNotification"
+      [title]="currentNotification.title"
+      [message]="currentNotification.message"
+      [icon]="currentNotification.icon"
+      [styleType]="currentNotification.styleType"
+      [autoDismissMs]="currentNotification.autoDismissMs"
+      [countdown]="currentNotification.countdown"
+      [showClose]="currentNotification.showClose"
+      [actions]="currentNotification.actions"
+      (closed)="dismissNotification()"
+      (actionSelected)="handleNotificationAction($event)">
+    </app-notification-card>
+
     <ion-app>
-      <app-notification-card
-        *ngIf="notification() as currentNotification"
-        [title]="currentNotification.title"
-        [message]="currentNotification.message"
-        [icon]="currentNotification.icon"
-        [styleType]="currentNotification.styleType"
-        [autoDismissMs]="currentNotification.autoDismissMs"
-        [countdown]="currentNotification.countdown"
-        [showClose]="currentNotification.showClose"
-        [actions]="currentNotification.actions"
-        (closed)="dismissNotification()"
-        (actionSelected)="handleNotificationAction($event)">
-      </app-notification-card>
       <ion-router-outlet [animated]="false"></ion-router-outlet>
     </ion-app>
   `,

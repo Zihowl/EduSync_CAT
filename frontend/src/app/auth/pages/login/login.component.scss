@@ -15,24 +15,6 @@
     padding: 1rem;
 }
 
-.login-notification-card {
-    position: absolute;
-    top: 1rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(100%, 380px);
-    z-index: 100;
-}
-
-
-@media (max-width: 600px) {
-    .login-notification-card {
-        width: calc(100% - 1.5rem);
-        max-width: none;
-        top: 0.75rem;
-    }
-}
-
 .login-footer {
     position: absolute;
     bottom: 0;

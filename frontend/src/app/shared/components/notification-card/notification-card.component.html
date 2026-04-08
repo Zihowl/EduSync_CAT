@@ -1,5 +1,6 @@
 <ion-card [ngClass]="['notification-card', 'notification-card--' + styleType]" [attr.role]="actions.length ? 'alertdialog' : 'alert'" aria-live="assertive">
   <ion-card-content class="notification-card-content">
+    <ion-button *ngIf="showClose" type="button" fill="clear" class="notification-card-close" aria-label="Cerrar notificación" (click)="close()">×</ion-button>
     <div class="notification-card-body">
       <ion-icon class="notification-card-icon" [name]="icon"></ion-icon>
       <div class="notification-card-text">
@@ -20,9 +21,6 @@
         (click)="triggerAction(action)">
         {{ action.label }}
       </ion-button>
-    </div>
-    <div *ngIf="showClose" class="notification-card-close-row">
-      <ion-button type="button" fill="clear" class="notification-card-close" aria-label="Cerrar notificación" (click)="close()">×</ion-button>
     </div>
   </ion-card-content>
 </ion-card>

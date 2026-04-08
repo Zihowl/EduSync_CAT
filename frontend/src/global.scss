@@ -39,6 +39,8 @@
 :root {
 	--app-shell-background: linear-gradient(rgba(15, 23, 42, 0.35), rgba(15, 23, 42, 0.35)), url('/assets/wallpaper.jpg') 37% center / cover no-repeat;
 	--app-shell-background-base: #0f172a;
+	--app-notification-header-offset: 56px;
+	--app-notification-gap: 0.75rem;
 }
 
 html,
@@ -160,5 +162,10 @@ ion-toast.login-toast::part(icon) {
 @media (max-width: 600px) {
 	.app-page-shell {
 		padding-top: 0.25rem;
+	}
+
+	:root {
+		--app-notification-header-offset: 52px;
+		--app-notification-gap: 0.625rem;
 	}
 }

@@ -2,17 +2,6 @@
 
 <ion-content class="ion-padding login-content">
     <div class="login-container">
-        <app-notification-card
-            *ngIf="errorMessage"
-            [title]="errorTitle || 'Error'"
-            [message]="errorMessage"
-            [icon]="errorIcon"
-            [styleType]="errorStyle"
-            [autoDismissMs]="errorCardAutoDismissMs"
-            [countdown]="authCard.isLockoutActive ? authCard.lockoutRemainingSeconds : undefined"
-            (closed)="resetError()"
-        ></app-notification-card>
-
         <app-auth-card #authCard="appAuthCard" cardTitle="Hola!" subtitle="Ingresa tus credenciales de administrador" cardClass="login-card">
             <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" autocomplete="on">
                 <div class="form-group">

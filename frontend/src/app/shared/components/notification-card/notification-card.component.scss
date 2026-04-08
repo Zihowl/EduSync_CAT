@@ -1,13 +1,22 @@
-.notification-card {
+:host {
   position: fixed;
-  top: 1rem;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+  z-index: 2147483647;
+}
+
+.notification-card {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + var(--app-notification-header-offset) + var(--app-notification-gap));
   left: 0;
   right: 0;
   margin: 0 auto;
   width: min(calc(100% - 2rem), 400px);
   box-sizing: border-box;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
-  z-index: 100000;
+  pointer-events: auto;
+  z-index: 1;
 
   /* CSS Variables for theming */
   border: 1px solid var(--card-border);
@@ -49,13 +58,15 @@
 
 
 .notification-card-content {
-  padding: 0.75rem;
+  position: relative;
+  padding: 0.9rem 0.9rem 0.85rem;
 }
 
 .notification-card-body {
   display: flex;
   align-items: start;
   gap: 0.55rem;
+  padding-right: 1.75rem;
 }
 
 .notification-card-icon {
@@ -90,24 +101,27 @@
   flex-wrap: wrap;
 }
 
-.notification-card-close-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 0.25rem;
-}
-
 .notification-card-close {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
   --color: #fff;
   --padding-start: 0;
   --padding-end: 0;
+  --padding-top: 0;
+  --padding-bottom: 0;
   --min-width: 1.2rem;
-  height: 1.2rem;
+  width: 1.6rem;
+  height: 1.6rem;
   border-radius: 999px;
+  font-size: 1.05rem;
+  line-height: 1;
+  z-index: 2;
 }
 
 @media (max-width: 600px) {
   .notification-card {
     width: calc(100% - 1.5rem);
-    top: 0.75rem;
+    top: calc(env(safe-area-inset-top) + var(--app-notification-header-offset) + var(--app-notification-gap));
   }
 }
