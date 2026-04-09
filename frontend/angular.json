@@ -75,10 +75,12 @@
         },
         "serve": {
           "options": {
+            "host": "0.0.0.0",
+            "port": 8100,
             "allowedHosts": [
               "all",
               ".trycloudflare.com",
-              "edusync-cat.zihowl.dev"
+              "cat.zihowl.dev"
             ],
             "proxyConfig": "src/proxy.conf.json"
           },

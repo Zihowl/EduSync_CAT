@@ -238,10 +238,7 @@ async fn genesis_protocol(user_repo: Arc<dyn UserRepository>) -> anyhow::Result<
             .create_admin(&email, "Super Administrator", &hash, true)
             .await
             .map_err(anyhow::Error::msg)?;
-        tracing::warn!(
-            "Genesis Protocol: Super Administrator created. Email: {}",
-            email
-        );
+        tracing::warn!("Genesis Protocol: Super Administrator created.");
     }
 
     // Print credentials in formatted output

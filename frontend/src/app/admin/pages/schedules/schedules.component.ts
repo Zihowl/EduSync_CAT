@@ -7,10 +7,10 @@ import {
     IonContent, IonHeader, IonToolbar, IonTitle, IonButtons,
     IonList, IonItem, IonLabel, IonSelect,
     IonSelectOption, IonButton, IonIcon, IonFab, IonFabButton,
-    IonModal, IonInput, IonFooter, IonChip,
-    IonSegment, IonSegmentButton, IonToggle, IonNote,
+    IonModal, IonInput, IonFooter,
+    IonSegment, IonSegmentButton, IonToggle,
     IonDatetime, IonDatetimeButton, IonPopover,
-    IonCard, IonCardContent, IonCardHeader, IonCardTitle
+    IonCard, IonCardContent
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
@@ -27,7 +27,6 @@ import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realt
 import { ScheduleCalendarComponent } from '../../../shared/components/schedule-calendar/schedule-calendar.component';
 import {
     formatClockTime,
-    normalizeDayOfWeek,
     ScheduleCalendarActionClick,
     ScheduleCalendarCellClick,
     ScheduleCalendarEvent,
@@ -106,9 +105,9 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
         IonTitle, IonButtons, IonList, IonItem, IonLabel,
         IonSelect, IonSelectOption, IonButton, IonIcon, IonFab, IonFabButton,
         IonModal, IonFooter,
-        IonSegment, IonSegmentButton, IonChip, IonToggle, IonNote,
+        IonSegment, IonSegmentButton, IonToggle,
         IonDatetime, IonDatetimeButton, IonPopover,
-        IonCard, IonCardContent, IonCardHeader, IonCardTitle,
+        IonCard, IonCardContent,
         PageHeaderComponent, ScheduleCalendarComponent
     ],
     template: `
@@ -125,143 +124,48 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
 
         <ion-content class="ion-padding schedule-content" [scrollY]="false">
             <div class="app-page-shell app-page-shell--wide schedule-shell">
-                <ion-card class="schedule-hero-card app-page-section">
+                <ion-card class="schedule-calendar-card app-page-section">
                     <ion-card-content>
-                        <div class="schedule-hero">
-                            <div class="schedule-hero__copy">
-                                <p class="schedule-kicker">Calendario académico</p>
-                                <h2>Administra bloques por día y hora</h2>
-                                <p class="schedule-description">
-                                    Haz clic en un bloque para revisar sus acciones o en una celda vacía para crear un nuevo horario con el mismo flujo visual.
-                                </p>
+                        <div class="schedule-calendar-frame">
+                            <div class="schedule-toolbar">
+                                <ion-segment [(ngModel)]="filterScope" (ionChange)="onFilterScopeChange()" class="schedule-segment">
+                                    <ion-segment-button value="group">Grupo</ion-segment-button>
+                                    <ion-segment-button value="teacher">Maestro</ion-segment-button>
+                                </ion-segment>
+
+                                <ion-select *ngIf="filterScope === 'group'" [(ngModel)]="filterGroupId" (ionChange)="LoadSchedules()" placeholder="Selecciona un grupo" interface="popover" class="schedule-filter">
+                                    <ion-select-option *ngFor="let g of groups" [value]="g.id">
+                                        {{ getGroupLabel(g) }}
+                                    </ion-select-option>
+                                </ion-select>
+
+                                <ion-select *ngIf="filterScope === 'teacher'" [(ngModel)]="filterTeacherId" (ionChange)="LoadSchedules()" placeholder="Selecciona un maestro" interface="popover" class="schedule-filter">
+                                    <ion-select-option *ngFor="let teacher of teachers" [value]="teacher.id">
+                                        {{ teacher.name }}
+                                    </ion-select-option>
+                                </ion-select>
+
+                                <ion-segment [(ngModel)]="filterPublished" (ionChange)="LoadSchedules()" class="schedule-segment">
+                                    <ion-segment-button value="all">Todos</ion-segment-button>
+                                    <ion-segment-button value="published">Publicados</ion-segment-button>
+                                    <ion-segment-button value="draft">Borradores</ion-segment-button>
+                                </ion-segment>
                             </div>
 
-                            <div class="schedule-hero__stats">
-                                <ion-chip color="primary">{{ calendarEvents.length }} visibles</ion-chip>
-                                <ion-chip color="success">{{ selectedIds.size }} seleccionados</ion-chip>
-                                <ion-chip [color]="filterPublished === 'all' ? 'medium' : 'tertiary'">{{ getPublishedFilterLabel() }}</ion-chip>
-                            </div>
-                        </div>
-
-                        <div class="schedule-toolbar">
-                            <ion-segment [(ngModel)]="viewMode" (ionChange)="onViewModeChange()" class="schedule-segment">
-                                <ion-segment-button value="week">Semana</ion-segment-button>
-                                <ion-segment-button value="day">Día</ion-segment-button>
-                            </ion-segment>
-
-                            <ion-segment [(ngModel)]="filterPublished" (ionChange)="LoadSchedules()" class="schedule-segment">
-                                <ion-segment-button value="all">Todos</ion-segment-button>
-                                <ion-segment-button value="published">Publicados</ion-segment-button>
-                                <ion-segment-button value="draft">Borradores</ion-segment-button>
-                            </ion-segment>
-
-                            <ion-select [(ngModel)]="filterGroupId" (ionChange)="LoadSchedules()" placeholder="Grupo" interface="popover" class="schedule-filter">
-                                <ion-select-option [value]="null">Sin filtro</ion-select-option>
-                                <ion-select-option *ngFor="let g of groups" [value]="g.id">
-                                    {{ getGroupLabel(g) }}
-                                </ion-select-option>
-                            </ion-select>
-                        </div>
-
-                        <div *ngIf="viewMode === 'day'" class="schedule-day-strip">
-                            <button
-                                *ngFor="let d of calendarWeekDays"
-                                type="button"
-                                class="schedule-day-strip__button"
-                                [class.schedule-day-strip__button--active]="filterDay === d"
-                                (click)="selectDay(d)">
-                                <span>{{ getDayShortName(d) }}</span>
-                                <strong>{{ getDayName(d) }}</strong>
-                            </button>
-                        </div>
-                    </ion-card-content>
-                </ion-card>
-
-                <div class="schedule-main-grid">
-                    <ion-card class="schedule-calendar-card app-page-section">
-                        <ion-card-content>
                             <app-schedule-calendar
                                 [events]="calendarEvents"
                                 [visibleDays]="calendarDays"
                                 [minuteHeight]="0.72"
-                                [highlightedDay]="viewMode === 'day' ? (filterDay || null) : null"
                                 [editable]="true"
                                 [showCurrentTimeMarker]="true"
                                 (eventSelected)="onCalendarEventSelected($event)"
                                 (cellSelected)="onCalendarCellSelected($event)"
                                 (actionSelected)="onCalendarActionSelected($event)"
-                                (selectionToggled)="toggleSelectedId($event.id)"
-                                (dayHeaderSelected)="selectDay($event)">
+                                (selectionToggled)="toggleSelectedId($event.id)">
                             </app-schedule-calendar>
-                        </ion-card-content>
-                    </ion-card>
-
-                    <ion-card class="schedule-details-card app-page-section">
-                        <ion-card-header>
-                            <ion-card-title>Detalle del bloque</ion-card-title>
-                        </ion-card-header>
-                        <ion-card-content *ngIf="selectedSchedule; else scheduleEmptySelection">
-                            <p class="schedule-details__kicker">{{ getDayName(selectedSchedule.dayOfWeek) }}</p>
-                            <h3 class="schedule-details__title">{{ getSubjectLabel(selectedSchedule.subject) }}</h3>
-
-                            <ion-chip [color]="selectedSchedule.isPublished ? 'success' : 'warning'" class="schedule-details__status">
-                                {{ selectedSchedule.isPublished ? 'Publicado' : 'Borrador' }}
-                            </ion-chip>
-
-                            <div class="schedule-details__rows">
-                                <div>
-                                    <span>Horario</span>
-                                    <strong>{{ formatTime(selectedSchedule.startTime) }} - {{ formatTime(selectedSchedule.endTime) }}</strong>
-                                </div>
-                                <div>
-                                    <span>Grupo</span>
-                                    <strong>{{ getGroupLabel(selectedSchedule.group) }}</strong>
-                                </div>
-                                <div *ngIf="selectedSchedule.subgroup">
-                                    <span>Subgrupo</span>
-                                    <strong>{{ selectedSchedule.subgroup }}</strong>
-                                </div>
-                                <div>
-                                    <span>Docente</span>
-                                    <strong>{{ selectedSchedule.teacher?.name || 'Sin docente' }}</strong>
-                                </div>
-                                <div>
-                                    <span>Aula</span>
-                                    <strong>{{ selectedSchedule.classroom?.name }}</strong>
-                                </div>
-                            </div>
-
-                            <div class="schedule-details__actions">
-                                <ion-button expand="block" fill="solid" (click)="OpenModal(selectedSchedule)">
-                                    <ion-icon name="pencil-outline" slot="start"></ion-icon>
-                                    Editar
-                                </ion-button>
-                                <ion-button expand="block" fill="outline" [color]="selectedSchedule.isPublished ? 'warning' : 'success'" (click)="TogglePublish(selectedSchedule)" [disabled]="isUpdating(selectedSchedule.id)">
-                                    <ion-icon [name]="selectedSchedule.isPublished ? 'eye-off-outline' : 'eye-outline'" slot="start"></ion-icon>
-                                    {{ selectedSchedule.isPublished ? 'Ocultar' : 'Publicar' }}
-                                </ion-button>
-                                <ion-button expand="block" fill="outline" color="danger" (click)="Remove(selectedSchedule.id)">
-                                    <ion-icon name="trash-outline" slot="start"></ion-icon>
-                                    Eliminar
-                                </ion-button>
-                            </div>
-
-                            <ion-note>
-                                Los cambios se sincronizan en tiempo real y el backend valida choques de hora para profesor y aula.
-                            </ion-note>
-                        </ion-card-content>
-
-                        <ng-template #scheduleEmptySelection>
-                            <ion-card-content>
-                                <div class="schedule-details__empty">
-                                    <ion-icon name="calendar-outline" class="schedule-details__empty-icon"></ion-icon>
-                                    <h3>Sin bloque seleccionado</h3>
-                                    <p>Selecciona un horario del calendario para revisar acciones rápidas, o toca una celda vacía para crear uno nuevo.</p>
-                                </div>
-                            </ion-card-content>
-                        </ng-template>
-                    </ion-card>
-                </div>
+                        </div>
+                    </ion-card-content>
+                </ion-card>
 
                 <ion-fab vertical="bottom" horizontal="end" slot="fixed">
                     <ion-fab-button (click)="OpenModal()">
@@ -408,10 +312,9 @@ export class SchedulesComponent implements OnInit
     isSchedulesLoaded = false;
 
     filterPublished: 'all' | 'published' | 'draft' = 'all';
+    filterScope: 'group' | 'teacher' = 'group';
     filterGroupId: number | null = null;
-    filterDay: number | null = null;
-    viewMode: 'week' | 'day' = 'week';
-    calendarWeekDays = [1, 2, 3, 4, 5, 6];
+    filterTeacherId: number | null = null;
 
     selectedIds = new Set<number>();
     updatingIds: number[] = [];
@@ -447,14 +350,6 @@ export class SchedulesComponent implements OnInit
     ionViewWillEnter(): void
     {
         this.LoadCatalogs();
-        this.LoadSchedules();
-    }
-
-    getPublishedFilterLabel(): string
-    {
-        if (this.filterPublished === 'published') return 'Solo publicados';
-        if (this.filterPublished === 'draft') return 'Solo borradores';
-        return 'Todos los estados';
     }
 
     getDayName(day: number): string
@@ -511,18 +406,33 @@ export class SchedulesComponent implements OnInit
         return this.updatingIds.includes(Number(id));
     }
 
-    private getDefaultDay(): number
+    private ensureActiveFilterSelection(): void
     {
-        const current = normalizeDayOfWeek(new Date().getDay());
-        return current === 7 ? 1 : current;
+        if (this.filterScope === 'group') {
+            if (this.groups.length > 0) {
+                const hasValidGroup = this.filterGroupId != null && this.groups.some((group) => Number(group.id) === Number(this.filterGroupId));
+                if (!hasValidGroup) {
+                    this.filterGroupId = Number(this.groups[0].id);
+                }
+            } else if (this.teachers.length > 0) {
+                this.filterScope = 'teacher';
+                this.filterTeacherId = Number(this.teachers[0].id);
+            }
+        } else if (this.filterScope === 'teacher') {
+            if (this.teachers.length > 0) {
+                const hasValidTeacher = this.filterTeacherId != null && this.teachers.some((teacher) => Number(teacher.id) === Number(this.filterTeacherId));
+                if (!hasValidTeacher) {
+                    this.filterTeacherId = Number(this.teachers[0].id);
+                }
+            } else if (this.groups.length > 0) {
+                this.filterScope = 'group';
+                this.filterGroupId = Number(this.groups[0].id);
+            }
+        }
     }
 
     private syncCalendarState(): void
     {
-        this.calendarDays = this.viewMode === 'day'
-            ? [this.filterDay ?? this.getDefaultDay()]
-            : [...this.calendarWeekDays];
-
         this.activeScheduleId = this.selectedSchedule ? Number(this.selectedSchedule.id) : null;
         this.calendarEvents = this.schedules.map((schedule) => this.toCalendarEvent(schedule));
     }
@@ -575,10 +485,6 @@ export class SchedulesComponent implements OnInit
 
     private refreshCalendarView(): void
     {
-        if (this.viewMode === 'day' && !this.filterDay) {
-            this.filterDay = this.getDefaultDay();
-        }
-
         if (this.selectedSchedule) {
             this.selectedSchedule = this.schedules.find((schedule) => Number(schedule.id) === Number(this.selectedSchedule.id)) ?? null;
         }
@@ -586,22 +492,9 @@ export class SchedulesComponent implements OnInit
         this.syncCalendarState();
     }
 
-    onViewModeChange(): void
+    onFilterScopeChange(): void
     {
-        if (this.viewMode === 'week') {
-            this.filterDay = null;
-        } else if (!this.filterDay) {
-            this.filterDay = this.getDefaultDay();
-        }
-
-        this.refreshCalendarView();
-        this.LoadSchedules();
-    }
-
-    selectDay(day: number): void
-    {
-        this.filterDay = normalizeDayOfWeek(day);
-        this.viewMode = 'day';
+        this.ensureActiveFilterSelection();
         this.refreshCalendarView();
         this.LoadSchedules();
     }
@@ -621,8 +514,6 @@ export class SchedulesComponent implements OnInit
 
         this.selectedSchedule = null;
         this.activeScheduleId = null;
-        this.viewMode = 'day';
-        this.filterDay = normalizeDayOfWeek(cell.dayOfWeek);
         this.refreshCalendarView();
         this.OpenModal(null, {
             dayOfWeek: cell.dayOfWeek,
@@ -731,6 +622,8 @@ export class SchedulesComponent implements OnInit
                 this.subjects = catalogs.subjects;
                 this.classrooms = catalogs.classrooms;
                 this.groups = catalogs.groups;
+                this.ensureActiveFilterSelection();
+                this.LoadSchedules(forceRefresh);
                 this.cdr.detectChanges();
             },
             error: (err) => {
@@ -752,25 +645,30 @@ export class SchedulesComponent implements OnInit
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe(() => {
                 this.LoadCatalogs(true);
-                this.LoadSchedules(true);
             });
     }
 
     LoadSchedules(forceRefresh = false)
     {
         const filter: any = {};
-        if (this.filterGroupId) filter.groupId = this.filterGroupId;
-        const effectiveDay = this.viewMode === 'day' ? this.filterDay : null;
-        if (effectiveDay) filter.dayOfWeek = effectiveDay;
+        this.ensureActiveFilterSelection();
+
+        if (this.filterScope === 'group' && this.filterGroupId != null) {
+            filter.groupId = this.filterGroupId;
+        }
+
+        if (this.filterScope === 'teacher' && this.filterTeacherId != null) {
+            filter.teacherId = this.filterTeacherId;
+        }
+
         if (this.filterPublished === 'published') filter.isPublished = true;
         if (this.filterPublished === 'draft') filter.isPublished = false;
 
         const scheduleKey = [
             'admin-schedules',
+            this.filterScope,
             this.filterPublished,
-            this.filterGroupId ?? 'all',
-            this.viewMode,
-            effectiveDay ?? 'all'
+            this.filterScope === 'group' ? (this.filterGroupId ?? 'all') : (this.filterTeacherId ?? 'all')
         ].join(':');
 
         if (forceRefresh) {
@@ -843,7 +741,7 @@ export class SchedulesComponent implements OnInit
                 subjectId: seed.subjectId ?? null,
                 teacherId: seed.teacherId ?? null,
                 classroomId: seed.classroomId ?? null,
-                dayOfWeek: seed.dayOfWeek ?? this.getDefaultDay(),
+                dayOfWeek: seed.dayOfWeek ?? this.calendarDays[0],
                 startTime: seed.startTime ?? '08:00',
                 endTime: seed.endTime ?? '09:00',
                 subgroup: seed.subgroup ?? '',
