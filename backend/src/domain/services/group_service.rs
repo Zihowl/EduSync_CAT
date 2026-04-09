@@ -25,10 +25,27 @@ impl GroupService {
         self.repo.find_by_id(id).await
     }
 
+    pub async fn find_by_name_and_parent(&self, name: &str, parent_id: Option<i32>) -> Result<Option<Group>, DomainError> {
+        let name = normalize_required_text("Nombre del grupo", name)?;
+        self.repo.find_by_name_and_parent(&name, parent_id).await
+    }
+
+    pub async fn find_or_create(&self, name: &str, parent_id: Option<i32>) -> Result<Group, DomainError> {
+        let name = normalize_required_text("Nombre del grupo", name)?;
+
+        if let Some(existing) = self.repo.find_by_name_and_parent(&name, parent_id).await? {
+            return Ok(existing);
+        }
+
+        self.validate_parent_link(None, parent_id).await?;
+
+        self.repo.create(&name, parent_id).await
+    }
+
     pub async fn create(&self, name: &str, parent_id: Option<i32>) -> Result<Group, DomainError> {
         let name = normalize_required_text("Nombre del grupo", name)?;
 
-        if self.repo.find_by_name(&name).await?.is_some() {
+        if self.repo.find_by_name_and_parent(&name, parent_id).await?.is_some() {
             return Err(DomainError::Conflict("El grupo ya existe".to_string()));
         }
 
@@ -44,27 +61,29 @@ impl GroupService {
             .await?
             .ok_or_else(|| DomainError::NotFound("Group not found".to_string()))?;
 
-        if let Some(name) = name {
+        let new_name = if let Some(name) = name {
             let name = normalize_required_text("Nombre del grupo", name)?;
             if name != current.name {
-                if let Some(existing) = self.repo.find_by_name(&name).await? {
-                    if existing.id != id {
-                        return Err(DomainError::Conflict("El grupo ya existe".to_string()));
-                    }
-                }
+                current.name = name;
             }
-            current.name = name;
-        }
+            current.name.clone()
+        } else {
+            current.name.clone()
+        };
 
-        if let Some(parent_id) = parent_id {
-            current.parent_id = parent_id;
+        let new_parent_id = parent_id.unwrap_or(current.parent_id);
 
-            if let Some(parent_id) = parent_id {
-                self.validate_parent_link(Some(id), Some(parent_id)).await?;
+        if let Some(existing) = self.repo.find_by_name_and_parent(&new_name, new_parent_id).await? {
+            if existing.id != id {
+                return Err(DomainError::Conflict("El grupo ya existe".to_string()));
             }
         }
 
-        self.repo.update(id, Some(&current.name), Some(current.parent_id)).await
+        if let Some(parent_id) = new_parent_id {
+            self.validate_parent_link(Some(id), Some(parent_id)).await?;
+        }
+
+        self.repo.update(id, Some(&new_name), Some(new_parent_id)).await
     }
 
     pub async fn delete(&self, id: i32) -> Result<bool, DomainError> {

@@ -102,7 +102,7 @@ impl ExcelService {
         let no_empleado = value(&["NoEmpleado"]);
         let docente = value(&["Docente"]);
         let grupo = value(&["Grupo"]);
-        let subgroup = value(&["Subgrupo", "SubGrupo"]);
+        let subgroup_text = parse_optional_text(&value(&["Subgrupo", "SubGrupo"]));
         let aula = value(&["Aula"]);
         let edificio = value(&["Edificio"]);
         let dia = value(&["Dia"]);
@@ -159,10 +159,12 @@ impl ExcelService {
 
         let classroom = resolve_or_create_classroom(&self.classroom_service, &aula, building.id).await?;
 
-        let group = match self.group_service.create(&grupo, None).await {
-            Ok(v) => v,
-            Err(DomainError::Conflict(_)) => self.group_service.find_all().await?.into_iter().find(|g| g.name == grupo).ok_or_else(|| DomainError::NotFound("Grupo no encontrado".to_string()))?,
-            Err(e) => return Err(e),
+        let group = self.group_service.find_or_create(&grupo, None).await?;
+
+        let subgroup = if let Some(subgroup_name) = subgroup_text.as_deref() {
+            Some(self.group_service.find_or_create(subgroup_name, Some(group.id)).await?.name)
+        } else {
+            None
         };
 
         let day_of_week = parse_day(&dia);
@@ -176,7 +178,7 @@ impl ExcelService {
                 day_of_week,
                 start_time: hora_inicio,
                 end_time: if hora_fin.is_empty() { "00:00:00".to_string() } else { hora_fin },
-                subgroup: if subgroup.is_empty() { None } else { Some(subgroup) },
+                subgroup,
                 is_published: false,
                 created_by_id: uploaded_by,
             })
@@ -248,6 +250,16 @@ fn parse_optional_grade(value: &str) -> Result<Option<i32>, DomainError> {
         .parse::<i32>()
         .map(Some)
         .map_err(|_| DomainError::BadRequest(format!("Grado invalido: {normalized}")))
+}
+
+fn parse_optional_text(value: &str) -> Option<String> {
+    let normalized = value.trim();
+
+    if normalized.is_empty() || normalized.eq_ignore_ascii_case("null") {
+        return None;
+    }
+
+    Some(normalized.to_string())
 }
 
 fn parse_uploaded_schedule_table(file: &[u8]) -> Result<ParsedScheduleTable, DomainError> {

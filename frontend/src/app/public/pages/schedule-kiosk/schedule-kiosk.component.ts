@@ -149,9 +149,11 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                                                                     {{ s.startTime.substring(0,5) }} - {{ s.endTime.substring(0,5) }}
                                                                 </ion-chip>
                                                             </p>
-                                                            <p>{{ s.teacher?.name || 'Sin docente' }} · {{ s.classroom.name }}</p>
+                                                                        <p>
+                                                                            {{ s.teacher?.name || 'Sin docente' }} · {{ s.classroom.name }}
+                                                                            <ion-chip *ngIf="s.subgroup" color="tertiary" class="kiosk-subgroup">{{ s.subgroup }}</ion-chip>
+                                                                        </p>
                                                         </ion-label>
-                                                        <ion-chip *ngIf="s.subgroup" slot="end" color="tertiary">{{ s.subgroup }}</ion-chip>
                                                     </ion-item>
                                                 </ng-template>
                                             </app-data-list>

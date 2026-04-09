@@ -58,9 +58,12 @@ impl GroupRepository for PgGroupRepository {
         Ok(row.map(Into::into))
     }
 
-    async fn find_by_name(&self, name: &str) -> Result<Option<Group>, DomainError> {
-        let row = sqlx::query_as::<_, GroupRow>("SELECT id, name, parent_id FROM \"groups\" WHERE name = $1")
+    async fn find_by_name_and_parent(&self, name: &str, parent_id: Option<i32>) -> Result<Option<Group>, DomainError> {
+        let row = sqlx::query_as::<_, GroupRow>(
+            "SELECT id, name, parent_id FROM \"groups\" WHERE name = $1 AND parent_id IS NOT DISTINCT FROM $2",
+        )
             .bind(name)
+            .bind(parent_id)
             .fetch_optional(&self.pool)
             .await
             .map_err(map_sqlx)?;
