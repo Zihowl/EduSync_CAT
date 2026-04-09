@@ -199,7 +199,7 @@ export class TeachersComponent implements OnInit
                 try {
                     this.ApplyFilter();
                 } catch (err) {
-                    console.error('Error filtering teachers:', err);
+                    console.error('Error al filtrar docentes:', err);
                     this.filteredTeachers = [...this.teachers];
                 } finally {
                     this.isTeachersLoaded = true;
@@ -207,7 +207,7 @@ export class TeachersComponent implements OnInit
                 }
             },
             error: (err) => {
-                console.error('Error loading teachers:', err);
+                console.error('Error al cargar docentes:', err);
                 this.notifications.danger('Error al cargar docentes: ' + err.message);
                 this.isTeachersLoaded = true;
                 this.cdr.detectChanges();
@@ -295,7 +295,7 @@ export class TeachersComponent implements OnInit
                     this.LoadTeachers(true);
                 },
                 error: (err) => {
-                    console.error('Update teacher error:', err);
+                    console.error('Error al actualizar docente:', err);
                     this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo guardar el docente.'));
                 }
             });
@@ -309,7 +309,7 @@ export class TeachersComponent implements OnInit
                     this.LoadTeachers(true);
                 },
                 error: (err) => {
-                    console.error('Create teacher error:', err);
+                    console.error('Error al crear docente:', err);
                     this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo guardar el docente.'));
                 }
             });

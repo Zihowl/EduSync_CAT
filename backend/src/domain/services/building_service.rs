@@ -44,7 +44,7 @@ impl BuildingService {
             .repo
             .find_by_id(id)
             .await?
-            .ok_or_else(|| DomainError::NotFound("Building not found".to_string()))?;
+            .ok_or_else(|| DomainError::NotFound("Edificio no encontrado".to_string()))?;
 
         if let Some(name) = name {
             let name = normalize_required_text("Nombre del edificio", name)?;

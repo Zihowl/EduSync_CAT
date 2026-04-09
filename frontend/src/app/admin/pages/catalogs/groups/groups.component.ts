@@ -258,7 +258,7 @@ export class GroupsComponent implements OnInit
                     this.ApplyFilter();
                     console.log('Filtered groups:', this.filteredGroups);
                 } catch (err) {
-                    console.error('Error processing groups:', err);
+                    console.error('Error al procesar grupos:', err);
                     this.allGroups = [];
                     this.groups = [];
                     this.filteredGroups = [];
@@ -268,7 +268,7 @@ export class GroupsComponent implements OnInit
                 }
             },
             error: (err) => {
-                console.error('Error loading groups:', err);
+                console.error('Error al cargar grupos:', err);
                 this.notifications.danger('Error al cargar grupos: ' + err.message);
                 this.isGroupsLoaded = true;
                 this.cdr.detectChanges();
@@ -380,7 +380,7 @@ export class GroupsComponent implements OnInit
                     this.LoadGroups(true);
                 },
                 error: (err) => {
-                    console.error('Update group error:', err);
+                    console.error('Error al actualizar grupo:', err);
                     this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo guardar el grupo.'));
                 }
             });
@@ -394,7 +394,7 @@ export class GroupsComponent implements OnInit
                     this.LoadGroups(true);
                 },
                 error: (err) => {
-                    console.error('Create group error:', err);
+                    console.error('Error al crear grupo:', err);
                     this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo guardar el grupo.'));
                 }
             });
@@ -422,7 +422,7 @@ export class GroupsComponent implements OnInit
         }).subscribe({
             next: () => this.LoadGroups(true),
             error: (err) => {
-                console.error('Delete group error:', err);
+                console.error('Error al eliminar grupo:', err);
                 this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo eliminar el grupo.'));
             }
         });

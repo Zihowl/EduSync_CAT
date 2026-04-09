@@ -166,14 +166,14 @@ impl ScheduleService {
         let to_min = |v: &str| -> Result<i32, DomainError> {
             let p: Vec<&str> = v.split(':').collect();
             if p.len() < 2 {
-                return Err(DomainError::BadRequest("Formato de hora invalido".to_string()));
+                return Err(DomainError::BadRequest("Formato de hora inválido".to_string()));
             }
             let h = p[0]
                 .parse::<i32>()
-                .map_err(|_| DomainError::BadRequest("Hora invalida".to_string()))?;
+                .map_err(|_| DomainError::BadRequest("Hora inválida".to_string()))?;
             let m = p[1]
                 .parse::<i32>()
-                .map_err(|_| DomainError::BadRequest("Hora invalida".to_string()))?;
+                .map_err(|_| DomainError::BadRequest("Hora inválida".to_string()))?;
             Ok(h * 60 + m)
         };
 
@@ -202,7 +202,7 @@ impl ScheduleService {
             return Err(DomainError::NotFound("Materia no encontrada".to_string()));
         }
         if self.classroom_repo.find_by_id(classroom_id).await?.is_none() {
-            return Err(DomainError::NotFound("Salon no encontrado".to_string()));
+            return Err(DomainError::NotFound("Salón no encontrado".to_string()));
         }
         if self.group_repo.find_by_id(group_id).await?.is_none() {
             return Err(DomainError::NotFound("Grupo no encontrado".to_string()));
@@ -250,7 +250,7 @@ impl ScheduleService {
             .await?
         {
             return Err(DomainError::Conflict(format!(
-                "El salon ya esta ocupado de {} a {}",
+                "El salón ya está ocupado de {} a {}",
                 conflict.start_time, conflict.end_time
             )));
         }

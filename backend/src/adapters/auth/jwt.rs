@@ -18,7 +18,7 @@ pub fn encode_jwt(claims: &JwtClaims, secret: &str) -> Result<String, DomainErro
         claims,
         &EncodingKey::from_secret(secret.as_bytes()),
     )
-    .map_err(|e| DomainError::Internal(format!("JWT encode error: {e}")))
+    .map_err(|e| DomainError::Internal(format!("Error al codificar JWT: {e}")))
 }
 
 pub fn decode_jwt(token: &str, secret: &str) -> Result<JwtClaims, DomainError> {
@@ -28,5 +28,5 @@ pub fn decode_jwt(token: &str, secret: &str) -> Result<JwtClaims, DomainError> {
         &Validation::default(),
     )
     .map(|d| d.claims)
-    .map_err(|_| DomainError::Unauthorized("Token invalido".to_string()))
+    .map_err(|_| DomainError::Unauthorized("Token inválido".to_string()))
 }

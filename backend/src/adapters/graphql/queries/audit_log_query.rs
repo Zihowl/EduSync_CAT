@@ -65,7 +65,7 @@ fn parse_date(value: Option<&str>) -> async_graphql::Result<Option<NaiveDate>> {
     match value {
         Some(raw) if !raw.trim().is_empty() => NaiveDate::parse_from_str(raw.trim(), "%Y-%m-%d")
             .map(Some)
-            .map_err(|_| async_graphql::Error::new("Formato de fecha invalido. Usa YYYY-MM-DD")),
+            .map_err(|_| async_graphql::Error::new("Formato de fecha inválido. Usa YYYY-MM-DD")),
         _ => Ok(None),
     }
 }

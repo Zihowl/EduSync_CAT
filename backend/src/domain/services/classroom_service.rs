@@ -45,7 +45,7 @@ impl ClassroomService {
             .repo
             .find_by_id(id)
             .await?
-            .ok_or_else(|| DomainError::NotFound("Classroom not found".to_string()))?;
+            .ok_or_else(|| DomainError::NotFound("Aula no encontrada".to_string()))?;
 
         if let Some(name) = name {
             current.name = normalize_required_text("Nombre del aula", name)?;

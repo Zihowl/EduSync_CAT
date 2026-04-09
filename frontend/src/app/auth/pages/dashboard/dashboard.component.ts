@@ -18,7 +18,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
 
         <ion-content class="ion-padding">
             <div class="container">
-                <h1>Welcome, Super Admin</h1>
+                <h1>Welcome, Súper Admin</h1>
                 <p>Status: <span class="badge bg-success">Authenticated</span></p>
 
                 <div class="card mt-4">

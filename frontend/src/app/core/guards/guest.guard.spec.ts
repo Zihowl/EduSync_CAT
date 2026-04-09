@@ -25,7 +25,7 @@ describe('GuestGuard', () => {
     guard = TestBed.inject(GuestGuard);
   });
 
-  it('should redirect super admin users to the config panel', async () => {
+  it('should redirect súper admin users to the config panel', async () => {
     authService.verifySession.and.returnValue(of({
       id: '1',
       email: 'admin@example.com',

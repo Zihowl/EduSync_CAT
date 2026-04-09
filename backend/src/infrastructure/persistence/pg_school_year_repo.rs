@@ -39,7 +39,7 @@ impl From<SchoolYearRow> for SchoolYear {
 }
 
 fn map_sqlx(e: sqlx::Error) -> DomainError {
-    DomainError::Internal(format!("DB school_years error: {e}"))
+    DomainError::Internal(format!("Error de base de datos en ciclos escolares: {e}"))
 }
 
 #[async_trait]

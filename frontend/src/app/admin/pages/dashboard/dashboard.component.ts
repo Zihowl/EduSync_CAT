@@ -81,9 +81,9 @@ export class DashboardComponent implements OnInit
     getRoleLabel(role: Role | null): string {
         switch (role) {
             case 'SUPER_ADMIN':
-                return 'Super Admin';
+                return 'Súper Admin';
             case 'ADMIN_HORARIOS':
-                return 'Admin Horarios';
+                return 'Administrador de horarios';
             default:
                 return 'Sin rol';
         }

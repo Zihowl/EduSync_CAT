@@ -176,7 +176,7 @@ export class BuildingsComponent implements OnInit
                 this.cdr.detectChanges();
             },
             error: (err: any) => {
-                console.error('Error loading buildings:', err);
+                console.error('Error al cargar edificios:', err);
                 this.notifications.danger('Error al cargar edificios: ' + err.message);
                 this.isBuildingsLoaded = true;
                 this.cdr.detectChanges();
@@ -224,7 +224,7 @@ export class BuildingsComponent implements OnInit
                     this.LoadBuildings(true);
                 },
                 error: (err) => {
-                    console.error('Update building error:', err);
+                    console.error('Error al actualizar edificio:', err);
                     this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo guardar el edificio.'));
                 }
             });
@@ -238,7 +238,7 @@ export class BuildingsComponent implements OnInit
                     this.LoadBuildings(true);
                 },
                 error: (err) => {
-                    console.error('Create building error:', err);
+                    console.error('Error al crear edificio:', err);
                     this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo guardar el edificio.'));
                 }
             });

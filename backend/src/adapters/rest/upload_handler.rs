@@ -96,7 +96,7 @@ async fn authorize_admin(
 ) -> Result<AuthUser, (axum::http::StatusCode, String)> {
     let auth_user = read_active_auth_user_from_headers(&headers, &state.config, state.user_repo.clone())
         .await
-        .ok_or((axum::http::StatusCode::UNAUTHORIZED, "Unauthorized".to_string()))?;
+        .ok_or((axum::http::StatusCode::UNAUTHORIZED, "No autorizado".to_string()))?;
 
     if !auth_user.is_admin_horarios() {
         return Err((
@@ -115,13 +115,13 @@ async fn extract_uploaded_file(
     while let Some(field) = multipart
         .next_field()
         .await
-        .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, format!("Multipart invalido: {e}")))?
+        .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, format!("Multipart inválido: {e}")))?
     {
         if field.name() == Some("file") {
             let data = field
                 .bytes()
                 .await
-                .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, format!("Archivo invalido: {e}")))?;
+                .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, format!("Archivo inválido: {e}")))?;
             file_bytes = Some(data.to_vec());
             break;
         }

@@ -36,7 +36,7 @@ impl From<GroupRow> for Group {
 }
 
 fn map_sqlx(e: sqlx::Error) -> DomainError {
-    DomainError::Internal(format!("DB groups error: {e}"))
+    DomainError::Internal(format!("Error de base de datos en grupos: {e}"))
 }
 
 #[async_trait]
@@ -86,7 +86,7 @@ impl GroupRepository for PgGroupRepository {
         let mut current = self
             .find_by_id(id)
             .await?
-            .ok_or_else(|| DomainError::NotFound("Group not found".to_string()))?;
+            .ok_or_else(|| DomainError::NotFound("Grupo no encontrado".to_string()))?;
 
         if let Some(v) = name {
             current.name = v.to_string();

@@ -85,7 +85,7 @@ export class RealtimeSyncService {
         try {
             message = JSON.parse(event.data);
         } catch (parseError) {
-            console.error('Invalid realtime message:', parseError);
+            console.error('Mensaje realtime inválido:', parseError);
             return;
         }
 
@@ -101,7 +101,7 @@ export class RealtimeSyncService {
                 this.sendJson({ type: 'pong', payload: message?.payload });
                 break;
             case 'error':
-                console.error('Realtime subscription error:', message);
+                console.error('Error de suscripción realtime:', message);
                 break;
             default:
                 break;

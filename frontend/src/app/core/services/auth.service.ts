@@ -445,15 +445,21 @@ export class AuthService {
     const gqlErr = this.getFirstGraphQLError(error);
     const code = String(gqlErr?.extensions?.code ?? '').toUpperCase();
     const message = String(gqlErr?.message ?? (error as any)?.message ?? '').toLowerCase();
+    const normalizedMessage = this.stripAccents(message);
 
     return (
       code === 'UNAUTHENTICATED' ||
       code === 'UNAUTHORIZED' ||
-      message.includes('unauthorized') ||
-      message.includes('token invalido') ||
-      message.includes('credenciales invalidas') ||
-      message.includes('cuenta inactiva')
+      normalizedMessage.includes('unauthorized') ||
+      normalizedMessage.includes(this.stripAccents('no autorizado')) ||
+      normalizedMessage.includes(this.stripAccents('token inválido')) ||
+      normalizedMessage.includes(this.stripAccents('credenciales inválidas')) ||
+      normalizedMessage.includes(this.stripAccents('cuenta inactiva'))
     );
+  }
+
+  private stripAccents(value: string): string {
+    return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   }
 
   private getFirstGraphQLError(error: unknown): any | null {

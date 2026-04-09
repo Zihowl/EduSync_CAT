@@ -59,7 +59,7 @@ impl GroupService {
             .repo
             .find_by_id(id)
             .await?
-            .ok_or_else(|| DomainError::NotFound("Group not found".to_string()))?;
+            .ok_or_else(|| DomainError::NotFound("Grupo no encontrado".to_string()))?;
 
         let new_name = if let Some(name) = name {
             let name = normalize_required_text("Nombre del grupo", name)?;

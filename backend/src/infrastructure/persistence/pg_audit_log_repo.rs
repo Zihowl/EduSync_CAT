@@ -51,7 +51,7 @@ impl From<AuditLogRow> for AuditLog {
 }
 
 fn map_sqlx(e: sqlx::Error) -> DomainError {
-    DomainError::Internal(format!("DB audit_logs error: {e}"))
+    DomainError::Internal(format!("Error de base de datos en registros de auditoría: {e}"))
 }
 
 fn apply_filters<'a>(mut builder: QueryBuilder<'a, Postgres>, filter: &'a AuditLogFilter) -> QueryBuilder<'a, Postgres> {

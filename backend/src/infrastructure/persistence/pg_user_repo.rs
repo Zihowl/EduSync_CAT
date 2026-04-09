@@ -55,7 +55,7 @@ impl From<UserRow> for User {
 }
 
 fn map_sqlx(e: sqlx::Error) -> DomainError {
-    DomainError::Internal(format!("DB users error: {e}"))
+    DomainError::Internal(format!("Error de base de datos en usuarios: {e}"))
 }
 
 #[async_trait]

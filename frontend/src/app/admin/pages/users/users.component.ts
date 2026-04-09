@@ -313,7 +313,7 @@ export class UsersComponent implements OnInit
             },
             error: (err) => {
                 this.runInZone(() => {
-                    console.error('GetAllowedDomains network/error (users):', err);
+                    console.error('Error de red al obtener dominios permitidos (usuarios):', err);
                     this.isAllowedDomainsLoaded = true;
                     this.cdr.detectChanges();
                 });
@@ -376,7 +376,7 @@ export class UsersComponent implements OnInit
             },
             error: (err) => {
                 this.runInZone(() => {
-                    console.error('GetUsers network/error:', err);
+                    console.error('Error de red al obtener usuarios:', err);
                     this.isUsersLoaded = true;
                     this.cdr.detectChanges();
                 });

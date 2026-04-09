@@ -268,7 +268,7 @@ impl ExcelService {
         if parsed.dia.is_empty() {
             errors.push("Se requiere Dia".to_string());
         } else if parsed.day_of_week == 0 {
-            errors.push(format!("Dia invalido: {}", parsed.dia));
+            errors.push(format!("Día inválido: {}", parsed.dia));
         }
 
         if parsed.hora_inicio.is_empty() {
@@ -306,7 +306,7 @@ impl ExcelService {
                     if !parsed.aula.is_empty() {
                         match self.find_classroom_id(&parsed.aula, building_id).await? {
                             Some(_) => {}
-                            None => errors.push(format!("Salon no encontrado: {} en {}", parsed.aula, parsed.edificio)),
+                            None => errors.push(format!("Salón no encontrado: {} en {}", parsed.aula, parsed.edificio)),
                         }
                     }
                 }
@@ -385,7 +385,7 @@ impl ExcelService {
         let classroom_id = self
             .find_classroom_id(&parsed.aula, building_id)
             .await?
-            .ok_or_else(|| DomainError::NotFound("Salon no encontrado".to_string()))?;
+            .ok_or_else(|| DomainError::NotFound("Salón no encontrado".to_string()))?;
 
         let group = self.group_service.find_or_create(&parsed.grupo, None).await?;
 
@@ -449,7 +449,7 @@ fn parse_optional_grade(value: &str) -> Result<Option<i32>, DomainError> {
     normalized
         .parse::<i32>()
         .map(Some)
-        .map_err(|_| DomainError::BadRequest(format!("Grado invalido: {normalized}")))
+        .map_err(|_| DomainError::BadRequest(format!("Grado inválido: {normalized}")))
 }
 
 fn parse_optional_text(value: &str) -> Option<String> {

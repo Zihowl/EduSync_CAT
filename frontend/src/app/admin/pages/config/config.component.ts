@@ -350,7 +350,7 @@ export class ConfigComponent implements OnInit
                 },
                 error: (err) => {
                     this.runInZone(() => {
-                        console.error('GetAllowedDomains network/error:', err);
+                        console.error('Error de red al obtener dominios permitidos:', err);
                         this.isDomainsLoaded = true;
                         this.cdr.detectChanges();
                     });
@@ -387,7 +387,7 @@ export class ConfigComponent implements OnInit
                 },
                 error: (err) => {
                     this.runInZone(() => {
-                        console.error('GetCurrentSchoolYear network/error:', err);
+                        console.error('Error de red al obtener ciclo escolar actual:', err);
                         this.isCurrentSchoolYearLoaded = true;
                         this.cdr.detectChanges();
                     });

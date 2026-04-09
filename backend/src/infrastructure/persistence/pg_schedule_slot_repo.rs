@@ -58,7 +58,7 @@ impl From<SlotRow> for ScheduleSlot {
 }
 
 fn map_sqlx(e: sqlx::Error) -> DomainError {
-    DomainError::Internal(format!("DB schedule_slots error: {e}"))
+    DomainError::Internal(format!("Error de base de datos en horarios: {e}"))
 }
 
 fn select_base() -> &'static str {

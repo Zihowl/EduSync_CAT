@@ -36,7 +36,7 @@ impl From<BuildingRow> for Building {
 }
 
 fn map_sqlx(e: sqlx::Error) -> DomainError {
-    DomainError::Internal(format!("DB buildings error: {e}"))
+    DomainError::Internal(format!("Error de base de datos en edificios: {e}"))
 }
 
 #[async_trait]
@@ -83,7 +83,7 @@ impl BuildingRepository for PgBuildingRepository {
         let mut current = self
             .find_by_id(id)
             .await?
-            .ok_or_else(|| DomainError::NotFound("Building not found".to_string()))?;
+            .ok_or_else(|| DomainError::NotFound("Edificio no encontrado".to_string()))?;
 
         if let Some(v) = name {
             current.name = v.to_string();

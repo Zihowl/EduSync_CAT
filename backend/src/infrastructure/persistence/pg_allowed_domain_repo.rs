@@ -31,7 +31,7 @@ impl From<AllowedDomainRow> for AllowedDomain {
 }
 
 fn map_sqlx(e: sqlx::Error) -> DomainError {
-    DomainError::Internal(format!("DB allowed_domains error: {e}"))
+    DomainError::Internal(format!("Error de base de datos en dominios permitidos: {e}"))
 }
 
 #[async_trait]

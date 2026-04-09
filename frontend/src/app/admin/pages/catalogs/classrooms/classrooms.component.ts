@@ -187,7 +187,7 @@ export class ClassroomsComponent implements OnInit
                 this.cdr.detectChanges();
             },
             error: (err) => {
-                console.error('Error loading classroom buildings:', err);
+                console.error('Error al cargar edificios para aulas:', err);
                 this.notifications.danger('Error al cargar edificios para aulas: ' + err.message);
                 this.cdr.detectChanges();
             }
@@ -222,7 +222,7 @@ export class ClassroomsComponent implements OnInit
                 this.cdr.detectChanges();
             },
             error: (err) => {
-                console.error('Error loading classrooms:', err);
+                console.error('Error al cargar aulas:', err);
                 this.notifications.danger('Error al cargar aulas: ' + err.message);
                 this.isClassroomsLoaded = true;
                 this.cdr.detectChanges();
@@ -275,7 +275,7 @@ export class ClassroomsComponent implements OnInit
                     this.LoadClassrooms(true);
                 },
                 error: (err) => {
-                    console.error('Update classroom error:', err);
+                    console.error('Error al actualizar aula:', err);
                     this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo guardar el aula.'));
                 }
             });
@@ -290,7 +290,7 @@ export class ClassroomsComponent implements OnInit
                     this.LoadClassrooms(true);
                 },
                 error: (err) => {
-                    console.error('Create classroom error:', err);
+                    console.error('Error al crear aula:', err);
                     this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo guardar el aula.'));
                 }
             });

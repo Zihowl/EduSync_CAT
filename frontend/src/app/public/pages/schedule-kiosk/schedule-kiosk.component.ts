@@ -356,7 +356,7 @@ export class ScheduleKioskComponent implements OnInit
                     this.syncCalendarState();
                 }
             },
-            error: (err) => console.error('Error loading groups:', err)
+            error: (err) => console.error('Error al cargar grupos:', err)
         });
     }
 
@@ -389,7 +389,7 @@ export class ScheduleKioskComponent implements OnInit
                 this.syncCalendarState();
             },
             error: (err) => {
-                console.error('Error loading schedules:', err);
+                console.error('Error al cargar horarios:', err);
                 this.loading = false;
                 this.syncCalendarState();
             }

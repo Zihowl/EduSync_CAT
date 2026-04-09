@@ -71,7 +71,7 @@ impl ScheduleSlotType {
         let classroom = svc
             .find_one(self.classroom_id)
             .await?
-            .ok_or_else(|| async_graphql::Error::new("Salon no encontrado"))?;
+            .ok_or_else(|| async_graphql::Error::new("Salón no encontrado"))?;
 
         Ok(ClassroomType::from(classroom))
     }

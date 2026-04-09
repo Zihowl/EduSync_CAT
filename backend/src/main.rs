@@ -179,7 +179,7 @@ async fn main() -> anyhow::Result<()> {
         .with_state(state);
 
     let addr: SocketAddr = format!("{}:{}", config.app_host, config.app_port).parse()?;
-    tracing::info!("Rust backend listening at http://{}", addr);
+    tracing::info!("Backend Rust escuchando en http://{}", addr);
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
@@ -210,12 +210,12 @@ async fn genesis_protocol(user_repo: Arc<dyn UserRepository>) -> anyhow::Result<
     let mut replace_existing_user_id: Option<uuid::Uuid> = None;
 
     if users.is_empty() {
-        tracing::warn!("Empty database detected. Starting Genesis Protocol...");
+        tracing::warn!("Base de datos vacía. Iniciando Protocolo Génesis...");
     } else if users.len() == 1 && users[0].email.ends_with("@setup.local") {
-        tracing::warn!("Single setup.local user detected. Regenerating Genesis credentials...");
+        tracing::warn!("Unico usuario setup.local detectado. Regenerando credenciales...");
         replace_existing_user_id = Some(users[0].id);
     } else {
-        tracing::warn!("Genesis Protocol already executed. No regeneration needed.");
+        tracing::warn!("Protocolo Génesis ya ejecutado: No se necesita regenerar.");
         return Ok(());
     }
 
@@ -232,24 +232,24 @@ async fn genesis_protocol(user_repo: Arc<dyn UserRepository>) -> anyhow::Result<
             .update_credentials(user_id, &email, &hash, true)
             .await
             .map_err(anyhow::Error::msg)?;
-        tracing::warn!("Genesis Protocol: Existing @setup.local user updated.");
+        tracing::warn!("Protocolo Génesis: Usuario existente setup.local actualizado.");
     } else {
         user_repo
-            .create_admin(&email, "Super Administrator", &hash, true)
+            .create_admin(&email, "Súper Administrador", &hash, true)
             .await
             .map_err(anyhow::Error::msg)?;
-        tracing::warn!("Genesis Protocol: Super Administrator created.");
+        tracing::warn!("Protocolo Génesis: Súper Administrador creado.");
     }
 
     // Print credentials in formatted output
-    println!("===============================================");
-    println!(" SUPER ADMIN TEMPORARY CREDENTIALS");
-    println!("===============================================");
-    println!(" Email:    {}", email);
-    println!(" Password: {}", password);
-    println!("===============================================");
+    println!("=============================================");
+    println!(" CREDENCIALES DE SÚPER ADMINISTRADOR");
+    println!("=============================================");
+    println!(" Correo:    {}", email);
+    println!(" Contraseña: {}", password);
+    println!("=============================================");
 
-    tracing::warn!("Genesis Protocol completed. Credentials are valid for one-time use.");
+    tracing::warn!("Protocolo Génesis completado. Las credenciales son válidas para uso único.");
 
     Ok(())
 }
@@ -292,7 +292,7 @@ fn hash_password(password: &str) -> anyhow::Result<String> {
     Argon2::default()
         .hash_password(password.as_bytes(), &salt)
         .map(|h| h.to_string())
-        .map_err(|e| anyhow::Error::msg(format!("Failed to hash genesis password: {e}")))
+        .map_err(|e| anyhow::Error::msg(format!("Error al generar el hash de la contraseña de Génesis: {e}")))
 }
 
 fn build_cors_layer(cors_origin: &str) -> anyhow::Result<CorsLayer> {
@@ -308,11 +308,11 @@ fn build_cors_layer(cors_origin: &str) -> anyhow::Result<CorsLayer> {
         .filter(|v| !v.is_empty())
         .map(|origin| origin.parse::<HeaderValue>())
         .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| anyhow::Error::msg(format!("Invalid CORS_ORIGIN value: {e}")))?;
+        .map_err(|e| anyhow::Error::msg(format!("Valor de CORS_ORIGIN inválido: {e}")))?;
 
     if origins.is_empty() {
         return Err(anyhow::Error::msg(
-            "CORS_ORIGIN is empty. Use '*' or one/more origins separated by commas.",
+            "CORS_ORIGIN está vacío. Usa '*' o uno o más orígenes separados por comas.",
         ));
     }
 
@@ -326,7 +326,7 @@ fn spawn_audit_retention_task(audit_repo: Arc<dyn AuditLogRepository>) {
         const RETENTION_INTERVAL_SECS: u64 = 60 * 60 * 24;
 
         if let Err(err) = audit_repo.delete_older_than_months(RETENTION_MONTHS).await {
-            tracing::warn!(error = %err, months = RETENTION_MONTHS, "AUDIT: initial retention cleanup failed");
+            tracing::warn!(error = %err, months = RETENTION_MONTHS, "AUDITORÍA: limpieza inicial de retención fallida");
         }
 
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(RETENTION_INTERVAL_SECS));
@@ -336,10 +336,10 @@ fn spawn_audit_retention_task(audit_repo: Arc<dyn AuditLogRepository>) {
 
             match audit_repo.delete_older_than_months(RETENTION_MONTHS).await {
                 Ok(removed) => {
-                    tracing::info!(removed, months = RETENTION_MONTHS, "AUDIT: retention cleanup completed");
+                    tracing::info!(removed, months = RETENTION_MONTHS, "AUDITORÍA: limpieza de retención completada");
                 }
                 Err(err) => {
-                    tracing::warn!(error = %err, months = RETENTION_MONTHS, "AUDIT: retention cleanup failed");
+                    tracing::warn!(error = %err, months = RETENTION_MONTHS, "AUDITORÍA: limpieza de retención fallida");
                 }
             }
         }

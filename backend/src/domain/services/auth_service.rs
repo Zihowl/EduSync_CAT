@@ -77,14 +77,14 @@ impl AuthService {
         }
 
         if password.trim().is_empty() {
-            return Err(DomainError::BadRequest("Password es requerido".to_string()));
+            return Err(DomainError::BadRequest("Contraseña es requerida".to_string()));
         }
 
         let user = self
             .repo
             .find_by_email(&normalized_email)
             .await?
-            .ok_or_else(|| DomainError::Unauthorized("Credenciales invalidas".to_string()))?;
+            .ok_or_else(|| DomainError::Unauthorized("Credenciales inválidas".to_string()))?;
 
         if !user.is_active {
             return Err(DomainError::Unauthorized("Cuenta inactiva".to_string()));
@@ -116,7 +116,7 @@ impl AuthService {
         }
 
         let parsed = PasswordHash::new(&user.password_hash)
-            .map_err(|_| DomainError::Unauthorized("Credenciales invalidas".to_string()))?;
+            .map_err(|_| DomainError::Unauthorized("Credenciales inválidas".to_string()))?;
 
         if Argon2::default().verify_password(password.as_bytes(), &parsed).is_err() {
             self.repo.increment_failed_login_attempts(user.id).await?;
@@ -144,7 +144,7 @@ impl AuthService {
                 )));
             }
 
-            return Err(DomainError::Unauthorized("Credenciales invalidas".to_string()));
+            return Err(DomainError::Unauthorized("Credenciales inválidas".to_string()));
         }
 
         self.repo.reset_failed_login_attempts(user.id).await?;
@@ -205,7 +205,7 @@ impl AuthService {
             .repo
             .find_by_email(&current_email)
             .await?
-            .ok_or_else(|| DomainError::Unauthorized("Credenciales invalidas".to_string()))?;
+            .ok_or_else(|| DomainError::Unauthorized("Credenciales inválidas".to_string()))?;
 
         if !user.is_active {
             return Err(DomainError::Unauthorized("Cuenta inactiva".to_string()));
@@ -214,7 +214,7 @@ impl AuthService {
         self.verify_user_password(&user, current_password, true).await?;
 
         if !is_valid_email(&new_email) {
-            return Err(DomainError::BadRequest("Nuevo correo invalido".to_string()));
+            return Err(DomainError::BadRequest("Nuevo correo inválido".to_string()));
         }
 
         if new_email.ends_with("@setup.local") {
@@ -222,12 +222,12 @@ impl AuthService {
         }
 
         if new_email != current_email && user.role != UserRole::SuperAdmin {
-            return Err(DomainError::Unauthorized("Solo el Super Administrador puede cambiar el correo electrónico".to_string()));
+            return Err(DomainError::Unauthorized("Solo el Súper Administrador puede cambiar el correo electrónico".to_string()));
         }
 
         if new_email != current_email {
             if self.repo.find_by_email(&new_email).await?.is_some() {
-                return Err(DomainError::Conflict("El correo ya esta registrado".to_string()));
+                return Err(DomainError::Conflict("El correo ya está registrado".to_string()));
             }
         }
 
@@ -236,7 +236,7 @@ impl AuthService {
         }
 
         if !password_meets_complexity(new_password) {
-            return Err(DomainError::BadRequest("La contraseña debe incluir al menos 3 de 4 categorias: mayusculas, minusculas, numeros y simbolos".to_string()));
+            return Err(DomainError::BadRequest("La contraseña debe incluir al menos 3 de 4 categorías: mayúsculas, minúsculas, números y símbolos".to_string()));
         }
 
         if self.verify_user_password(&user, new_password, true).await.is_ok() {
@@ -246,7 +246,7 @@ impl AuthService {
         let mut rng = OsRng;
         let new_password_hash = Argon2::default()
             .hash_password(new_password.as_bytes(), &SaltString::generate(&mut rng))
-            .map_err(|e| DomainError::Internal(format!("No se pudo hashear contraseña: {e}")))?
+            .map_err(|e| DomainError::Internal(format!("No se pudo generar el hash de la contraseña: {e}")))?
             .to_string();
 
         let updated_user = self
@@ -328,7 +328,7 @@ mod tests {
                 user.failed_login_attempts += 1;
                 Ok(())
             } else {
-                Err(DomainError::NotFound("User not found".into()))
+                Err(DomainError::NotFound("Usuario no encontrado".into()))
             }
         }
 
@@ -339,7 +339,7 @@ mod tests {
                 user.lockout_until = None;
                 Ok(())
             } else {
-                Err(DomainError::NotFound("User not found".into()))
+                Err(DomainError::NotFound("Usuario no encontrado".into()))
             }
         }
 
@@ -353,7 +353,7 @@ mod tests {
                 user.lockout_until = until;
                 Ok(())
             } else {
-                Err(DomainError::NotFound("User not found".into()))
+                Err(DomainError::NotFound("Usuario no encontrado".into()))
             }
         }
 
@@ -365,7 +365,7 @@ mod tests {
                 user.lockout_until = None;
                 Ok(user.clone())
             } else {
-                Err(DomainError::NotFound("User not found".into()))
+                Err(DomainError::NotFound("Usuario no encontrado".into()))
             }
         }
 
@@ -380,7 +380,7 @@ mod tests {
                 user.updated_at = Utc::now();
                 Ok(user.clone())
             } else {
-                Err(DomainError::NotFound("User not found".into()))
+                Err(DomainError::NotFound("Usuario no encontrado".into()))
             }
         }
     }
@@ -570,7 +570,7 @@ mod tests {
             )
             .await;
 
-        assert!(matches!(result, Err(DomainError::Unauthorized(msg)) if msg.contains("Solo el Super Administrador puede cambiar el correo electrónico")));
+        assert!(matches!(result, Err(DomainError::Unauthorized(msg)) if msg.contains("Solo el Súper Administrador puede cambiar el correo electrónico")));
     }
 
     #[tokio::test]
@@ -598,7 +598,7 @@ mod tests {
             )
             .await;
 
-        assert!(matches!(result, Err(DomainError::Unauthorized(msg)) if msg.contains("Solo el Super Administrador puede cambiar el correo electrónico")));
+        assert!(matches!(result, Err(DomainError::Unauthorized(msg)) if msg.contains("Solo el Súper Administrador puede cambiar el correo electrónico")));
     }
 
     #[tokio::test]
@@ -636,7 +636,7 @@ async fn test_read_auth_user_from_headers_extracts_claims() {
         cors_origin: "http://localhost:8100".to_string(),
         genesis_super_admin_email: "superadmin@edusync.edu.mx".to_string(),
         genesis_super_admin_password: "ChangeMe123!".to_string(),
-        genesis_super_admin_name: "Super Administrador".to_string(),
+        genesis_super_admin_name: "Súper Administrador".to_string(),
     };
 
     let auth_user = read_auth_user_from_headers(&headers, &config).expect("Debe extraerse sesión");

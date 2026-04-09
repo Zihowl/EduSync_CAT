@@ -65,9 +65,9 @@ pub fn require_admin(ctx: &Context<'_>) -> Result<AuthUser, GqlError> {
     let user = ctx
         .data_opt::<AuthUser>()
         .cloned()
-        .ok_or_else(|| GqlError::new("Unauthorized"))?;
+        .ok_or_else(|| GqlError::new("No autorizado"))?;
     if !user.is_admin_horarios() {
-        return Err(GqlError::new("Forbidden"));
+        return Err(GqlError::new("Acceso denegado"));
     }
     Ok(user)
 }
@@ -76,9 +76,9 @@ pub fn require_super_admin(ctx: &Context<'_>) -> Result<AuthUser, GqlError> {
     let user = ctx
         .data_opt::<AuthUser>()
         .cloned()
-        .ok_or_else(|| GqlError::new("Unauthorized"))?;
+        .ok_or_else(|| GqlError::new("No autorizado"))?;
     if !user.is_super_admin() {
-        return Err(GqlError::new("Forbidden"));
+        return Err(GqlError::new("Acceso denegado"));
     }
     Ok(user)
 }

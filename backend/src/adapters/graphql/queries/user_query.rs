@@ -27,14 +27,14 @@ impl UserQuery {
         let auth_user = ctx
             .data_opt::<AuthUser>()
             .cloned()
-            .ok_or_else(|| GqlError::new("Unauthorized"))?;
+            .ok_or_else(|| GqlError::new("No autorizado"))?;
         
         let svc = ctx.data::<Arc<UserService>>()?;
         
         match svc.find_by_id(auth_user.user_id).await {
             Ok(Some(user)) if user.is_active => Ok(user.into()),
             Ok(Some(_)) => Err(GqlError::new("Cuenta inactiva")),
-            Ok(None) => Err(GqlError::new("User not found")),
+            Ok(None) => Err(GqlError::new("Usuario no encontrado")),
             Err(e) => Err(to_gql_error(e))
         }
     }

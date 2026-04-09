@@ -40,7 +40,7 @@ impl From<SubjectRow> for Subject {
 }
 
 fn map_sqlx(e: sqlx::Error) -> DomainError {
-    DomainError::Internal(format!("DB subjects error: {e}"))
+    DomainError::Internal(format!("Error de base de datos en materias: {e}"))
 }
 
 #[async_trait]
@@ -102,7 +102,7 @@ impl SubjectRepository for PgSubjectRepository {
         let mut current = self
             .find_by_id(id)
             .await?
-            .ok_or_else(|| DomainError::NotFound("Subject not found".to_string()))?;
+            .ok_or_else(|| DomainError::NotFound("Materia no encontrada".to_string()))?;
 
         if let Some(v) = code {
             current.code = v.to_string();

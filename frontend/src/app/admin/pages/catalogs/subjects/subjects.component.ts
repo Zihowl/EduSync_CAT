@@ -190,7 +190,7 @@ export class SubjectsComponent implements OnInit
                 this.cdr.detectChanges();
             },
             error: (err) => {
-                console.error('Error loading subjects:', err);
+                console.error('Error al cargar materias:', err);
                 this.notifications.danger('Error al cargar materias: ' + err.message);
                 this.isSubjectsLoaded = true;
                 this.cdr.detectChanges();
@@ -244,7 +244,7 @@ export class SubjectsComponent implements OnInit
                     this.LoadSubjects(true);
                 },
                 error: (err) => {
-                    console.error('Update subject error:', err);
+                    console.error('Error al actualizar materia:', err);
                     this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo guardar la materia.'));
                 }
             });
@@ -258,7 +258,7 @@ export class SubjectsComponent implements OnInit
                     this.LoadSubjects(true);
                 },
                 error: (err) => {
-                    console.error('Create subject error:', err);
+                    console.error('Error al crear materia:', err);
                     this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo guardar la materia.'));
                 }
             });

@@ -23,6 +23,8 @@ export function getGraphQLErrorMessage(error: unknown, fallbackMessage = 'Ocurri
 
 function normalizeErrorMessage(message: string): string {
   return message
+    .replace(/^Unauthorized(?::\s*)?/i, 'No autorizado')
+    .replace(/^Forbidden(?::\s*)?/i, 'Acceso denegado')
     .replace(/^GraphQL error:\s*/i, '')
     .replace(/^ApolloError:\s*/i, '')
     .trim();

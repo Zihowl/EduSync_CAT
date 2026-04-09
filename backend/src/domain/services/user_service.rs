@@ -51,7 +51,7 @@ impl UserService {
         self.ensure_domain_allowed(&email).await?;
 
         if self.repo.find_by_email(&email).await?.is_some() {
-            return Err(DomainError::Conflict("El correo ya esta registrado".to_string()));
+            return Err(DomainError::Conflict("El correo ya está registrado".to_string()));
         }
 
         let temp_password = self.generate_temp_password(16)?;
@@ -62,7 +62,7 @@ impl UserService {
             .await?;
 
         tracing::info!(
-            "SIMULACION EMAIL -> to={} temp_password={} (forzar cambio en primer login)",
+            "SIMULACIÓN EMAIL -> to={} temp_password={} (forzar cambio en primer login)",
             email,
             temp_password
         );
@@ -92,7 +92,7 @@ impl UserService {
             target_email = %updated_user.email,
             temp_password = %temp_password,
             action = "force_reset_admin_password",
-            "SIMULACION EMAIL -> restablecimiento forzado con contraseña temporal"
+            "SIMULACIÓN EMAIL -> restablecimiento forzado con contraseña temporal"
         );
 
         tracing::warn!(
@@ -101,7 +101,7 @@ impl UserService {
             target_email = %updated_user.email,
             timestamp = %Utc::now().to_rfc3339(),
             action = "force_reset_admin_password",
-            "AUDIT: restablecimiento forzado de contraseña de administrador"
+            "AUDITORÍA: restablecimiento forzado de contraseña de administrador"
         );
 
         Ok((updated_user, temp_password))
@@ -133,7 +133,7 @@ impl UserService {
             active = is_active,
             timestamp = %Utc::now().to_rfc3339(),
             action = if is_active { "reactivate_admin_access" } else { "disable_admin_access" },
-            "AUDIT: cambio de acceso de administrador"
+            "AUDITORÍA: cambio de acceso de administrador"
         );
 
         Ok(updated_user)
@@ -157,9 +157,9 @@ impl UserService {
 
     fn ensure_email_format(&self, email: &str) -> Result<(), DomainError> {
         let re = Regex::new(r"^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$")
-            .map_err(|e| DomainError::Internal(format!("Regex invalida: {e}")))?;
+            .map_err(|e| DomainError::Internal(format!("Regex inválida: {e}")))?;
         if !re.is_match(email) {
-            return Err(DomainError::BadRequest("Email invalido".to_string()));
+            return Err(DomainError::BadRequest("Correo electrónico inválido".to_string()));
         }
         Ok(())
     }
@@ -168,11 +168,11 @@ impl UserService {
         let domain = email
             .split('@')
             .nth(1)
-            .ok_or_else(|| DomainError::BadRequest("Email invalido".to_string()))?;
+            .ok_or_else(|| DomainError::BadRequest("Correo electrónico inválido".to_string()))?;
         let allowed = self.allowed_domain_repo.find_all().await?;
         if !allowed.iter().any(|d| d.domain.eq_ignore_ascii_case(domain)) {
             return Err(DomainError::BadRequest(format!(
-                "El dominio @{domain} no esta permitido"
+                "El dominio @{domain} no está permitido"
             )));
         }
         Ok(())
@@ -183,12 +183,12 @@ impl UserService {
         Argon2::default()
             .hash_password(password.as_bytes(), &salt)
             .map(|h| h.to_string())
-            .map_err(|e| DomainError::Internal(format!("No se pudo hashear password: {e}")))
+                .map_err(|e| DomainError::Internal(format!("No se pudo generar el hash de la contraseña: {e}")))
     }
 
     fn generate_temp_password(&self, length: usize) -> Result<String, DomainError> {
         if length < 4 {
-            return Err(DomainError::BadRequest("Longitud de password invalida".to_string()));
+            return Err(DomainError::BadRequest("Longitud de contraseña inválida".to_string()));
         }
         let upper = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         let lower = b"abcdefghijklmnopqrstuvwxyz";
@@ -311,7 +311,7 @@ mod tests {
                 user.failed_login_attempts += 1;
                 Ok(())
             } else {
-                Err(DomainError::NotFound("User not found".into()))
+                Err(DomainError::NotFound("Usuario no encontrado".into()))
             }
         }
 
@@ -322,7 +322,7 @@ mod tests {
                 user.lockout_until = None;
                 Ok(())
             } else {
-                Err(DomainError::NotFound("User not found".into()))
+                Err(DomainError::NotFound("Usuario no encontrado".into()))
             }
         }
 
@@ -336,7 +336,7 @@ mod tests {
                 user.lockout_until = until;
                 Ok(())
             } else {
-                Err(DomainError::NotFound("User not found".into()))
+                Err(DomainError::NotFound("Usuario no encontrado".into()))
             }
         }
 
@@ -348,7 +348,7 @@ mod tests {
                 user.lockout_until = None;
                 Ok(user.clone())
             } else {
-                Err(DomainError::NotFound("User not found".into()))
+                Err(DomainError::NotFound("Usuario no encontrado".into()))
             }
         }
 
@@ -363,7 +363,7 @@ mod tests {
                 user.updated_at = Utc::now();
                 Ok(user.clone())
             } else {
-                Err(DomainError::NotFound("User not found".into()))
+                Err(DomainError::NotFound("Usuario no encontrado".into()))
             }
         }
     }
@@ -448,7 +448,7 @@ mod tests {
         assert!(stored_user.is_temp_password);
         assert_ne!(stored_user.password_hash, original_hash);
 
-        let parsed_hash = PasswordHash::new(&stored_user.password_hash).expect("hash valido");
+        let parsed_hash = PasswordHash::new(&stored_user.password_hash).expect("hash válido");
         assert!(Argon2::default().verify_password(temp_password.as_bytes(), &parsed_hash).is_ok());
         assert!(Argon2::default().verify_password(TEST_PASSWORD.as_bytes(), &parsed_hash).is_err());
     }
@@ -476,6 +476,6 @@ mod tests {
 
         let result = service.create_admin("EXISTING@EXAMPLE.COM", "Duplicado").await;
 
-        assert!(matches!(result, Err(DomainError::Conflict(msg)) if msg.contains("El correo ya esta registrado")));
+        assert!(matches!(result, Err(DomainError::Conflict(msg)) if msg.contains("El correo ya está registrado")));
     }
 }

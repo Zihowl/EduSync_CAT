@@ -61,7 +61,7 @@ impl UserMutation {
         let auth_user = require_super_admin(ctx)?;
         let svc = ctx.data::<Arc<UserService>>()?;
         let target_user_id = Uuid::parse_str(user_id.as_str())
-            .map_err(|_| async_graphql::Error::new("Identificador de usuario invalido"))?;
+            .map_err(|_| async_graphql::Error::new("Identificador de usuario inválido"))?;
 
         let result: async_graphql::Result<UserType> = svc
             .disable_admin_access(auth_user.user_id, target_user_id)
@@ -95,7 +95,7 @@ impl UserMutation {
         let auth_user = require_super_admin(ctx)?;
         let svc = ctx.data::<Arc<UserService>>()?;
         let target_user_id = Uuid::parse_str(user_id.as_str())
-            .map_err(|_| async_graphql::Error::new("Identificador de usuario invalido"))?;
+            .map_err(|_| async_graphql::Error::new("Identificador de usuario inválido"))?;
 
         let result: async_graphql::Result<UserType> = svc
             .reactivate_admin_access(auth_user.user_id, target_user_id)
@@ -129,7 +129,7 @@ impl UserMutation {
         let auth_user = require_super_admin(ctx)?;
         let svc = ctx.data::<Arc<UserService>>()?;
         let target_user_id = Uuid::parse_str(user_id.as_str())
-            .map_err(|_| async_graphql::Error::new("Identificador de usuario invalido"))?;
+            .map_err(|_| async_graphql::Error::new("Identificador de usuario inválido"))?;
 
         let result: async_graphql::Result<UserType> = svc
             .force_reset_admin_password(auth_user.user_id, target_user_id)

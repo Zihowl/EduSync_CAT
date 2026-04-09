@@ -126,7 +126,7 @@ async fn build_public_schedule(
         .find_one(slot.classroom_id)
         .await
         .map_err(|e| e.msg())?
-        .ok_or_else(|| "Salon no encontrado".to_string())?;
+        .ok_or_else(|| "Salón no encontrado".to_string())?;
 
     let group = build_public_group(&state.group_service, slot.group_id).await?;
 

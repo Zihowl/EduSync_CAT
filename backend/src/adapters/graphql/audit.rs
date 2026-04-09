@@ -23,7 +23,7 @@ pub async fn record_admin_audit(
     details: Value,
 ) {
     let Some(repo) = ctx.data_opt::<Arc<dyn AuditLogRepository>>().cloned() else {
-        tracing::warn!(action = %action, resource_type = %resource_type, "AUDIT: repository not available");
+        tracing::warn!(action = %action, resource_type = %resource_type, "AUDITORÍA: repositorio no disponible");
         return;
     };
 
@@ -42,7 +42,7 @@ pub async fn record_admin_audit(
             action = %action,
             resource_type = %resource_type,
             error = %err,
-            "AUDIT: unable to persist audit event"
+            "AUDITORÍA: no se pudo guardar el evento de auditoría"
         );
         return;
     }

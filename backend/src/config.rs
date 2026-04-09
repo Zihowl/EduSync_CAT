@@ -37,7 +37,7 @@ impl AppConfig {
             genesis_super_admin_password: env::var("GENESIS_SUPER_ADMIN_PASSWORD")
                 .unwrap_or_else(|_| "ChangeMe123!".to_string()),
             genesis_super_admin_name: env::var("GENESIS_SUPER_ADMIN_NAME")
-                .unwrap_or_else(|_| "Super Administrador".to_string()),
+                .unwrap_or_else(|_| "Súper Administrador".to_string()),
         }
     }
 }

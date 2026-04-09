@@ -627,7 +627,7 @@ export class SchedulesComponent implements OnInit
                 this.cdr.detectChanges();
             },
             error: (err) => {
-                console.error('Error loading schedule catalogs:', err);
+                console.error('Error al cargar catalogos de horarios:', err);
                 this.cdr.detectChanges();
             }
         });
@@ -710,7 +710,7 @@ export class SchedulesComponent implements OnInit
                 this.cdr.detectChanges();
             },
             error: (err) => {
-                console.error('Error loading schedules:', err);
+                console.error('Error al cargar horarios:', err);
                 this.isSchedulesLoaded = true;
                 this.refreshCalendarView();
                 this.cdr.detectChanges();

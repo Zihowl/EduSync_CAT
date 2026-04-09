@@ -336,7 +336,7 @@ export class AuditLogsComponent implements OnInit {
                 this.cdr.detectChanges();
             },
             error: (error) => {
-                console.error('Error loading audit logs:', error);
+                console.error('Error al cargar registros de auditoría:', error);
                 this.auditLogs = [];
                 this.totalCount = 0;
                 this.isLoaded = true;

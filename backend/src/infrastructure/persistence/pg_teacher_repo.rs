@@ -39,7 +39,7 @@ impl From<TeacherRow> for Teacher {
 }
 
 fn map_sqlx(e: sqlx::Error) -> DomainError {
-    DomainError::Internal(format!("DB teachers error: {e}"))
+    DomainError::Internal(format!("Error de base de datos en docentes: {e}"))
 }
 
 #[async_trait]
@@ -108,7 +108,7 @@ impl TeacherRepository for PgTeacherRepository {
         let mut current = self
             .find_by_id(id)
             .await?
-            .ok_or_else(|| DomainError::NotFound("Teacher not found".to_string()))?;
+            .ok_or_else(|| DomainError::NotFound("Docente no encontrado".to_string()))?;
 
         if let Some(v) = employee_number {
             current.employee_number = v.to_string();
