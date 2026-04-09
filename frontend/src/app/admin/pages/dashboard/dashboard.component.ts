@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { Observable, map } from 'rxjs';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
@@ -19,6 +20,7 @@ interface DashboardCard extends MenuCardData {
     standalone: true,
     imports: [
         CommonModule,
+        RouterLink,
         IonContent,
         PageHeaderComponent,
         MenuCardComponent
@@ -43,7 +45,12 @@ interface DashboardCard extends MenuCardData {
                 <div class="dashboard-shell app-page-shell">
                     <div class="dashboard-grid">
                         <ng-container *ngFor="let card of cards; trackBy: trackByTitle">
-                            <app-menu-card *ngIf="card.roles.includes(currentRole)" [card]="card"></app-menu-card>
+                            <a
+                                app-menu-card
+                                *ngIf="card.roles.includes(currentRole)"
+                                [card]="card"
+                                [routerLink]="card.route">
+                            </a>
                         </ng-container>
                     </div>
                 </div>

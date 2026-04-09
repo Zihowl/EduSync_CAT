@@ -1,9 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════════════
    Menu Card Component
    ───────────────────────────────────────────────────────────────────────
-   BEM block: .menu-card
-   Elements:  __content, __icon-shell, __icon, __body, __title,
-              __description, __chevron
+  Host: a[app-menu-card]
+  Elements:  __content, __icon, __body, __title, __description,
+          __chevron
 
    All tunable values live as custom properties on :host so you can
    override any of them from a parent without touching this file.
@@ -34,8 +34,6 @@
   /* Icon shell */
   --icon-size: 2.2rem;
   --icon-font-size: 1.1rem;
-  --icon-radius: 0.7rem;
-  --icon-bg: transparent;
   --icon-color: rgba(248, 250, 252, 0.84);
 
   /* Typography */
@@ -61,13 +59,15 @@
 }
 
 /* ── Card shell ────────────────────────────────────────────────────── */
-.menu-card {
+:host {
   position: relative;
   display: block;
   width: 100%;
   min-height: var(--card-min-height);
   margin: 0;
   text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 
   background: var(--card-bg);
   border: 1px solid var(--card-border);
@@ -99,6 +99,7 @@
 
   /* ── Hover / focus lift ──────────────────────────────────────────── */
   &:hover,
+  &:focus-visible,
   &:focus-within {
     transform: translateY(-2px);
     border-color: var(--hover-border);
@@ -122,19 +123,14 @@
 }
 
 /* ── Icon ──────────────────────────────────────────────────────────── */
-.menu-card__icon-shell {
+.menu-card__icon {
   width: var(--icon-size);
   height: var(--icon-size);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--icon-radius);
-  background: var(--icon-bg);
-  border: 1px solid rgba(148, 163, 184, 0.14);
   flex: 0 0 auto;
-}
-
-.menu-card__icon {
+  line-height: 1;
   font-size: var(--icon-font-size);
   color: var(--icon-color);
 }
@@ -179,8 +175,9 @@
     transform var(--transition-speed) ease,
     opacity var(--transition-speed) ease;
 
-  .menu-card:hover &,
-  .menu-card:focus-within & {
+  :host(:hover) &,
+  :host(:focus-visible) &,
+  :host(:focus-within) & {
     transform: translateX(0.18rem);
     opacity: 1;
   }

@@ -18,11 +18,6 @@
     align-items: stretch;
 }
 
-.dashboard-grid app-menu-card {
-    display: block;
-    min-width: 0;
-}
-
 @media (min-width: 1200px) {
     .dashboard-shell {
         max-width: 1320px;
