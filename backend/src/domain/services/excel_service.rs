@@ -5,6 +5,7 @@ use csv::ReaderBuilder;
 
 use crate::domain::{
     errors::DomainError,
+    models::{building::Building, classroom::Classroom},
     services::{
         building_service::BuildingService,
         classroom_service::ClassroomService,
@@ -107,9 +108,17 @@ impl ExcelService {
         let hora_inicio = normalize_time(&value(&["HoraInicio"]));
         let hora_fin = normalize_time(&value(&["HoraFin"]));
 
-        if clave_materia.is_empty() || grupo.is_empty() || dia.is_empty() || hora_inicio.is_empty() {
+        if clave_materia.is_empty()
+            || materia.is_empty()
+            || grupo.is_empty()
+            || aula.is_empty()
+            || edificio.is_empty()
+            || dia.is_empty()
+            || hora_inicio.is_empty()
+            || hora_fin.is_empty()
+        {
             return Err(DomainError::BadRequest(
-                "Se requiere ClaveMateria, Grupo, Dia y HoraInicio".to_string(),
+                "Se requiere ClaveMateria, Materia, Grupo, Aula, Edificio, Dia, HoraInicio y HoraFin".to_string(),
             ));
         }
 
@@ -137,16 +146,9 @@ impl ExcelService {
             Some(teacher.id)
         };
 
-        if !edificio.is_empty() {
-            let _ = self.building_service.create(&edificio, None).await;
-        }
+        let building = resolve_or_create_building(&self.building_service, &edificio).await?;
 
-        let classroom_name = if aula.is_empty() { "VIRTUAL" } else { &aula };
-        let classroom = match self.classroom_service.create(classroom_name, None).await {
-            Ok(v) => v,
-            Err(DomainError::Conflict(_)) => self.classroom_service.find_all().await?.into_iter().find(|c| c.name == classroom_name).ok_or_else(|| DomainError::NotFound("Salon no encontrado".to_string()))?,
-            Err(e) => return Err(e),
-        };
+        let classroom = resolve_or_create_classroom(&self.classroom_service, &aula, building.id).await?;
 
         let group = match self.group_service.create(&grupo, None).await {
             Ok(v) => v,
@@ -172,6 +174,32 @@ impl ExcelService {
             .await?;
 
         Ok(())
+    }
+}
+
+async fn resolve_or_create_building(service: &BuildingService, name: &str) -> Result<Building, DomainError> {
+    match service.create(name, None).await {
+        Ok(building) => Ok(building),
+        Err(DomainError::Conflict(_)) => service
+            .find_by_name(name)
+            .await?
+            .ok_or_else(|| DomainError::NotFound("Edificio no encontrado".to_string())),
+        Err(err) => Err(err),
+    }
+}
+
+async fn resolve_or_create_classroom(
+    service: &ClassroomService,
+    name: &str,
+    building_id: i32,
+) -> Result<Classroom, DomainError> {
+    match service.create(name, Some(building_id)).await {
+        Ok(classroom) => Ok(classroom),
+        Err(DomainError::Conflict(_)) => service
+            .find_by_name_and_building(name, building_id)
+            .await?
+            .ok_or_else(|| DomainError::NotFound("Salon no encontrado".to_string())),
+        Err(err) => Err(err),
     }
 }
 

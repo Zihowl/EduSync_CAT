@@ -25,6 +25,10 @@ impl BuildingService {
         self.repo.find_by_id(id).await
     }
 
+    pub async fn find_by_name(&self, name: &str) -> Result<Option<Building>, DomainError> {
+        self.repo.find_by_name(name).await
+    }
+
     pub async fn create(&self, name: &str, description: Option<&str>) -> Result<Building, DomainError> {
         let name = normalize_required_text("Nombre del edificio", name)?;
         let description = normalize_optional_text(description);

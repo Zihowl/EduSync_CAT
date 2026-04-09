@@ -25,6 +25,10 @@ impl ClassroomService {
         self.repo.find_by_id(id).await
     }
 
+    pub async fn find_by_name_and_building(&self, name: &str, building_id: i32) -> Result<Option<Classroom>, DomainError> {
+        self.repo.find_by_name_and_building(name, building_id).await
+    }
+
     pub async fn create(&self, name: &str, building_id: Option<i32>) -> Result<Classroom, DomainError> {
         let name = normalize_required_text("Nombre del aula", name)?;
         let building_id = building_id.ok_or_else(|| DomainError::BadRequest("El edificio es requerido".to_string()))?;

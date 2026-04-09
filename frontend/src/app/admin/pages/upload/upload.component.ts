@@ -32,50 +32,97 @@ import { environment } from '../../../../environments/environment';
         <app-page-header title="Carga de Horarios" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content class="ion-padding upload-content">
-            <div class="upload-container app-page-shell">
-                <ion-card class="upload-card">
-                    <ion-card-content>
-                        <div class="upload-header">
-                            <ion-icon name="cloud-upload-outline" class="upload-icon" color="primary"></ion-icon>
-                            <h2>Subir Archivo Excel</h2>
-                            <p class="text-muted">
-                                El archivo debe contener las columnas: <br>
-                                <strong>ClaveMateria, Materia, NoEmpleado (opcional), Docente (opcional), Grupo, Subgrupo (opcional), Aula, Edificio, Dia, HoraInicio, HoraFin</strong>
-                            </p>
-                        </div>
+            <div class="upload-shell app-page-shell app-page-shell--wide">
+                <div class="upload-grid">
+                    <ion-card class="upload-card upload-card--hero">
+                        <ion-card-content>
+                            <div class="upload-hero">
+                                <div class="upload-hero__icon">
+                                    <ion-icon name="cloud-upload-outline" class="upload-icon"></ion-icon>
+                                </div>
 
-                        <input
-                            type="file"
-                            #fileInput
-                            (change)="OnFileSelected($event)"
-                            accept=".xlsx, .csv"
-                            class="upload-file-input">
-
-                        <div *ngIf="!selectedFile" class="button-area">
-                            <ion-button expand="block" (click)="fileInput.click()">
-                                Seleccionar Archivo
-                            </ion-button>
-                        </div>
-
-                        <div *ngIf="selectedFile" class="selected-file">
-                            <p class="file-name">
-                                <ion-icon name="document-text-outline"></ion-icon>
-                                {{ selectedFile.name }}
-                            </p>
-
-                            <div class="button-group">
-                                <ion-button expand="block" color="success" (click)="Upload()" [disabled]="isLoading">
-                                    {{ isLoading ? 'Procesando...' : 'Confirmar Carga' }}
-                                </ion-button>
-                                <ion-button expand="block" fill="clear" color="danger" (click)="clearSelection(fileInput)" [disabled]="isLoading">
-                                    Cancelar
-                                </ion-button>
+                                <div class="upload-hero__copy">
+                                    <p class="upload-kicker">Importación masiva</p>
+                                    <h2>Sube horarios desde Excel o CSV</h2>
+                                    <p class="upload-description">
+                                        Usa el archivo de prueba para poblar catálogos reales de una universidad:
+                                        docentes, materias, grupos, edificios, aulas y bloques horarios.
+                                    </p>
+                                </div>
                             </div>
-                        </div>
 
-                        <ion-progress-bar *ngIf="isLoading" type="indeterminate" class="upload-progress"></ion-progress-bar>
-                    </ion-card-content>
-                </ion-card>
+                            <div class="upload-badges">
+                                <span class="upload-badge">.xlsx</span>
+                                <span class="upload-badge">.csv</span>
+                                <span class="upload-badge">Catálogos automáticos</span>
+                                <span class="upload-badge">Validación por columna</span>
+                            </div>
+
+                            <div class="upload-action-panel">
+                                <input
+                                    type="file"
+                                    #fileInput
+                                    (change)="OnFileSelected($event)"
+                                    accept=".xlsx, .csv"
+                                    class="upload-file-input">
+
+                                <div *ngIf="!selectedFile" class="button-area">
+                                    <ion-button expand="block" (click)="fileInput.click()">
+                                        Seleccionar archivo
+                                    </ion-button>
+                                </div>
+
+                                <div *ngIf="selectedFile" class="selected-file">
+                                    <p class="file-name">
+                                        <ion-icon name="document-text-outline"></ion-icon>
+                                        {{ selectedFile.name }}
+                                    </p>
+
+                                    <p class="file-meta">
+                                        Revisa que las columnas coincidan antes de confirmar la carga.
+                                    </p>
+
+                                    <div class="button-group">
+                                        <ion-button expand="block" color="success" (click)="Upload()" [disabled]="isLoading">
+                                            {{ isLoading ? 'Procesando...' : 'Confirmar carga' }}
+                                        </ion-button>
+                                        <ion-button expand="block" fill="outline" color="medium" (click)="clearSelection(fileInput)" [disabled]="isLoading">
+                                            Cambiar archivo
+                                        </ion-button>
+                                    </div>
+                                </div>
+
+                                <ion-progress-bar *ngIf="isLoading" type="indeterminate" class="upload-progress"></ion-progress-bar>
+                            </div>
+                        </ion-card-content>
+                    </ion-card>
+
+                    <ion-card class="upload-card upload-card--guide">
+                        <ion-card-content>
+                            <div class="upload-guide">
+                                <div>
+                                    <p class="upload-kicker">Formato esperado</p>
+                                    <h3 class="upload-guide__title">Columnas del archivo</h3>
+                                    <p class="upload-guide__text">
+                                        La importación busca cada encabezado por nombre exacto. Aula, Edificio, Día, Hora Inicio y Hora Fin son obligatorios.
+                                        NoEmpleado, Docente y Subgrupo pueden ir vacíos.
+                                    </p>
+                                </div>
+
+                                <div class="upload-column-grid">
+                                    <div *ngFor="let column of expectedColumns" class="upload-column" [class.upload-column--required]="column.required">
+                                        <span class="upload-column__label">{{ column.label }}</span>
+                                        <span class="upload-column__state">{{ column.required ? 'Requerido' : 'Opcional' }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="upload-note">
+                                    Archivo de prueba: <strong>test-data/horarios_prueba.csv</strong>
+                                </div>
+                            </div>
+                        </ion-card-content>
+                    </ion-card>
+                </div>
             </div>
         </ion-content>
     `,
@@ -87,6 +134,20 @@ export class UploadComponent implements OnInit
     private notifications = inject(NotificationService);
     private apiUrl = environment.apiUrl;
     private fileInputElement: HTMLInputElement | null = null;
+
+    expectedColumns = [
+        { label: 'ClaveMateria', required: true },
+        { label: 'Materia', required: true },
+        { label: 'NoEmpleado', required: false },
+        { label: 'Docente', required: false },
+        { label: 'Grupo', required: true },
+        { label: 'Subgrupo', required: false },
+        { label: 'Aula', required: true },
+        { label: 'Edificio', required: true },
+        { label: 'Dia', required: true },
+        { label: 'HoraInicio', required: true },
+        { label: 'HoraFin', required: true },
+    ];
 
     selectedFile: File | null = null;
     isLoading = false;
