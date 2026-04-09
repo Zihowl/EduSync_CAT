@@ -28,123 +28,125 @@ interface DayCluster {
   imports: [CommonModule, IonBadge, IonChip, IonIcon],
   template: `
     <div class="schedule-calendar" [style.--schedule-day-count]="visibleDays.length">
-      <div class="schedule-calendar__header">
-        <div class="schedule-calendar__time-head">
-          <span>Hora</span>
-        </div>
+      <div class="schedule-calendar__viewport">
+        <div class="schedule-calendar__header">
+          <div class="schedule-calendar__time-head">
+            <span>Hora</span>
+          </div>
 
-        <button
-          *ngFor="let day of visibleDays; trackBy: trackByDay"
-          type="button"
-          class="schedule-calendar__day-head"
-          [class.schedule-calendar__day-head--today]="day === todayDayOfWeek"
-          [class.schedule-calendar__day-head--active]="day === highlightedDay"
-          (click)="emitDayHeaderClick(day)">
-          <span class="schedule-calendar__day-short">{{ getDayShortLabel(day) }}</span>
-          <strong class="schedule-calendar__day-name">{{ getDayLabel(day) }}</strong>
-          <span class="schedule-calendar__day-count">{{ getEventsForDay(day).length }} bloques</span>
-        </button>
-      </div>
-
-      <div class="schedule-calendar__body" [style.--schedule-calendar-height.px]="calendarHeight">
-        <div class="schedule-calendar__time-rail">
-          <span
-            *ngFor="let hour of hourMarkers; trackBy: trackByHour"
-            class="schedule-calendar__hour-label"
-            [style.top.px]="(hour * 60 - startMinute) * minuteHeight">
-            {{ formatHour(hour) }}
-          </span>
-        </div>
-
-        <div class="schedule-calendar__days">
-          <section
+          <button
             *ngFor="let day of visibleDays; trackBy: trackByDay"
-            class="schedule-calendar__day-column"
-            [class.schedule-calendar__day-column--today]="day === todayDayOfWeek"
-            [class.schedule-calendar__day-column--active]="day === highlightedDay"
-            [style.height.px]="calendarHeight">
+            type="button"
+            class="schedule-calendar__day-head"
+            [class.schedule-calendar__day-head--today]="day === todayDayOfWeek"
+            [class.schedule-calendar__day-head--active]="day === highlightedDay"
+            (click)="emitDayHeaderClick(day)">
+            <span class="schedule-calendar__day-short">{{ getDayShortLabel(day) }}</span>
+            <strong class="schedule-calendar__day-name">{{ getDayLabel(day) }}</strong>
+            <span class="schedule-calendar__day-count">{{ getEventsForDay(day).length }} bloques</span>
+          </button>
+        </div>
 
-            <div class="schedule-calendar__grid-lines"></div>
+        <div class="schedule-calendar__body" [style.--schedule-calendar-height.px]="calendarHeight">
+          <div class="schedule-calendar__time-rail">
+            <span
+              *ngFor="let hour of hourMarkers; trackBy: trackByHour"
+              class="schedule-calendar__hour-label"
+              [style.top.px]="(hour * 60 - startMinute) * minuteHeight">
+              {{ formatHour(hour) }}
+            </span>
+          </div>
 
-            <button
-              *ngFor="let cell of slots; trackBy: trackByCell"
-              type="button"
-              class="schedule-calendar__cell"
-              [style.top.px]="cell.top"
-              [style.height.px]="cell.height"
-              (click)="emitCellClick(day, cell.minuteOfDay)">
-            </button>
+          <div class="schedule-calendar__days">
+            <section
+              *ngFor="let day of visibleDays; trackBy: trackByDay"
+              class="schedule-calendar__day-column"
+              [class.schedule-calendar__day-column--today]="day === todayDayOfWeek"
+              [class.schedule-calendar__day-column--active]="day === highlightedDay"
+              [style.height.px]="calendarHeight">
 
-            <div
-              *ngIf="day === todayDayOfWeek && showCurrentTimeMarker && currentTimeTop >= 0 && currentTimeTop <= calendarHeight"
-              class="schedule-calendar__current-time"
-              [style.top.px]="currentTimeTop">
-              <span class="schedule-calendar__current-time-dot"></span>
-              <span class="schedule-calendar__current-time-line"></span>
-            </div>
+              <div class="schedule-calendar__grid-lines"></div>
 
-            <article
-              *ngFor="let event of getLayoutsForDay(day); trackBy: trackByLayoutEvent"
-              class="schedule-calendar__event"
-              [class.schedule-calendar__event--selected]="event.selected"
-              [class.schedule-calendar__event--blocked]="event.blocked"
-              [class.schedule-calendar__event--today]="event.isToday"
-              [style.top.px]="event.top"
-              [style.height.px]="event.height"
-              [style.left.%]="event.left"
-              [style.width.%]="event.width"
-              [style.zIndex]="event.selected ? 3 : 2"
-              [attr.data-tone]="event.statusTone || 'primary'"
-              (click)="emitEventClick(event, $event)">
+              <button
+                *ngFor="let cell of slots; trackBy: trackByCell"
+                type="button"
+                class="schedule-calendar__cell"
+                [style.top.px]="cell.top"
+                [style.height.px]="cell.height"
+                (click)="emitCellClick(day, cell.minuteOfDay)">
+              </button>
 
-              <div class="schedule-calendar__event-shell">
-                <div class="schedule-calendar__event-top">
-                  <div class="schedule-calendar__event-time">
-                    {{ formatShortClock(event.startTime) }} - {{ formatShortClock(event.endTime) }}
+              <div
+                *ngIf="day === todayDayOfWeek && showCurrentTimeMarker && currentTimeTop >= 0 && currentTimeTop <= calendarHeight"
+                class="schedule-calendar__current-time"
+                [style.top.px]="currentTimeTop">
+                <span class="schedule-calendar__current-time-dot"></span>
+                <span class="schedule-calendar__current-time-line"></span>
+              </div>
+
+              <article
+                *ngFor="let event of getLayoutsForDay(day); trackBy: trackByLayoutEvent"
+                class="schedule-calendar__event"
+                [class.schedule-calendar__event--selected]="event.selected"
+                [class.schedule-calendar__event--blocked]="event.blocked"
+                [class.schedule-calendar__event--today]="event.isToday"
+                [style.top.px]="event.top"
+                [style.height.px]="event.height"
+                [style.left.%]="event.left"
+                [style.width.%]="event.width"
+                [style.zIndex]="event.selected ? 3 : 2"
+                [attr.data-tone]="event.statusTone || 'primary'"
+                (click)="emitEventClick(event, $event)">
+
+                <div class="schedule-calendar__event-shell">
+                  <div class="schedule-calendar__event-top">
+                    <div class="schedule-calendar__event-time">
+                      {{ formatShortClock(event.startTime) }} - {{ formatShortClock(event.endTime) }}
+                    </div>
+
+                    <ion-badge *ngIf="event.statusLabel" [color]="event.statusTone || 'primary'" class="schedule-calendar__badge">
+                      {{ event.statusLabel }}
+                    </ion-badge>
                   </div>
 
-                  <ion-badge *ngIf="event.statusLabel" [color]="event.statusTone || 'primary'" class="schedule-calendar__badge">
-                    {{ event.statusLabel }}
-                  </ion-badge>
-                </div>
+                  <h3 class="schedule-calendar__event-title">{{ event.title }}</h3>
 
-                <h3 class="schedule-calendar__event-title">{{ event.title }}</h3>
+                  <p *ngIf="event.subtitle" class="schedule-calendar__event-subtitle">{{ event.subtitle }}</p>
 
-                <p *ngIf="event.subtitle" class="schedule-calendar__event-subtitle">{{ event.subtitle }}</p>
+                  <div *ngIf="event.meta?.length" class="schedule-calendar__meta">
+                    <ion-chip *ngFor="let item of event.meta" [outline]="true" class="schedule-calendar__meta-chip">
+                      {{ item }}
+                    </ion-chip>
+                  </div>
 
-                <div *ngIf="event.meta?.length" class="schedule-calendar__meta">
-                  <ion-chip *ngFor="let item of event.meta" [outline]="true" class="schedule-calendar__meta-chip">
-                    {{ item }}
-                  </ion-chip>
-                </div>
+                  <div *ngIf="editable && event.actions?.length" class="schedule-calendar__actions" (click)="$event.stopPropagation()">
+                    <button
+                      *ngFor="let action of event.actions; trackBy: trackByAction"
+                      type="button"
+                      class="schedule-calendar__action"
+                      [class.schedule-calendar__action--danger]="action.tone === 'danger'"
+                      [class.schedule-calendar__action--success]="action.tone === 'success'"
+                      [class.schedule-calendar__action--warning]="action.tone === 'warning'"
+                      [class.schedule-calendar__action--medium]="!action.tone || action.tone === 'medium'"
+                      [attr.aria-label]="action.label"
+                      (click)="emitActionClick(event, action, $event)">
+                      <ion-icon [name]="action.icon"></ion-icon>
+                    </button>
+                  </div>
 
-                <div *ngIf="editable && event.actions?.length" class="schedule-calendar__actions" (click)="$event.stopPropagation()">
                   <button
-                    *ngFor="let action of event.actions; trackBy: trackByAction"
+                    *ngIf="editable"
                     type="button"
-                    class="schedule-calendar__action"
-                    [class.schedule-calendar__action--danger]="action.tone === 'danger'"
-                    [class.schedule-calendar__action--success]="action.tone === 'success'"
-                    [class.schedule-calendar__action--warning]="action.tone === 'warning'"
-                    [class.schedule-calendar__action--medium]="!action.tone || action.tone === 'medium'"
-                    [attr.aria-label]="action.label"
-                    (click)="emitActionClick(event, action, $event)">
-                    <ion-icon [name]="action.icon"></ion-icon>
+                    class="schedule-calendar__selection"
+                    [class.schedule-calendar__selection--on]="event.selected"
+                    [attr.aria-label]="event.selected ? 'Quitar selección' : 'Seleccionar bloque'"
+                    (click)="toggleSelection(event, $event)">
+                    <ion-icon [name]="event.selected ? 'checkmark-circle-outline' : 'ellipse-outline'"></ion-icon>
                   </button>
                 </div>
-
-                <button
-                  *ngIf="editable"
-                  type="button"
-                  class="schedule-calendar__selection"
-                  [class.schedule-calendar__selection--on]="event.selected"
-                  [attr.aria-label]="event.selected ? 'Quitar selección' : 'Seleccionar bloque'"
-                  (click)="toggleSelection(event, $event)">
-                  <ion-icon [name]="event.selected ? 'checkmark-circle-outline' : 'ellipse-outline'"></ion-icon>
-                </button>
-              </div>
-            </article>
-          </section>
+              </article>
+            </section>
+          </div>
         </div>
       </div>
     </div>

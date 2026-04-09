@@ -14,19 +14,30 @@
 
 .schedule-content {
     --background: transparent;
+    --overflow: hidden;
     --padding-top: 0.5rem;
     --padding-bottom: 0.5rem;
     --padding-start: 0.5rem;
     --padding-end: 0.5rem;
 }
 
+.schedule-content::part(scroll) {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
 .schedule-shell {
     display: grid;
-    gap: 0.65rem;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 0.5rem;
     width: 100%;
     max-width: none;
     margin: 0;
     padding: 0;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .schedule-shell .app-page-section {
@@ -46,6 +57,13 @@
     box-shadow: var(--cfg-shadow);
     backdrop-filter: blur(var(--cfg-blur));
     -webkit-backdrop-filter: blur(var(--cfg-blur));
+}
+
+.schedule-calendar-card,
+.schedule-details-card {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .schedule-hero-card ion-card-content,
@@ -236,11 +254,38 @@
     grid-template-columns: minmax(0, 1.8fr) minmax(240px, 0.52fr);
     gap: 0.65rem;
     align-items: start;
+    min-height: 0;
+}
+
+.schedule-main-grid > ion-card {
+    min-height: 0;
 }
 
 .schedule-calendar-card,
 .schedule-details-card {
     min-width: 0;
+}
+
+.schedule-calendar-card ion-card-content,
+.schedule-details-card ion-card-content {
+    min-height: 0;
+}
+
+.schedule-calendar-card ion-card-content {
+    display: flex;
+    flex: 1 1 auto;
+    overflow: hidden;
+}
+
+.schedule-calendar-card app-schedule-calendar {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.schedule-details-card ion-card-content {
+    display: flex;
+    flex: 1 1 auto;
+    overflow: auto;
 }
 
 .schedule-details__status {
@@ -341,6 +386,11 @@
 
     .schedule-main-grid {
         grid-template-columns: 1fr;
+        min-height: 0;
+    }
+
+    .schedule-details-card ion-card-content {
+        overflow: visible;
     }
 }
 

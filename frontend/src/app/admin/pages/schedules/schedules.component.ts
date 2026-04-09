@@ -123,7 +123,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
             (actionButtonClick)="PublishSelected()"
         ></app-page-header>
 
-        <ion-content class="ion-padding schedule-content">
+        <ion-content class="ion-padding schedule-content" [scrollY]="false">
             <div class="app-page-shell app-page-shell--wide schedule-shell">
                 <ion-card class="schedule-hero-card app-page-section">
                     <ion-card-content>
@@ -183,7 +183,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                             <app-schedule-calendar
                                 [events]="calendarEvents"
                                 [visibleDays]="calendarDays"
-                                [minuteHeight]="0.85"
+                                [minuteHeight]="0.72"
                                 [highlightedDay]="viewMode === 'day' ? (filterDay || null) : null"
                                 [editable]="true"
                                 [showCurrentTimeMarker]="true"
