@@ -221,3 +221,253 @@ ion-popover.select-popover ion-item {
 	--background-hover: rgba(59, 130, 246, 0.15);
 }
 
+ion-modal.catalog-form-modal {
+  --background: transparent;
+  --box-shadow: none;
+  --border-radius: 0;
+}
+
+ion-modal.catalog-form-modal::part(content) {
+  background: transparent;
+  box-shadow: none;
+}
+
+ion-modal.catalog-form-modal::part(backdrop) {
+  background: rgba(2, 6, 23, 0.6);
+}
+
+/* ── Frame — centers the dialog ────────────────────────────────────── */
+.catalog-form-modal__frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: 1rem 0.75rem 1.25rem;
+  box-sizing: border-box;
+}
+
+/* ── Dialog card — glassmorphism surface ────────────────────────────── */
+.catalog-form-modal__dialog {
+  width: min(100%, 560px);
+  max-height: calc(100vh - 2rem);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--cfm-border);
+  border-radius: 1rem;
+  background: var(--cfm-surface-bg);
+  box-shadow: var(--cfm-shadow);
+  color: var(--cfm-text);
+  backdrop-filter: blur(var(--cfm-blur));
+  -webkit-backdrop-filter: blur(var(--cfm-blur));
+  overflow: hidden;
+}
+
+/* ── Header ────────────────────────────────────────────────────────── */
+.catalog-form-modal__header {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1rem 0.9rem 1.15rem;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.14);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--cfm-accent-from), var(--cfm-accent-to));
+    opacity: 0.65;
+  }
+}
+
+.catalog-form-modal__titles {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.catalog-form-modal__title {
+  margin: 0;
+  color: var(--cfm-title);
+  font-size: 1.06rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.catalog-form-modal__subtitle {
+  margin: 0.3rem 0 0;
+  color: var(--cfm-subtitle);
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.catalog-form-modal__close {
+  --padding-start: 0.5rem;
+  --padding-end: 0.5rem;
+  --border-radius: 999px;
+  --background: rgba(59, 130, 246, 0.14);
+  --background-hover: rgba(96, 165, 250, 0.2);
+  --background-activated: rgba(37, 99, 235, 0.24);
+  --color: rgba(248, 250, 252, 0.96);
+  align-self: flex-start;
+  height: 2.1rem;
+
+  ion-icon {
+    font-size: 1.1rem;
+  }
+}
+
+/* ── Scroll region ─────────────────────────────────────────────────── */
+.catalog-form-modal__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.catalog-form-modal__form {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.catalog-form-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1rem 1rem 0.25rem;
+}
+
+.catalog-form-modal__helper {
+  margin: 0;
+  padding: 0.1rem 1rem 0.2rem;
+  color: var(--cfm-subtitle);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+/* ── Footer ────────────────────────────────────────────────────────── */
+.catalog-form-modal__footer {
+  padding: 0.85rem 1rem 1rem;
+}
+
+.catalog-form-modal__save {
+  --border-radius: 10px;
+  --padding-start: 1rem;
+  --padding-end: 1rem;
+  --padding-top: 0.82rem;
+  --padding-bottom: 0.82rem;
+  --background: var(--cfm-btn-bg);
+  --background-hover: var(--cfm-btn-hover);
+  --background-activated: var(--cfm-btn-active);
+  --box-shadow: var(--cfm-btn-shadow);
+  --color: #ffffff;
+  color: #ffffff;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Form element styling — dark-theme overrides for projected content
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── ion-list — transparent background ─────────────────────────────── */
+.catalog-form-modal__body ion-list {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  --ion-item-background: transparent;
+}
+
+/* ── ion-item — dark glass input fields ────────────────────────────── */
+.catalog-form-modal__body ion-item {
+  margin: 0 0 0.9rem;
+  --background: var(--cfm-input-bg);
+  --background-hover: rgba(30, 64, 175, 0.24);
+  --background-focused: rgba(30, 64, 175, 0.28);
+  --background-activated: rgba(30, 64, 175, 0.28);
+  --border-color: var(--cfm-input-border);
+  --border-color-focused: var(--cfm-input-focus);
+  --border-radius: 0.95rem;
+  --color: var(--cfm-text);
+  --highlight-color: var(--cfm-input-focus);
+  --highlight-color-focused: rgba(56, 189, 248, 0.95);
+  --padding-start: 0.8rem;
+  --padding-end: 0.75rem;
+  --padding-top: 0.45rem;
+  --padding-bottom: 0.45rem;
+  --min-height: 3.5rem;
+}
+
+.catalog-form-modal__body ion-item:last-child {
+  margin-bottom: 0;
+}
+
+/* Labels */
+.catalog-form-modal__body ion-item ion-label {
+  color: var(--cfm-text) !important;
+  font-weight: 600;
+  --color: var(--cfm-text);
+}
+
+/* Icons in start slot */
+.catalog-form-modal__body ion-item ion-icon[slot='start'] {
+  color: var(--cfm-accent-from);
+  font-size: 1.05rem;
+}
+
+/* Input, select, textarea */
+.catalog-form-modal__body ion-item ion-input,
+.catalog-form-modal__body ion-item ion-select,
+.catalog-form-modal__body ion-item ion-textarea {
+  --color: var(--cfm-text);
+  --placeholder-color: rgba(148, 163, 184, 0.65);
+  --highlight-color: var(--cfm-input-focus);
+  --highlight-color-focused: rgba(56, 189, 248, 0.95);
+}
+
+.catalog-form-modal__body ion-textarea {
+  --padding-top: 0.65rem;
+}
+
+/* ion-select popover and alert overrides */
+.catalog-form-modal__body ion-select::part(icon) {
+  color: var(--cfm-subtitle);
+}
+
+.catalog-form-modal__body ion-select::part(text) {
+  color: var(--cfm-text);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Responsive — compact spacing on small screens
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 768px) {
+  .catalog-form-modal__frame {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .catalog-form-modal__dialog {
+    width: min(100%, 600px);
+  }
+}
+
+@media (max-width: 600px) {
+  .catalog-form-modal__frame {
+    padding: 0.5rem 0.5rem 0.75rem;
+  }
+
+  .catalog-form-modal__header {
+    padding-inline: 0.95rem;
+  }
+
+  .catalog-form-modal__body,
+  .catalog-form-modal__footer,
+  .catalog-form-modal__helper {
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+  }
+}
