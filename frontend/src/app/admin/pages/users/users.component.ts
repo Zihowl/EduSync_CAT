@@ -6,15 +6,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import {
     IonContent,
-    IonHeader,
-    IonToolbar,
-    IonTitle,
-    IonButtons,
     IonItem,
+    IonList,
     IonLabel,
     IonButton,
     IonIcon,
-    IonModal,
     IonInput,
     IonNote,
     IonBadge,
@@ -22,7 +18,8 @@ import {
     IonFabButton
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { personAddOutline, personOutline, shieldCheckmarkOutline, lockClosedOutline, lockOpenOutline, refreshOutline } from 'ionicons/icons';
+import { personAddOutline, personOutline, mailOutline, shieldCheckmarkOutline, lockClosedOutline, lockOpenOutline, refreshOutline } from 'ionicons/icons';
+import { CatalogFormModalComponent } from '../../../shared/components/catalog-form-modal/catalog-form-modal.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../shared/components/data-list/data-list.component';
 import { NotificationService } from '../../../shared/services/notification.service';
@@ -106,20 +103,17 @@ const GET_ALLOWED_DOMAINS = gql`
         CommonModule,
         ReactiveFormsModule,
         IonContent,
-        IonHeader,
-        IonToolbar,
-        IonTitle,
-        IonButtons,
         IonItem,
+        IonList,
         IonLabel,
         IonButton,
         IonIcon,
-        IonModal,
         IonInput,
         IonNote,
         IonBadge,
         IonFab,
         IonFabButton,
+        CatalogFormModalComponent,
         PageHeaderComponent,
         DataListComponent
     ],
@@ -187,58 +181,48 @@ const GET_ALLOWED_DOMAINS = gql`
                     </ion-fab-button>
                 </ion-fab>
 
-                <ion-modal class="audit-glass-modal" [isOpen]="isModalOpen" (willDismiss)="SetOpen(false)">
-                    <ng-template>
-                        <ion-header>
-                            <ion-toolbar>
-                                <ion-title>Nuevo Administrador</ion-title>
-                                <ion-buttons slot="end">
-                                    <ion-button (click)="SetOpen(false)">Cancelar</ion-button>
-                                </ion-buttons>
-                            </ion-toolbar>
-                        </ion-header>
-                        <ion-content class="ion-padding">
-                            <form [formGroup]="adminForm" (ngSubmit)="CreateUser()">
-                                <div class="form-group">
+                <app-catalog-form-modal
+                    [isOpen]="isModalOpen"
+                    (isOpenChange)="SetOpen($event)"
+                    title="Nuevo Administrador"
+                    subtitle="Completa los datos principales del nuevo administrador."
+                    helperText="El dominio debe estar permitido en Configuración."
+                    saveLabel="Registrar Usuario"
+                    [saveDisabled]="adminForm.invalid || isLoading || (isAllowedDomainsLoaded && adminForm.get('email')?.value && !isDomainAllowed())"
+                    (save)="CreateUser()">
+                    <ng-template #catalogFormBody>
+                        <form [formGroup]="adminForm" class="users-modal-form">
+                            <ion-list>
+                                <ion-item fill="outline">
+                                    <ion-label position="stacked">Nombre Completo</ion-label>
                                     <ion-input
-                                        label="Nombre Completo"
-                                        label-placement="floating"
-                                        fill="outline"
-                                        formControlName="fullName">
+                                        formControlName="fullName"
+                                        autocomplete="name">
                                     </ion-input>
-                                </div>
+                                    <ion-icon name="person-outline" slot="start"></ion-icon>
+                                </ion-item>
 
-                                <div class="form-group">
+                                <ion-item fill="outline">
+                                    <ion-label position="stacked">Correo Institucional</ion-label>
                                     <ion-input
-                                        label="Correo Institucional"
-                                        label-placement="floating"
-                                        fill="outline"
                                         formControlName="email"
                                         type="email"
+                                        autocomplete="email"
                                         placeholder="usuario@dominio.edu.mx">
                                     </ion-input>
-                                    <ion-note color="medium" class="ion-padding-start">
-                                        <small>El dominio debe estar permitido en Configuración.</small>
-                                    </ion-note>
+                                    <ion-icon name="mail-outline" slot="start"></ion-icon>
+                                </ion-item>
+                            </ion-list>
 
-                                    <ion-note
-                                        *ngIf="isAllowedDomainsLoaded && adminForm.get('email')?.value && getEmailDomain()"
-                                        [color]="isDomainAllowed() ? 'success' : 'danger'"
-                                        class="ion-padding-start ion-margin-top">
-                                        <small>{{ isDomainAllowed() ? 'Dominio permitido' : 'Dominio NO permitido — registra el dominio en Configuración' }}</small>
-                                    </ion-note>
-                                </div>
-
-                                <ion-button
-                                    expand="block"
-                                    type="submit"
-                                    [disabled]="adminForm.invalid || isLoading || (isAllowedDomainsLoaded && adminForm.get('email')?.value && !isDomainAllowed())">
-                                    {{ isLoading ? 'Registrando...' : 'Registrar Usuario' }}
-                                </ion-button>
-                            </form>
-                        </ion-content>
+                            <ion-note
+                                *ngIf="isAllowedDomainsLoaded && adminForm.get('email')?.value && getEmailDomain()"
+                                [color]="isDomainAllowed() ? 'success' : 'danger'"
+                                class="ion-padding-start ion-margin-top">
+                                <small>{{ isDomainAllowed() ? 'Dominio permitido' : 'Dominio NO permitido — registra el dominio en Configuración' }}</small>
+                            </ion-note>
+                        </form>
                     </ng-template>
-                </ion-modal>
+                </app-catalog-form-modal>
             </div>
         </ion-content>
     `,
@@ -274,7 +258,7 @@ export class UsersComponent implements OnInit
 
     ngOnInit() 
     {
-        addIcons({ personAddOutline, personOutline, shieldCheckmarkOutline, lockClosedOutline, lockOpenOutline, refreshOutline });
+        addIcons({ personAddOutline, personOutline, mailOutline, shieldCheckmarkOutline, lockClosedOutline, lockOpenOutline, refreshOutline });
         this.setupRealtimeRefresh();
     }
 
@@ -483,7 +467,7 @@ export class UsersComponent implements OnInit
     }
     CreateUser() 
     {
-      if (this.adminForm.invalid)
+            if (this.adminForm.invalid || (this.isAllowedDomainsLoaded && this.adminForm.get('email')?.value && !this.isDomainAllowed()))
       {
         return;
       }
