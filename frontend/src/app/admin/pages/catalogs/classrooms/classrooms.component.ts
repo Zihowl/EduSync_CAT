@@ -14,10 +14,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
+import { CatalogToolbarComponent } from '../../../../shared/components/catalog-toolbar/catalog-toolbar.component';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { getGraphQLErrorMessage } from '../../../../shared/utils/graphql-error';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
+import { applyCatalogQuery, compareCatalogText, type CatalogToolbarFilterConfig, type CatalogToolbarState } from '../../../../shared/utils/catalog-query';
 
 const GET_CLASSROOMS = gql`
     query GetClassrooms {
@@ -65,20 +67,31 @@ const REMOVE_CLASSROOM = gql`
     imports: [
         CommonModule, FormsModule, IonContent, IonList, IonItem,
         IonLabel, IonSelect, IonSelectOption, IonButtons, IonButton, IonIcon,
-        IonFab, IonFabButton, IonInput, PageHeaderComponent, DataListComponent, ModalComponent
+        IonFab, IonFabButton, IonInput, PageHeaderComponent, DataListComponent, ModalComponent, CatalogToolbarComponent
     ],
     template: `
         <app-page-header title="Aulas" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content class="ion-padding">
             <div class="app-page-shell app-page-shell--medium">
+                <div class="app-page-section">
+                    <app-catalog-toolbar
+                        [state]="catalogToolbarState"
+                        [filters]="classroomToolbarFilters"
+                        [sortOptions]="classroomSortOptions"
+                        searchPlaceholder="Buscar aula..."
+                        sortPlaceholder="Ordenar aulas"
+                        clearLabel="Restablecer"
+                        (stateChange)="OnToolbarChange($event)">
+                    </app-catalog-toolbar>
+                </div>
                 <app-data-list
-                    [items]="classrooms"
+                    [items]="filteredClassrooms"
                     [loaded]="isClassroomsLoaded"
                     loadingText="Cargando aulas..."
                     emptyIcon="home-outline"
-                    emptyTitle="No hay aulas registradas"
-                    emptySubtitle="Agrega la primera aula con el botón +">
+                    [emptyTitle]="hasClassroomCriteria() ? 'No se encontraron aulas' : 'No hay aulas registradas'"
+                    [emptySubtitle]="hasClassroomCriteria() ? 'Prueba con otro nombre o edificio' : 'Agrega la primera aula con el botón +'">
                     <ng-template #itemTemplate let-c>
                         <ion-item>
                             <ion-icon name="home-outline" slot="start" color="primary"></ion-icon>
@@ -146,6 +159,29 @@ export class ClassroomsComponent implements OnInit
 
     classrooms: any[] = [];
     buildings: any[] = [];
+    filteredClassrooms: any[] = [];
+    catalogToolbarState: CatalogToolbarState = {
+        searchQuery: '',
+        sortValue: 'buildingThenName',
+        filters: {
+            buildingId: '',
+        },
+    };
+    classroomToolbarFilters: CatalogToolbarFilterConfig[] = [
+        {
+            key: 'buildingId',
+            label: 'Edificio',
+            placeholder: 'Filtrar por edificio',
+            defaultValue: '',
+            options: [
+                { value: '', label: 'Todos' },
+            ],
+        },
+    ];
+    readonly classroomSortOptions = [
+        { value: 'buildingThenName', label: 'Edificio y aula' },
+        { value: 'name', label: 'Aula' },
+    ];
     isClassroomsLoaded = false;
     isModalOpen = false;
     editingItem: any = null;
@@ -184,6 +220,8 @@ export class ClassroomsComponent implements OnInit
         request$.subscribe({
             next: (buildings: any[]) => {
                 this.buildings = buildings;
+                this.refreshClassroomToolbarFilters();
+                this.ApplyFilter();
                 this.cdr.detectChanges();
             },
             error: (err) => {
@@ -218,6 +256,8 @@ export class ClassroomsComponent implements OnInit
         request$.subscribe({
             next: (classrooms: any[]) => {
                 this.classrooms = classrooms;
+                this.refreshClassroomToolbarFilters();
+                this.ApplyFilter();
                 this.isClassroomsLoaded = true;
                 this.cdr.detectChanges();
             },
@@ -228,6 +268,84 @@ export class ClassroomsComponent implements OnInit
                 this.cdr.detectChanges();
             }
         });
+    }
+
+    OnToolbarChange(state: CatalogToolbarState): void {
+        this.catalogToolbarState = state;
+        this.ApplyFilter();
+    }
+
+    hasClassroomCriteria(): boolean {
+        return this.catalogToolbarState.searchQuery.trim().length > 0
+            || String(this.catalogToolbarState.filters['buildingId'] ?? '') !== '';
+    }
+
+    ApplyFilter(): void {
+        this.filteredClassrooms = applyCatalogQuery(this.classrooms, this.catalogToolbarState, {
+            searchFields: [
+                (classroom: any) => classroom?.name,
+                (classroom: any) => classroom?.building?.name,
+            ],
+            filterPredicates: {
+                buildingId: (classroom: any, value: string) => {
+                    if (value === '__none__') {
+                        return !classroom?.building;
+                    }
+
+                    return String(classroom?.building?.id ?? '') === value;
+                },
+            },
+            sortPredicates: {
+                buildingThenName: (left: any, right: any) => {
+                    const leftBuilding = left?.building?.name ?? '';
+                    const rightBuilding = right?.building?.name ?? '';
+                    const leftHasBuilding = !!left?.building;
+                    const rightHasBuilding = !!right?.building;
+
+                    if (!leftHasBuilding && rightHasBuilding) {
+                        return 1;
+                    }
+
+                    if (leftHasBuilding && !rightHasBuilding) {
+                        return -1;
+                    }
+
+                    const buildingComparison = compareCatalogText(leftBuilding, rightBuilding);
+                    if (buildingComparison !== 0) {
+                        return buildingComparison;
+                    }
+
+                    return compareCatalogText(left?.name, right?.name);
+                },
+                name: (left: any, right: any) => compareCatalogText(left?.name, right?.name),
+            },
+            defaultSort: 'buildingThenName',
+        });
+    }
+
+    private refreshClassroomToolbarFilters(): void {
+        const hasUnassignedClassrooms = this.classrooms.some((classroom: any) => !classroom?.building);
+        const options = [
+            { value: '', label: 'Todos' },
+            ...this.buildings.map((building: any) => ({
+                value: String(building?.id ?? ''),
+                label: String(building?.name ?? 'Edificio'),
+            })),
+        ];
+
+        if (hasUnassignedClassrooms) {
+            options.push({ value: '__none__', label: 'Sin edificio' });
+        }
+
+        this.classroomToolbarFilters = [
+            {
+                key: 'buildingId',
+                label: 'Edificio',
+                placeholder: 'Filtrar por edificio',
+                defaultValue: '',
+                options,
+            },
+        ];
     }
 
     private setupRealtimeRefresh(): void {

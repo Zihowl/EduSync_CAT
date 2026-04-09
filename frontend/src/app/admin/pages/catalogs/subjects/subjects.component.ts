@@ -13,10 +13,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
+import { CatalogToolbarComponent } from '../../../../shared/components/catalog-toolbar/catalog-toolbar.component';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { getGraphQLErrorMessage } from '../../../../shared/utils/graphql-error';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
+import { applyCatalogQuery, compareCatalogText, type CatalogToolbarFilterConfig, type CatalogToolbarState } from '../../../../shared/utils/catalog-query';
 
 const GET_SUBJECTS = gql`
     query GetSubjects {
@@ -63,20 +65,31 @@ const REMOVE_SUBJECT = gql`
     imports: [
         CommonModule, FormsModule, IonContent, IonList, IonItem,
         IonLabel, IonButtons, IonButton, IonIcon, IonFab, IonFabButton,
-        IonInput, PageHeaderComponent, DataListComponent, ModalComponent
+        IonInput, PageHeaderComponent, DataListComponent, ModalComponent, CatalogToolbarComponent
     ],
     template: `
         <app-page-header title="Materias" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content class="ion-padding">
             <div class="app-page-shell app-page-shell--medium">
+                <div class="app-page-section">
+                    <app-catalog-toolbar
+                        [state]="catalogToolbarState"
+                        [filters]="subjectToolbarFilters"
+                        [sortOptions]="subjectSortOptions"
+                        searchPlaceholder="Buscar materia..."
+                        sortPlaceholder="Ordenar materias"
+                        clearLabel="Restablecer"
+                        (stateChange)="OnToolbarChange($event)">
+                    </app-catalog-toolbar>
+                </div>
                 <app-data-list
-                    [items]="subjects"
+                    [items]="filteredSubjects"
                     [loaded]="isSubjectsLoaded"
                     loadingText="Cargando materias..."
                     emptyIcon="book-outline"
-                    emptyTitle="No hay materias registradas"
-                    emptySubtitle="Agrega la primera materia con el botón +">
+                    [emptyTitle]="hasSubjectCriteria() ? 'No se encontraron materias' : 'No hay materias registradas'"
+                    [emptySubtitle]="hasSubjectCriteria() ? 'Prueba con otra clave, nombre o grado' : 'Agrega la primera materia con el botón +'">
                     <ng-template #itemTemplate let-s>
                         <ion-item>
                             <ion-icon name="book-outline" slot="start" color="primary"></ion-icon>
@@ -144,6 +157,31 @@ export class SubjectsComponent implements OnInit
     private notifications = inject(NotificationService);
 
     subjects: any[] = [];
+    filteredSubjects: any[] = [];
+    catalogToolbarState: CatalogToolbarState = {
+        searchQuery: '',
+        sortValue: 'name',
+        filters: {
+            grade: '',
+        },
+    };
+    subjectToolbarFilters: CatalogToolbarFilterConfig[] = [
+        {
+            key: 'grade',
+            label: 'Grado',
+            placeholder: 'Filtrar por grado',
+            defaultValue: '',
+            options: [
+                { value: '', label: 'Todos' },
+                { value: '__none__', label: 'Sin grado' },
+            ],
+        },
+    ];
+    readonly subjectSortOptions = [
+        { value: 'name', label: 'Nombre' },
+        { value: 'code', label: 'Clave' },
+        { value: 'grade', label: 'Grado' },
+    ];
     isSubjectsLoaded = false;
     isModalOpen = false;
     editingItem: any = null;
@@ -186,6 +224,8 @@ export class SubjectsComponent implements OnInit
         request$.subscribe({
             next: (res: any) => {
                 this.subjects = res ?? [];
+                this.refreshSubjectToolbarFilters();
+                this.ApplyFilter();
                 this.isSubjectsLoaded = true;
                 this.cdr.detectChanges();
             },
@@ -196,6 +236,84 @@ export class SubjectsComponent implements OnInit
                 this.cdr.detectChanges();
             }
         });
+    }
+
+    OnToolbarChange(state: CatalogToolbarState): void {
+        this.catalogToolbarState = state;
+        this.ApplyFilter();
+    }
+
+    hasSubjectCriteria(): boolean {
+        return this.catalogToolbarState.searchQuery.trim().length > 0
+            || String(this.catalogToolbarState.filters['grade'] ?? '') !== '';
+    }
+
+    ApplyFilter(): void {
+        this.filteredSubjects = applyCatalogQuery(this.subjects, this.catalogToolbarState, {
+            searchFields: [
+                (subject: any) => subject?.name,
+                (subject: any) => subject?.code,
+                (subject: any) => subject?.grade,
+            ],
+            filterPredicates: {
+                grade: (subject: any, value: string) => {
+                    if (value === '__none__') {
+                        return subject?.grade === null || subject?.grade === undefined || subject?.grade === '';
+                    }
+
+                    return String(subject?.grade ?? '') === value;
+                },
+            },
+            sortPredicates: {
+                name: (left: any, right: any) => compareCatalogText(left?.name, right?.name),
+                code: (left: any, right: any) => compareCatalogText(left?.code, right?.code),
+                grade: (left: any, right: any) => {
+                    const leftGrade = left?.grade;
+                    const rightGrade = right?.grade;
+
+                    if (leftGrade == null && rightGrade == null) {
+                        return compareCatalogText(left?.name, right?.name);
+                    }
+
+                    if (leftGrade == null) {
+                        return 1;
+                    }
+
+                    if (rightGrade == null) {
+                        return -1;
+                    }
+
+                    const comparison = Number(leftGrade) - Number(rightGrade);
+                    return comparison !== 0 ? comparison : compareCatalogText(left?.name, right?.name);
+                },
+            },
+            defaultSort: 'name',
+        });
+    }
+
+    private refreshSubjectToolbarFilters(): void {
+        const gradeValues = Array.from(new Set(
+            this.subjects
+                .map((subject: any) => subject?.grade)
+                .filter((grade) => grade !== null && grade !== undefined && grade !== '')
+                .map((grade) => String(grade))
+        )).sort((left, right) => compareCatalogText(left, right));
+
+        const options = [
+            { value: '', label: 'Todos' },
+            { value: '__none__', label: 'Sin grado' },
+            ...gradeValues.map((grade) => ({ value: grade, label: `Grado ${grade}` })),
+        ];
+
+        this.subjectToolbarFilters = [
+            {
+                key: 'grade',
+                label: 'Grado',
+                placeholder: 'Filtrar por grado',
+                defaultValue: '',
+                options,
+            },
+        ];
     }
 
     private setupRealtimeRefresh(): void {

@@ -14,10 +14,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
+import { CatalogToolbarComponent } from '../../../../shared/components/catalog-toolbar/catalog-toolbar.component';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { getGraphQLErrorMessage } from '../../../../shared/utils/graphql-error';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
+import { applyCatalogQuery, compareCatalogText, type CatalogToolbarState } from '../../../../shared/utils/catalog-query';
 
 const GET_BUILDINGS = gql`
     query GetBuildings {
@@ -60,20 +62,30 @@ const REMOVE_BUILDING = gql`
     imports: [
         CommonModule, FormsModule, IonContent, IonList, IonItem,
         IonLabel, IonButtons, IonButton, IonIcon, IonFab, IonFabButton,
-        IonInput, IonTextarea, PageHeaderComponent, DataListComponent, ModalComponent
+        IonInput, IonTextarea, PageHeaderComponent, DataListComponent, ModalComponent, CatalogToolbarComponent
     ],
     template: `
         <app-page-header title="Edificios" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content class="ion-padding">
             <div class="app-page-shell app-page-shell--medium">
+                <div class="app-page-section">
+                    <app-catalog-toolbar
+                        [state]="catalogToolbarState"
+                        [sortOptions]="buildingSortOptions"
+                        searchPlaceholder="Buscar edificio..."
+                        sortPlaceholder="Ordenar edificios"
+                        clearLabel="Restablecer"
+                        (stateChange)="OnToolbarChange($event)">
+                    </app-catalog-toolbar>
+                </div>
                 <app-data-list
-                    [items]="buildings"
+                    [items]="filteredBuildings"
                     [loaded]="isBuildingsLoaded"
                     loadingText="Cargando edificios..."
                     emptyIcon="business-outline"
-                    emptyTitle="No hay edificios registrados"
-                    emptySubtitle="Agrega el primer edificio con el botón +">
+                    [emptyTitle]="catalogToolbarState.searchQuery.trim() ? 'No se encontraron edificios' : 'No hay edificios registrados'"
+                    [emptySubtitle]="catalogToolbarState.searchQuery.trim() ? 'Prueba con otro nombre o descripción' : 'Agrega el primer edificio con el botón +'">
                     <ng-template #itemTemplate let-b>
                         <ion-item>
                             <ion-icon name="business-outline" slot="start" color="primary"></ion-icon>
@@ -135,6 +147,16 @@ export class BuildingsComponent implements OnInit
     private notifications = inject(NotificationService);
 
     buildings: any[] = [];
+    filteredBuildings: any[] = [];
+    catalogToolbarState: CatalogToolbarState = {
+        searchQuery: '',
+        sortValue: 'name',
+        filters: {},
+    };
+    readonly buildingSortOptions = [
+        { value: 'name', label: 'Nombre' },
+        { value: 'description', label: 'Descripción' },
+    ];
     isBuildingsLoaded = false;
     isModalOpen = false;
     editingItem: any = null;
@@ -172,6 +194,7 @@ export class BuildingsComponent implements OnInit
         request$.subscribe({
             next: (buildings: any[]) => {
                 this.buildings = buildings;
+                this.ApplyFilter();
                 this.isBuildingsLoaded = true;
                 this.cdr.detectChanges();
             },
@@ -181,6 +204,25 @@ export class BuildingsComponent implements OnInit
                 this.isBuildingsLoaded = true;
                 this.cdr.detectChanges();
             }
+        });
+    }
+
+    OnToolbarChange(state: CatalogToolbarState): void {
+        this.catalogToolbarState = state;
+        this.ApplyFilter();
+    }
+
+    ApplyFilter(): void {
+        this.filteredBuildings = applyCatalogQuery(this.buildings, this.catalogToolbarState, {
+            searchFields: [
+                (building: any) => building?.name,
+                (building: any) => building?.description,
+            ],
+            sortPredicates: {
+                name: (left: any, right: any) => compareCatalogText(left?.name, right?.name),
+                description: (left: any, right: any) => compareCatalogText(left?.description, right?.description),
+            },
+            defaultSort: 'name',
         });
     }
 

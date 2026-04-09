@@ -1,0 +1,103 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.catalog-toolbar {
+  margin: 0;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 1rem;
+  --background: rgba(15, 23, 42, 0.45);
+  --color: #f8fafc;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+
+.catalog-toolbar ion-card-content {
+  padding: 1rem;
+}
+
+.catalog-toolbar__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.85rem;
+}
+
+.catalog-toolbar__search,
+.catalog-toolbar__select,
+.catalog-toolbar__clear {
+  width: 100%;
+}
+
+.catalog-toolbar__search {
+  --background: rgba(8, 13, 23, 0.58);
+  --color: #f8fafc;
+  --placeholder-color: rgba(248, 250, 252, 0.78);
+  --placeholder-opacity: 1;
+  --icon-color: rgba(96, 165, 250, 0.96);
+  --clear-button-color: rgba(226, 232, 240, 0.9);
+  --border-radius: 0.8rem;
+  --padding-start: 0.85rem;
+  --padding-end: 0.85rem;
+  text-align: left;
+}
+
+.catalog-toolbar__select {
+  --background: rgba(8, 13, 23, 0.58);
+  --color: #f8fafc;
+  --placeholder-color: rgba(248, 250, 252, 0.78);
+  --placeholder-opacity: 1;
+  --label-color: rgba(248, 250, 252, 0.92);
+  --label-color-focused: #ffffff;
+  --highlight-color: rgba(56, 189, 248, 0.9);
+  --highlight-color-focused: rgba(96, 165, 250, 1);
+  --border-radius: 0.8rem;
+  --padding-start: 0.85rem;
+  --padding-end: 0.85rem;
+  text-align: left;
+}
+
+.catalog-toolbar__select::part(container) {
+  background: rgba(8, 13, 23, 0.58);
+}
+
+.catalog-toolbar__select::part(text),
+.catalog-toolbar__select::part(placeholder) {
+  padding-left: 0.1rem;
+}
+
+.catalog-toolbar__clear {
+  --border-color: rgba(148, 163, 184, 0.24);
+  --color: rgba(248, 250, 252, 0.92);
+  --border-radius: 0.8rem;
+  --background-hover: rgba(96, 165, 250, 0.12);
+  --background-activated: rgba(96, 165, 250, 0.18);
+  min-height: 3rem;
+}
+
+.catalog-toolbar__clear ion-icon {
+  font-size: 1rem;
+}
+
+@media (min-width: 720px) {
+  .catalog-toolbar__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+  }
+
+  .catalog-toolbar__search {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1080px) {
+  .catalog-toolbar__grid {
+    grid-template-columns: minmax(0, 1.5fr) repeat(auto-fit, minmax(13rem, 1fr));
+  }
+
+  .catalog-toolbar__search {
+    grid-column: 1 / -1;
+  }
+}

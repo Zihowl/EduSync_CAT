@@ -5,7 +5,7 @@ import { Apollo, gql } from 'apollo-angular';
 import { map } from 'rxjs';
 import {
     IonContent, IonList, IonItem, IonButtons, IonLabel, IonAvatar,
-    IonIcon, IonSearchbar, IonFab, IonFabButton,
+    IonIcon, IonFab, IonFabButton,
     IonInput, IonButton
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -14,10 +14,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
+import { CatalogToolbarComponent } from '../../../../shared/components/catalog-toolbar/catalog-toolbar.component';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { getGraphQLErrorMessage } from '../../../../shared/utils/graphql-error';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
+import { applyCatalogQuery, compareCatalogText, type CatalogToolbarState } from '../../../../shared/utils/catalog-query';
 
 const GET_TEACHERS = gql`
     query GetTeachers {
@@ -61,8 +63,8 @@ const REMOVE_TEACHER = gql`
     standalone: true,
     imports: [
         CommonModule, FormsModule, IonContent, IonList, IonItem,
-        IonLabel, IonAvatar, IonButtons, IonIcon, IonSearchbar, IonFab,
-        IonFabButton, IonInput, IonButton, PageHeaderComponent, DataListComponent, ModalComponent
+        IonLabel, IonAvatar, IonButtons, IonIcon, IonFab,
+        IonFabButton, IonInput, IonButton, PageHeaderComponent, DataListComponent, ModalComponent, CatalogToolbarComponent
     ],
     template: `
         <app-page-header title="Docentes" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
@@ -70,15 +72,22 @@ const REMOVE_TEACHER = gql`
         <ion-content class="ion-padding">
             <div class="app-page-shell app-page-shell--medium">
                 <div class="app-page-section">
-                    <ion-searchbar placeholder="Buscar docente..." (ionInput)="Filter($event)"></ion-searchbar>
+                    <app-catalog-toolbar
+                        [state]="catalogToolbarState"
+                        [sortOptions]="teacherSortOptions"
+                        searchPlaceholder="Buscar docente..."
+                        sortPlaceholder="Ordenar docentes"
+                        clearLabel="Restablecer"
+                        (stateChange)="OnToolbarChange($event)">
+                    </app-catalog-toolbar>
                 </div>
                 <app-data-list
                     [items]="filteredTeachers"
                     [loaded]="isTeachersLoaded"
                     loadingText="Cargando docentes..."
                     emptyIcon="person-outline"
-                    [emptyTitle]="searchQuery ? 'No se encontraron docentes' : 'No hay docentes registrados'"
-                    [emptySubtitle]="searchQuery ? 'Prueba con otro nombre o número de empleado' : 'Usa el botón + para crear el primer docente.'">
+                    [emptyTitle]="catalogToolbarState.searchQuery.trim() ? 'No se encontraron docentes' : 'No hay docentes registrados'"
+                    [emptySubtitle]="catalogToolbarState.searchQuery.trim() ? 'Prueba con otro nombre, número de empleado o correo' : 'Usa el botón + para crear el primer docente.'">
                     <ng-template #itemTemplate let-t>
                         <ion-item>
                             <ion-avatar slot="start" class="teacher-avatar">
@@ -152,7 +161,16 @@ export class TeachersComponent implements OnInit
 
     teachers: any[] = [];
     filteredTeachers: any[] = [];
-    searchQuery: string = '';
+    catalogToolbarState: CatalogToolbarState = {
+        searchQuery: '',
+        sortValue: 'name',
+        filters: {},
+    };
+    readonly teacherSortOptions = [
+        { value: 'name', label: 'Nombre' },
+        { value: 'employeeNumber', label: 'Número de empleado' },
+        { value: 'email', label: 'Correo' },
+    ];
     isTeachersLoaded = false;
     isModalOpen = false;
     editingItem: any = null;
@@ -215,21 +233,25 @@ export class TeachersComponent implements OnInit
         });
     }
 
-    Filter(event: any) {
-        this.searchQuery = event.detail.value?.toLowerCase() || '';
+    OnToolbarChange(state: CatalogToolbarState) {
+        this.catalogToolbarState = state;
         this.ApplyFilter();
     }
 
     ApplyFilter() {
-        if (!this.searchQuery) {
-            this.filteredTeachers = [...this.teachers];
-            return;
-        }
-
-        this.filteredTeachers = this.teachers.filter(t => 
-            String(t?.name ?? '').toLowerCase().includes(this.searchQuery) || 
-            String(t?.employeeNumber ?? '').toLowerCase().includes(this.searchQuery)
-        );
+        this.filteredTeachers = applyCatalogQuery(this.teachers, this.catalogToolbarState, {
+            searchFields: [
+                (teacher: any) => teacher?.name,
+                (teacher: any) => teacher?.employeeNumber,
+                (teacher: any) => teacher?.email,
+            ],
+            sortPredicates: {
+                name: (left: any, right: any) => compareCatalogText(left?.name, right?.name),
+                employeeNumber: (left: any, right: any) => compareCatalogText(left?.employeeNumber, right?.employeeNumber),
+                email: (left: any, right: any) => compareCatalogText(left?.email, right?.email),
+            },
+            defaultSort: 'name',
+        });
     }
 
     private setupRealtimeRefresh(): void {

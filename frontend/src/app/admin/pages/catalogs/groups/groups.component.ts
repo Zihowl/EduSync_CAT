@@ -6,18 +6,20 @@ import { map } from 'rxjs';
 import {
     IonContent, IonList, IonItem, IonButtons, IonLabel,
     IonButton, IonIcon, IonFab, IonFabButton,
-    IonInput, IonSearchbar
+    IonInput
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { trashOutline, addOutline, pencilOutline, peopleOutline, personOutline, searchOutline, returnDownForward, addCircleOutline, people, person } from 'ionicons/icons';
+import { trashOutline, addOutline, pencilOutline, peopleOutline, personOutline, returnDownForward, addCircleOutline, people, person } from 'ionicons/icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
+import { CatalogToolbarComponent } from '../../../../shared/components/catalog-toolbar/catalog-toolbar.component';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { getGraphQLErrorMessage } from '../../../../shared/utils/graphql-error';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
+import { applyCatalogQuery, compareCatalogText, matchesCatalogText, type CatalogToolbarState } from '../../../../shared/utils/catalog-query';
 
 const GET_GROUPS = gql`
     query GetGroups {
@@ -70,7 +72,7 @@ const REMOVE_GROUP = gql`
     imports: [
         CommonModule, FormsModule, IonContent, IonList, IonItem,
         IonLabel, IonButtons, IonButton, IonIcon,
-        IonFab, IonFabButton, IonInput, IonSearchbar, PageHeaderComponent, DataListComponent, ModalComponent
+        IonFab, IonFabButton, IonInput, PageHeaderComponent, DataListComponent, ModalComponent, CatalogToolbarComponent
     ],
     template: `
         <app-page-header title="Grupos" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
@@ -78,7 +80,15 @@ const REMOVE_GROUP = gql`
         <ion-content class="ion-padding">
             <div class="app-page-shell app-page-shell--medium">
                 <div class="app-page-section">
-                    <ion-searchbar (ionInput)="Filter($event)" placeholder="Buscar grupo..." show-clear-button="always"></ion-searchbar>
+                    <app-catalog-toolbar
+                        [state]="catalogToolbarState"
+                        [filters]="groupToolbarFilters"
+                        [sortOptions]="groupSortOptions"
+                        searchPlaceholder="Buscar grupo..."
+                        sortPlaceholder="Ordenar grupos"
+                        clearLabel="Restablecer"
+                        (stateChange)="OnToolbarChange($event)">
+                    </app-catalog-toolbar>
                 </div>
                 <app-data-list
                     [items]="filteredGroups"
@@ -86,7 +96,7 @@ const REMOVE_GROUP = gql`
                     loadingText="Cargando grupos..."
                     emptyIcon="people-outline"
                     [emptyTitle]="allGroups.length === 0 ? 'No hay grupos registrados' : 'No se encontraron resultados'"
-                    [emptySubtitle]="allGroups.length === 0 ? 'Crea el primer grupo con el botón +' : 'Prueba con otro término de búsqueda'">
+                    [emptySubtitle]="allGroups.length === 0 ? 'Crea el primer grupo con el botón +' : 'Prueba con otro término, cambia el tipo o ajusta el orden'">
                     <ng-template #itemTemplate let-g>
                         <ion-item [class.groups-subgroup-item]="g.parent">
                             <ion-icon [name]="g.parent ? 'return-down-forward' : 'people-outline'" slot="start" [color]="g.parent ? 'medium' : 'primary'"></ion-icon>
@@ -154,7 +164,30 @@ export class GroupsComponent implements OnInit
     allGroups: any[] = [];
     groups: any[] = [];
     filteredGroups: any[] = [];
-    searchQuery: string = '';
+    catalogToolbarState: CatalogToolbarState = {
+        searchQuery: '',
+        sortValue: 'nameAsc',
+        filters: {
+            type: '',
+        },
+    };
+    readonly groupToolbarFilters = [
+        {
+            key: 'type',
+            label: 'Tipo',
+            placeholder: 'Tipo de grupo',
+            defaultValue: '',
+            options: [
+                { value: '', label: 'Todos' },
+                { value: 'root', label: 'Solo grupos principales' },
+                { value: 'subgroup', label: 'Solo subgrupos' },
+            ],
+        },
+    ];
+    readonly groupSortOptions = [
+        { value: 'nameAsc', label: 'Nombre A-Z' },
+        { value: 'nameDesc', label: 'Nombre Z-A' },
+    ];
     isGroupsLoaded = false;
     isModalOpen = false;
     editingItem: any = null;
@@ -191,10 +224,15 @@ export class GroupsComponent implements OnInit
         return copies;
     }
 
-    private buildHierarchy(groups: any[], allowedIds?: Set<number>): any[] {
+    private buildHierarchy(groups: any[], allowedIds?: Set<number>, sortDescending = false): any[] {
+        const compareGroups = (left: any, right: any): number => {
+            const comparison = compareCatalogText(left?.name, right?.name);
+            return sortDescending ? -comparison : comparison;
+        };
+
         const roots = groups
             .filter(g => !g.parent && (!allowedIds || allowedIds.has(Number(g.id))))
-            .sort((a, b) => String(a?.name ?? '').localeCompare(String(b?.name ?? '')));
+            .sort(compareGroups);
 
         const childrenByParent = new Map<number, any[]>();
         groups.forEach(g => {
@@ -210,7 +248,7 @@ export class GroupsComponent implements OnInit
         roots.forEach(root => {
             result.push(root);
             const children = childrenByParent.get(Number(root.id)) ?? [];
-            children.sort((a, b) => String(a?.name ?? '').localeCompare(String(b?.name ?? '')));
+            children.sort(compareGroups);
             result.push(...children);
         });
 
@@ -218,7 +256,7 @@ export class GroupsComponent implements OnInit
     }
 
     ngOnInit() {
-        addIcons({ trashOutline, addOutline, pencilOutline, peopleOutline, personOutline, searchOutline, returnDownForward, addCircleOutline, people, person });
+        addIcons({ trashOutline, addOutline, pencilOutline, peopleOutline, personOutline, returnDownForward, addCircleOutline, people, person });
         this.setupRealtimeRefresh();
     }
 
@@ -254,7 +292,7 @@ export class GroupsComponent implements OnInit
                 try {
                     const normalized = this.normalizeParents(rawGroups ?? []);
                     this.allGroups = [...normalized];
-                    this.groups = this.buildHierarchy(this.allGroups);
+                    this.groups = this.buildHierarchy(this.allGroups, undefined, this.catalogToolbarState.sortValue === 'nameDesc');
                     this.ApplyFilter();
                     console.log('Filtered groups:', this.filteredGroups);
                 } catch (err) {
@@ -282,21 +320,30 @@ export class GroupsComponent implements OnInit
             .subscribe(() => this.LoadGroups(true));
     }
 
-    Filter(event: any) {
-        this.searchQuery = event.detail.value?.toLowerCase() || '';
+    OnToolbarChange(state: CatalogToolbarState) {
+        this.catalogToolbarState = state;
         this.ApplyFilter();
     }
 
     ApplyFilter() {
-        if (!this.searchQuery) {
-            this.filteredGroups = this.buildHierarchy(this.allGroups);
-            return;
-        }
+        const matched = applyCatalogQuery(this.allGroups, this.catalogToolbarState, {
+            searchPredicate: (group: any, normalizedQuery: string) =>
+                matchesCatalogText(group?.name, normalizedQuery) ||
+                matchesCatalogText(group?.parent?.name, normalizedQuery),
+            filterPredicates: {
+                type: (group: any, value: string) => {
+                    if (value === 'root') {
+                        return !group.parent;
+                    }
 
-        const matched = this.allGroups.filter(g => 
-            String(g?.name ?? '').toLowerCase().includes(this.searchQuery) || 
-            (g.parent && String(g.parent.name ?? '').toLowerCase().includes(this.searchQuery))
-        );
+                    if (value === 'subgroup') {
+                        return !!group.parent;
+                    }
+
+                    return true;
+                },
+            },
+        });
 
         const allowedIds = new Set<number>();
         matched.forEach(g => {
@@ -312,7 +359,8 @@ export class GroupsComponent implements OnInit
             }
         });
 
-        this.filteredGroups = this.buildHierarchy(this.allGroups, allowedIds);
+        const sortDescending = this.catalogToolbarState.sortValue === 'nameDesc';
+        this.filteredGroups = this.buildHierarchy(this.allGroups, allowedIds, sortDescending);
     }
 
     OpenModal(item: any = null) {
