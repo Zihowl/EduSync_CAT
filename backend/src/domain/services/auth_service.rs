@@ -1,8 +1,9 @@
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use argon2::{Argon2, password_hash::{PasswordHash, PasswordHasher, SaltString, rand_core::OsRng}, PasswordVerifier};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, EncodingKey, Header};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::{
@@ -35,13 +36,16 @@ pub struct LoginResult {
     pub user: User,
 }
 
+fn email_regex() -> &'static Regex {
+    static EMAIL_REGEX: OnceLock<Regex> = OnceLock::new();
+    EMAIL_REGEX.get_or_init(|| {
+        Regex::new(r"^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$")
+            .expect("hardcoded email regex must be valid")
+    })
+}
+
 fn is_valid_email(email: &str) -> bool {
-    let parts: Vec<&str> = email.split('@').collect();
-    if parts.len() != 2 {
-        return false;
-    }
-    let domain = parts[1];
-    domain.contains('.') && !domain.starts_with('.') && !domain.ends_with('.')
+    email_regex().is_match(email)
 }
 
 fn password_meets_complexity(password: &str) -> bool {
@@ -74,6 +78,10 @@ impl AuthService {
         let normalized_email = normalize_email(email);
         if normalized_email.is_empty() {
             return Err(DomainError::BadRequest("Email es requerido".to_string()));
+        }
+
+        if !is_valid_email(&normalized_email) {
+            return Err(DomainError::BadRequest("Correo electrónico inválido".to_string()));
         }
 
         if password.trim().is_empty() {
@@ -195,6 +203,10 @@ impl AuthService {
 
         if current_email.is_empty() || current_password.is_empty() {
             return Err(DomainError::BadRequest("Correo y contraseña actual son requeridos".to_string()));
+        }
+
+        if !is_valid_email(&current_email) {
+            return Err(DomainError::BadRequest("Correo electrónico inválido".to_string()));
         }
 
         if new_email.is_empty() || new_password.is_empty() {
@@ -475,6 +487,19 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap().email, "admin@example.com");
+    }
+
+    #[tokio::test]
+    async fn test_validate_user_rejects_invalid_email_format() {
+        let (auth_service, repo) = setup_auth_service().await;
+
+        let result = auth_service.validate_user("admin@example", TEST_PASSWORD).await;
+
+        assert!(matches!(result, Err(DomainError::BadRequest(msg)) if msg.contains("Correo electrónico inválido")));
+
+        let user = repo.find_by_email("admin@example.com").await.unwrap().unwrap();
+        assert_eq!(user.failed_login_attempts, 0);
+        assert!(user.lockout_until.is_none());
     }
 
     #[tokio::test]
