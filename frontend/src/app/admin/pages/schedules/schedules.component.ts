@@ -155,8 +155,8 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                                 <ion-segment-button value="draft">Borradores</ion-segment-button>
                             </ion-segment>
 
-                            <ion-select [(ngModel)]="filterGroupId" (ionChange)="LoadSchedules()" placeholder="Filtrar por grupo" interface="popover" class="schedule-filter">
-                                <ion-select-option [value]="null">Todos los grupos</ion-select-option>
+                            <ion-select [(ngModel)]="filterGroupId" (ionChange)="LoadSchedules()" placeholder="Grupo" interface="popover" class="schedule-filter">
+                                <ion-select-option [value]="null">Sin filtro</ion-select-option>
                                 <ion-select-option *ngFor="let g of groups" [value]="g.id">
                                     {{ getGroupLabel(g) }}
                                 </ion-select-option>
@@ -183,6 +183,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                             <app-schedule-calendar
                                 [events]="calendarEvents"
                                 [visibleDays]="calendarDays"
+                                [minuteHeight]="0.85"
                                 [highlightedDay]="viewMode === 'day' ? (filterDay || null) : null"
                                 [editable]="true"
                                 [showCurrentTimeMarker]="true"
