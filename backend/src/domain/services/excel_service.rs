@@ -2,10 +2,10 @@ use std::{io::Cursor, sync::Arc};
 
 use calamine::{open_workbook_auto_from_rs, Data, Reader};
 use csv::ReaderBuilder;
+use serde::Serialize;
 
 use crate::domain::{
     errors::DomainError,
-    models::{building::Building, classroom::Classroom},
     services::{
         building_service::BuildingService,
         classroom_service::ClassroomService,
@@ -33,9 +33,56 @@ pub struct ExcelImportResult {
     pub errors: Vec<String>,
 }
 
+#[derive(Clone, Serialize)]
+pub struct SchedulePreviewRow {
+    pub row_number: usize,
+    pub clave_materia: String,
+    pub materia: String,
+    pub grade: Option<i32>,
+    pub no_empleado: String,
+    pub docente: String,
+    pub grupo: String,
+    pub subgroup: Option<String>,
+    pub aula: String,
+    pub edificio: String,
+    pub dia: String,
+    pub hora_inicio: String,
+    pub hora_fin: String,
+    pub errors: Vec<String>,
+}
+
+#[derive(Clone, Serialize)]
+pub struct ExcelPreviewResult {
+    pub success: bool,
+    pub processed: usize,
+    pub errors: Vec<String>,
+    pub rows: Vec<SchedulePreviewRow>,
+}
+
 struct ParsedScheduleTable {
     headers: Vec<String>,
     rows: Vec<Vec<String>>,
+}
+
+struct ParsedScheduleRow {
+    clave_materia: String,
+    materia: String,
+    grade: Option<i32>,
+    no_empleado: String,
+    docente: String,
+    grupo: String,
+    subgroup: Option<String>,
+    aula: String,
+    edificio: String,
+    dia: String,
+    day_of_week: i32,
+    hora_inicio: String,
+    hora_fin: String,
+}
+
+struct RowAnalysis {
+    parsed: ParsedScheduleRow,
+    errors: Vec<String>,
 }
 
 impl ExcelService {
@@ -81,12 +128,57 @@ impl ExcelService {
         })
     }
 
-    async fn process_row(
+    pub async fn preview_schedule_file(
+        &self,
+        file: &[u8],
+    ) -> Result<ExcelPreviewResult, DomainError> {
+        let ParsedScheduleTable { headers, rows } = parse_uploaded_schedule_table(file)?;
+
+        let mut processed = 0usize;
+        let mut errors = Vec::new();
+        let mut preview_rows = Vec::new();
+
+        for (idx, row) in rows.iter().enumerate() {
+            let row_number = idx + 2;
+            let analysis = self.analyze_row(&headers, row).await?;
+
+            if analysis.errors.is_empty() {
+                processed += 1;
+            } else {
+                errors.push(format!("Fila {row_number}: {}", analysis.errors.join("; ")));
+            }
+
+            preview_rows.push(SchedulePreviewRow {
+                row_number,
+                clave_materia: analysis.parsed.clave_materia,
+                materia: analysis.parsed.materia,
+                grade: analysis.parsed.grade,
+                no_empleado: analysis.parsed.no_empleado,
+                docente: analysis.parsed.docente,
+                grupo: analysis.parsed.grupo,
+                subgroup: analysis.parsed.subgroup,
+                aula: analysis.parsed.aula,
+                edificio: analysis.parsed.edificio,
+                dia: analysis.parsed.dia,
+                hora_inicio: analysis.parsed.hora_inicio,
+                hora_fin: analysis.parsed.hora_fin,
+                errors: analysis.errors,
+            });
+        }
+
+        Ok(ExcelPreviewResult {
+            success: errors.is_empty(),
+            processed,
+            errors,
+            rows: preview_rows,
+        })
+    }
+
+    async fn analyze_row(
         &self,
         headers: &[String],
         row: &[String],
-        uploaded_by: Option<uuid::Uuid>,
-    ) -> Result<(), DomainError> {
+    ) -> Result<RowAnalysis, DomainError> {
         let value = |names: &[&str]| -> String {
             headers
                 .iter()
@@ -98,86 +190,220 @@ impl ExcelService {
 
         let clave_materia = value(&["ClaveMateria"]);
         let materia = value(&["Materia"]);
-        let grade = parse_optional_grade(&value(&["Grado", "Grade"]))?;
-        let no_empleado = value(&["NoEmpleado"]);
-        let docente = value(&["Docente"]);
-        let grupo = value(&["Grupo"]);
-        let subgroup_text = parse_optional_text(&value(&["Subgrupo", "SubGrupo"]));
-        let aula = value(&["Aula"]);
-        let edificio = value(&["Edificio"]);
-        let dia = value(&["Dia"]);
-        let hora_inicio = normalize_time(&value(&["HoraInicio"]));
-        let hora_fin = normalize_time(&value(&["HoraFin"]));
+        let grade = match parse_optional_grade(&value(&["Grado", "Grade"])) {
+            Ok(v) => v,
+            Err(err) => {
+                let mut errors = vec![err.msg()];
+                let parsed = ParsedScheduleRow {
+                    clave_materia,
+                    materia,
+                    grade: None,
+                    no_empleado: value(&["NoEmpleado"]),
+                    docente: value(&["Docente"]),
+                    grupo: value(&["Grupo"]),
+                    subgroup: parse_optional_text(&value(&["Subgrupo", "SubGrupo"])),
+                    aula: value(&["Aula"]),
+                    edificio: value(&["Edificio"]),
+                    dia: value(&["Dia"]),
+                    day_of_week: 0,
+                    hora_inicio: normalize_time(&value(&["HoraInicio"])),
+                    hora_fin: normalize_time(&value(&["HoraFin"])),
+                };
+                self.append_row_errors(&parsed, &mut errors).await?;
+                return Ok(RowAnalysis { parsed, errors });
+            }
+        };
 
-        if clave_materia.is_empty()
-            || materia.is_empty()
-            || grupo.is_empty()
-            || aula.is_empty()
-            || edificio.is_empty()
-            || dia.is_empty()
-            || hora_inicio.is_empty()
-            || hora_fin.is_empty()
-        {
-            return Err(DomainError::BadRequest(
-                "Se requiere ClaveMateria, Materia, Grupo, Aula, Edificio, Dia, HoraInicio y HoraFin".to_string(),
-            ));
+        let parsed = ParsedScheduleRow {
+            clave_materia,
+            materia,
+            grade,
+            no_empleado: value(&["NoEmpleado"]),
+            docente: value(&["Docente"]),
+            grupo: value(&["Grupo"]),
+            subgroup: parse_optional_text(&value(&["Subgrupo", "SubGrupo"])),
+            aula: value(&["Aula"]),
+            edificio: value(&["Edificio"]),
+            dia: value(&["Dia"]),
+            day_of_week: parse_day(&value(&["Dia"])),
+            hora_inicio: normalize_time(&value(&["HoraInicio"])),
+            hora_fin: normalize_time(&value(&["HoraFin"])),
+        };
+
+        let mut errors = Vec::new();
+        self.append_row_errors(&parsed, &mut errors).await?;
+
+        Ok(RowAnalysis { parsed, errors })
+    }
+
+    async fn append_row_errors(
+        &self,
+        parsed: &ParsedScheduleRow,
+        errors: &mut Vec<String>,
+    ) -> Result<(), DomainError> {
+        if parsed.clave_materia.is_empty() {
+            errors.push("Se requiere ClaveMateria".to_string());
         }
 
-        let subject = match self.subject_service.create(
-            &clave_materia,
-            if materia.is_empty() { "Materia Sin Nombre" } else { &materia },
-            grade,
-            None,
-        ).await {
-            Ok(v) => v,
-            Err(DomainError::Conflict(_)) => {
-                let existing = self.subject_service.find_all().await?.into_iter().find(|s| s.code == clave_materia).ok_or_else(|| DomainError::NotFound("Materia no encontrada".to_string()))?;
+        if parsed.materia.is_empty() {
+            errors.push("Se requiere Materia".to_string());
+        }
 
-                if existing.grade.is_none() && grade.is_some() {
-                    let _ = self.subject_service.update(existing.id, None, None, grade, None).await?;
+        if parsed.no_empleado.is_empty() {
+            errors.push("Se requiere NoEmpleado".to_string());
+        }
+
+        if parsed.grupo.is_empty() {
+            errors.push("Se requiere Grupo".to_string());
+        }
+
+        if parsed.aula.is_empty() {
+            errors.push("Se requiere Aula".to_string());
+        }
+
+        if parsed.edificio.is_empty() {
+            errors.push("Se requiere Edificio".to_string());
+        }
+
+        if parsed.dia.is_empty() {
+            errors.push("Se requiere Dia".to_string());
+        } else if parsed.day_of_week == 0 {
+            errors.push(format!("Dia invalido: {}", parsed.dia));
+        }
+
+        if parsed.hora_inicio.is_empty() {
+            errors.push("Se requiere HoraInicio".to_string());
+        }
+
+        if parsed.hora_fin.is_empty() {
+            errors.push("Se requiere HoraFin".to_string());
+        }
+
+        if !parsed.hora_inicio.is_empty()
+            && !parsed.hora_fin.is_empty()
+            && parse_time_minutes(&parsed.hora_inicio) >= parse_time_minutes(&parsed.hora_fin)
+        {
+            errors.push("La hora de inicio debe ser menor que la hora de fin".to_string());
+        }
+
+        if !parsed.clave_materia.is_empty() {
+            match self.find_subject_id(&parsed.clave_materia).await? {
+                Some(_) => {}
+                None => errors.push(format!("Materia no encontrada: {}", parsed.clave_materia)),
+            }
+        }
+
+        if !parsed.no_empleado.is_empty() {
+            match self.find_teacher_id(&parsed.no_empleado).await? {
+                Some(_) => {}
+                None => errors.push(format!("Docente no encontrado: {}", parsed.no_empleado)),
+            }
+        }
+
+        if !parsed.edificio.is_empty() {
+            match self.find_building_id(&parsed.edificio).await? {
+                Some(building_id) => {
+                    if !parsed.aula.is_empty() {
+                        match self.find_classroom_id(&parsed.aula, building_id).await? {
+                            Some(_) => {}
+                            None => errors.push(format!("Salon no encontrado: {} en {}", parsed.aula, parsed.edificio)),
+                        }
+                    }
                 }
+                None => errors.push(format!("Edificio no encontrado: {}", parsed.edificio)),
+            }
+        }
 
-                existing
-            },
-            Err(e) => return Err(e),
-        };
+        Ok(())
+    }
 
-        let teacher_id = if no_empleado.is_empty() && docente.is_empty() {
-            None
-        } else {
-            let emp = if no_empleado.is_empty() { format!("SIN_NUM_{}", chrono::Utc::now().timestamp_millis()) } else { no_empleado };
-            let teacher = match self.teacher_service.create(&emp, if docente.is_empty() { "Docente Por Asignar" } else { &docente }, None).await {
-                Ok(v) => v,
-                Err(DomainError::Conflict(_)) => self.teacher_service.find_all().await?.into_iter().find(|t| t.employee_number == emp).ok_or_else(|| DomainError::NotFound("Docente no encontrado".to_string()))?,
-                Err(e) => return Err(e),
-            };
+    async fn find_subject_id(&self, code: &str) -> Result<Option<i32>, DomainError> {
+        Ok(self
+            .subject_service
+            .find_all()
+            .await?
+            .into_iter()
+            .find(|subject| subject.code.eq_ignore_ascii_case(code))
+            .map(|subject| subject.id))
+    }
 
-            Some(teacher.id)
-        };
+    async fn find_teacher_id(&self, employee_number: &str) -> Result<Option<i32>, DomainError> {
+        Ok(self
+            .teacher_service
+            .find_all()
+            .await?
+            .into_iter()
+            .find(|teacher| teacher.employee_number.eq_ignore_ascii_case(employee_number))
+            .map(|teacher| teacher.id))
+    }
 
-        let building = resolve_or_create_building(&self.building_service, &edificio).await?;
+    async fn find_building_id(&self, name: &str) -> Result<Option<i32>, DomainError> {
+        Ok(self
+            .building_service
+            .find_by_name(name)
+            .await?
+            .map(|building| building.id))
+    }
 
-        let classroom = resolve_or_create_classroom(&self.classroom_service, &aula, building.id).await?;
+    async fn find_classroom_id(
+        &self,
+        name: &str,
+        building_id: i32,
+    ) -> Result<Option<i32>, DomainError> {
+        Ok(self
+            .classroom_service
+            .find_by_name_and_building(name, building_id)
+            .await?
+            .map(|classroom| classroom.id))
+    }
 
-        let group = self.group_service.find_or_create(&grupo, None).await?;
+    async fn process_row(
+        &self,
+        headers: &[String],
+        row: &[String],
+        uploaded_by: Option<uuid::Uuid>,
+    ) -> Result<(), DomainError> {
+        let analysis = self.analyze_row(headers, row).await?;
 
-        let subgroup = if let Some(subgroup_name) = subgroup_text.as_deref() {
+        if !analysis.errors.is_empty() {
+            return Err(DomainError::BadRequest(analysis.errors.join("; ")));
+        }
+
+        let parsed = analysis.parsed;
+        let subject_id = self
+            .find_subject_id(&parsed.clave_materia)
+            .await?
+            .ok_or_else(|| DomainError::NotFound("Materia no encontrada".to_string()))?;
+        let teacher_id = self
+            .find_teacher_id(&parsed.no_empleado)
+            .await?
+            .ok_or_else(|| DomainError::NotFound("Docente no encontrado".to_string()))?;
+        let building_id = self
+            .find_building_id(&parsed.edificio)
+            .await?
+            .ok_or_else(|| DomainError::NotFound("Edificio no encontrado".to_string()))?;
+        let classroom_id = self
+            .find_classroom_id(&parsed.aula, building_id)
+            .await?
+            .ok_or_else(|| DomainError::NotFound("Salon no encontrado".to_string()))?;
+
+        let group = self.group_service.find_or_create(&parsed.grupo, None).await?;
+
+        let subgroup = if let Some(subgroup_name) = parsed.subgroup.as_deref() {
             Some(self.group_service.find_or_create(subgroup_name, Some(group.id)).await?.name)
         } else {
             None
         };
 
-        let day_of_week = parse_day(&dia);
-
         self.schedule_service
             .create(CreateScheduleSlot {
-                teacher_id,
-                subject_id: subject.id,
-                classroom_id: classroom.id,
+                teacher_id: Some(teacher_id),
+                subject_id,
+                classroom_id,
                 group_id: group.id,
-                day_of_week,
-                start_time: hora_inicio,
-                end_time: if hora_fin.is_empty() { "00:00:00".to_string() } else { hora_fin },
+                day_of_week: parsed.day_of_week,
+                start_time: parsed.hora_inicio,
+                end_time: parsed.hora_fin,
                 subgroup,
                 is_published: false,
                 created_by_id: uploaded_by,
@@ -185,32 +411,6 @@ impl ExcelService {
             .await?;
 
         Ok(())
-    }
-}
-
-async fn resolve_or_create_building(service: &BuildingService, name: &str) -> Result<Building, DomainError> {
-    match service.create(name, None).await {
-        Ok(building) => Ok(building),
-        Err(DomainError::Conflict(_)) => service
-            .find_by_name(name)
-            .await?
-            .ok_or_else(|| DomainError::NotFound("Edificio no encontrado".to_string())),
-        Err(err) => Err(err),
-    }
-}
-
-async fn resolve_or_create_classroom(
-    service: &ClassroomService,
-    name: &str,
-    building_id: i32,
-) -> Result<Classroom, DomainError> {
-    match service.create(name, Some(building_id)).await {
-        Ok(classroom) => Ok(classroom),
-        Err(DomainError::Conflict(_)) => service
-            .find_by_name_and_building(name, building_id)
-            .await?
-            .ok_or_else(|| DomainError::NotFound("Salon no encontrado".to_string())),
-        Err(err) => Err(err),
     }
 }
 
@@ -260,6 +460,20 @@ fn parse_optional_text(value: &str) -> Option<String> {
     }
 
     Some(normalized.to_string())
+}
+
+fn parse_time_minutes(value: &str) -> i32 {
+    let mut parts = value.split(':');
+    let hour = parts
+        .next()
+        .and_then(|part| part.parse::<i32>().ok())
+        .unwrap_or(0);
+    let minute = parts
+        .next()
+        .and_then(|part| part.parse::<i32>().ok())
+        .unwrap_or(0);
+
+    (hour * 60) + minute
 }
 
 fn parse_uploaded_schedule_table(file: &[u8]) -> Result<ParsedScheduleTable, DomainError> {

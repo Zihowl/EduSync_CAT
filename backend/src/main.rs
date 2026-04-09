@@ -8,7 +8,7 @@ use std::{net::SocketAddr, sync::Arc};
 use adapters::{
     auth::middleware::read_active_auth_user_from_headers,
     graphql::{realtime::RealtimeBroadcaster, schema::{build_schema, AppSchema}},
-    rest::{public_schedules, upload_handler::upload_schedule},
+    rest::{public_schedules, upload_handler::{preview_schedule_upload, upload_schedule}},
 };
 use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
@@ -172,6 +172,7 @@ async fn main() -> anyhow::Result<()> {
             get_service(GraphQLSubscription::new(state.schema.clone())),
         )
         .route("/academic/upload-schedule", post(upload_schedule))
+        .route("/academic/upload-schedule/preview", post(preview_schedule_upload))
         .route("/public/schedules", get(public_schedules))
         .layer(Extension(config.clone()))
         .layer(cors)

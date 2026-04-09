@@ -6,9 +6,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import {
     IonContent, IonSelect,
-    IonSelectOption, IonItem, IonLabel, IonIcon,
+    IonSelectOption, IonIcon,
     IonCard, IonCardHeader, IonCardTitle, IonCardContent,
-    IonGrid, IonRow, IonCol, IonChip, IonSpinner, IonNote,
+    IonChip, IonSpinner, IonNote,
     IonSegment, IonSegmentButton
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -17,10 +17,14 @@ import {
     businessOutline, layersOutline, schoolOutline
 } from 'ionicons/icons';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
-import { DataListComponent } from '../../../shared/components/data-list/data-list.component';
 import { environment } from '../../../../environments/environment';
 import { RealtimeQueryCacheService } from '../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realtime-sync.service';
+import { ScheduleCalendarComponent } from '../../../shared/components/schedule-calendar/schedule-calendar.component';
+import {
+    normalizeDayOfWeek,
+    ScheduleCalendarEvent,
+} from '../../../shared/components/schedule-calendar/schedule-calendar.model';
 
 interface ScheduleSlot {
     id: number;
@@ -41,143 +45,143 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
     standalone: true,
     imports: [
         CommonModule, FormsModule, IonContent,
-        IonSelect, IonSelectOption, IonItem, IonLabel, IonIcon,
+        IonSelect, IonSelectOption, IonIcon, IonNote,
         IonCard, IonCardHeader, IonCardTitle, IonCardContent,
-        IonGrid, IonRow, IonCol, IonChip, IonSpinner,
-        IonSegment, IonSegmentButton, PageHeaderComponent, DataListComponent
+        IonChip, IonSpinner,
+        IonSegment, IonSegmentButton, PageHeaderComponent, ScheduleCalendarComponent
     ],
     template: `
-        <app-page-header title="Consulta de Horarios">
+        <app-page-header title="Consulta de Horarios" subtitle="Vista de solo lectura">
             <ion-icon pageHeaderStart name="school-outline" class="kiosk-title-icon"></ion-icon>
         </app-page-header>
 
-        <ion-content class="ion-padding">
-            <div class="app-page-shell app-page-shell--wide">
-                <ion-grid>
-                    <ion-row class="ion-justify-content-center">
-                        <ion-col size="12" size-md="8" size-lg="6">
-                            <ion-card>
-                                <ion-card-header>
-                                    <ion-card-title>Selecciona un grupo</ion-card-title>
-                                </ion-card-header>
-                                <ion-card-content>
-                                    <ion-select
-                                        [(ngModel)]="selectedGroupId"
-                                        (ionChange)="LoadSchedules()"
-                                        placeholder="Selecciona un grupo..."
-                                        interface="action-sheet"
-                                        class="kiosk-select">
-                                        <ion-select-option *ngFor="let g of groups" [value]="g.id">
-                                            {{ g.parent ? g.parent.name + '-' : '' }}{{ g.name }}
-                                        </ion-select-option>
-                                    </ion-select>
-                                </ion-card-content>
-                            </ion-card>
-                        </ion-col>
-                    </ion-row>
+        <ion-content class="ion-padding kiosk-content">
+            <div class="app-page-shell app-page-shell--wide kiosk-shell">
+                <ion-card class="kiosk-hero-card app-page-section">
+                    <ion-card-content>
+                        <div class="kiosk-hero">
+                            <div class="kiosk-hero__copy">
+                                <p class="kiosk-kicker">Consulta pública</p>
+                                <h2>Horario tipo calendario con eje de días y horas</h2>
+                                <p class="kiosk-description">
+                                    Selecciona un grupo y recorre su semana en una vista de solo lectura. Puedes cambiar entre semana y día para centrarte en un bloque específico.
+                                </p>
+                            </div>
 
-                    <ion-row *ngIf="selectedGroupId" class="ion-justify-content-center">
-                        <ion-col size="12" size-md="10">
-                            <ion-segment [(ngModel)]="viewMode" class="kiosk-segment">
-                                <ion-segment-button value="list">Lista</ion-segment-button>
-                                <ion-segment-button value="day">Por día</ion-segment-button>
+                            <div class="kiosk-hero__stats">
+                                <ion-chip color="primary">{{ schedules.length }} bloques</ion-chip>
+                                <ion-chip color="success">{{ groups.length }} grupos</ion-chip>
+                            </div>
+                        </div>
+
+                        <div class="kiosk-toolbar">
+                            <ion-select
+                                [(ngModel)]="selectedGroupId"
+                                (ionChange)="LoadSchedules()"
+                                placeholder="Selecciona un grupo..."
+                                interface="popover"
+                                class="kiosk-select">
+                                <ion-select-option *ngFor="let g of groups" [value]="g.id">
+                                    {{ g.parent ? g.parent.name + '-' : '' }}{{ g.name }}
+                                </ion-select-option>
+                            </ion-select>
+
+                            <ion-segment [(ngModel)]="viewMode" (ionChange)="onViewModeChange()" class="kiosk-segment">
+                                <ion-segment-button value="week">Semana</ion-segment-button>
+                                <ion-segment-button value="day">Día</ion-segment-button>
                             </ion-segment>
+                        </div>
 
-                            <!-- Vista por día -->
-                            <div *ngIf="viewMode === 'day'">
-                                <ion-segment [(ngModel)]="selectedDay" scrollable>
-                                    <ion-segment-button *ngFor="let d of [1,2,3,4,5,6]" [value]="d">
-                                        {{ getDayShort(d) }}
-                                    </ion-segment-button>
-                                </ion-segment>
+                        <div *ngIf="viewMode === 'day'" class="kiosk-day-strip">
+                            <button
+                                *ngFor="let d of calendarWeekDays"
+                                type="button"
+                                class="kiosk-day-strip__button"
+                                [class.kiosk-day-strip__button--active]="selectedDay === d"
+                                (click)="selectDay(d)">
+                                {{ getDayShort(d) }}
+                            </button>
+                        </div>
+                    </ion-card-content>
+                </ion-card>
 
-                                <app-data-list
-                                    *ngIf="getSchedulesForDay(selectedDay).length > 0"
-                                    class="ion-margin-top"
-                                    [items]="getSchedulesForDay(selectedDay)"
-                                    [loaded]="true"
-                                    emptyIcon="calendar-outline"
-                                    emptyTitle="No hay clases este día"
-                                    [showCard]="true">
-                                    <ng-template #itemTemplate let-s>
-                                        <ion-item>
-                                            <ion-icon name="time-outline" slot="start" color="primary"></ion-icon>
-                                            <ion-label>
-                                                <h2 class="kiosk-subject-title">{{ getSubjectLabel(s.subject) }}</h2>
-                                                <p>{{ s.startTime.substring(0,5) }} - {{ s.endTime.substring(0,5) }}</p>
-                                                <p>
-                                                    <ion-icon name="person-outline" class="kiosk-inline-icon"></ion-icon>
-                                                    {{ s.teacher?.name || 'Sin docente' }}
-                                                </p>
-                                                <p>
-                                                    <ion-icon name="business-outline" class="kiosk-inline-icon"></ion-icon>
-                                                    {{ s.classroom.name }}
-                                                    <ion-chip *ngIf="s.subgroup" color="tertiary" class="kiosk-subgroup">{{ s.subgroup }}</ion-chip>
-                                                </p>
-                                            </ion-label>
-                                        </ion-item>
-                                    </ng-template>
-                                </app-data-list>
+                <div *ngIf="selectedGroupId && !loading; else kioskEmptyState" class="kiosk-main-grid">
+                    <ion-card class="kiosk-calendar-card app-page-section">
+                        <ion-card-content>
+                            <app-schedule-calendar
+                                [events]="calendarEvents"
+                                [visibleDays]="calendarDays"
+                                [highlightedDay]="viewMode === 'day' ? selectedDay : null"
+                                [showCurrentTimeMarker]="true"
+                                (eventSelected)="onCalendarEventSelected($event)">
+                            </app-schedule-calendar>
+                        </ion-card-content>
+                    </ion-card>
 
-                                <div *ngIf="getSchedulesForDay(selectedDay).length === 0" class="kiosk-empty-state">
-                                    <ion-icon name="calendar-outline" class="kiosk-empty-icon"></ion-icon>
-                                    <p>No hay clases este día</p>
+                    <ion-card class="kiosk-details-card app-page-section">
+                        <ion-card-header>
+                            <ion-card-title>Detalle</ion-card-title>
+                        </ion-card-header>
+
+                        <ion-card-content *ngIf="selectedSchedule; else kioskNoSelection">
+                            <p class="kiosk-details__kicker">{{ getDayName(selectedSchedule.dayOfWeek) }}</p>
+                            <h3 class="kiosk-details__title">{{ getSubjectLabel(selectedSchedule.subject) }}</h3>
+                            <ion-chip color="primary" outline class="kiosk-details__time">
+                                {{ formatTime(selectedSchedule.startTime) }} - {{ formatTime(selectedSchedule.endTime) }}
+                            </ion-chip>
+
+                            <div class="kiosk-details__rows">
+                                <div>
+                                    <span>Docente</span>
+                                    <strong>{{ selectedSchedule.teacher?.name || 'Sin docente' }}</strong>
+                                </div>
+                                <div>
+                                    <span>Aula</span>
+                                    <strong>{{ selectedSchedule.classroom.name }}</strong>
+                                </div>
+                                <div>
+                                    <span>Grupo</span>
+                                    <strong>{{ getGroupLabel(selectedSchedule.group) }}</strong>
+                                </div>
+                                <div *ngIf="selectedSchedule.subgroup">
+                                    <span>Subgrupo</span>
+                                    <strong>{{ selectedSchedule.subgroup }}</strong>
                                 </div>
                             </div>
 
-                            <!-- Vista de lista completa -->
-                            <div *ngIf="viewMode === 'list'">
-                                <ng-container *ngFor="let day of [1,2,3,4,5,6]">
-                                    <ion-card *ngIf="getSchedulesForDay(day).length > 0" class="kiosk-day-card">
-                                        <ion-card-header color="light">
-                                            <ion-card-title>
-                                                <ion-icon name="calendar-outline" class="kiosk-day-icon"></ion-icon>
-                                                {{ getDayName(day) }}
-                                            </ion-card-title>
-                                        </ion-card-header>
-                                        <ion-card-content class="ion-no-padding">
-                                            <app-data-list
-                                                [items]="getSchedulesForDay(day)"
-                                                [loaded]="true"
-                                                [showCard]="false">
-                                                <ng-template #itemTemplate let-s>
-                                                    <ion-item>
-                                                        <ion-label>
-                                                            <h3 class="kiosk-subject-title">{{ getSubjectLabel(s.subject) }}</h3>
-                                                            <p class="kiosk-time-badge">
-                                                                <ion-chip color="primary" outline>
-                                                                    {{ s.startTime.substring(0,5) }} - {{ s.endTime.substring(0,5) }}
-                                                                </ion-chip>
-                                                            </p>
-                                                                        <p>
-                                                                            {{ s.teacher?.name || 'Sin docente' }} · {{ s.classroom.name }}
-                                                                            <ion-chip *ngIf="s.subgroup" color="tertiary" class="kiosk-subgroup">{{ s.subgroup }}</ion-chip>
-                                                                        </p>
-                                                        </ion-label>
-                                                    </ion-item>
-                                                </ng-template>
-                                            </app-data-list>
-                                        </ion-card-content>
-                                    </ion-card>
-                                </ng-container>
+                            <ion-note>Esta vista es de solo lectura y se actualiza en tiempo real cuando cambia el horario publicado.</ion-note>
+                        </ion-card-content>
+
+                        <ng-template #kioskNoSelection>
+                            <ion-card-content>
+                                <div class="kiosk-details__empty">
+                                    <ion-icon name="calendar-outline" class="kiosk-details__empty-icon"></ion-icon>
+                                    <h3>Selecciona un bloque</h3>
+                                    <p>Haz clic en una clase para ver sus detalles sin salir del calendario.</p>
+                                </div>
+                            </ion-card-content>
+                        </ng-template>
+                    </ion-card>
+                </div>
+
+                <ng-template #kioskEmptyState>
+                    <ion-card class="kiosk-empty-card app-page-section">
+                        <ion-card-content *ngIf="loading; else kioskInitialState">
+                            <div class="kiosk-loading-state">
+                                <ion-spinner name="crescent"></ion-spinner>
+                                <p>Cargando horarios...</p>
                             </div>
-                        </ion-col>
-                    </ion-row>
+                        </ion-card-content>
 
-                    <!-- Loading -->
-                    <ion-row *ngIf="loading" class="ion-justify-content-center ion-padding">
-                        <ion-spinner name="crescent"></ion-spinner>
-                    </ion-row>
-
-                    <!-- Estado inicial -->
-                    <ion-row *ngIf="!selectedGroupId && !loading" class="ion-justify-content-center">
-                        <ion-col size="12" class="kiosk-welcome-state">
-                            <ion-icon name="school-outline" class="kiosk-welcome-icon"></ion-icon>
-                            <h2>Bienvenido</h2>
-                            <p>Selecciona un grupo para ver su horario de clases</p>
-                        </ion-col>
-                    </ion-row>
-                </ion-grid>
+                        <ng-template #kioskInitialState>
+                            <div class="kiosk-welcome-state">
+                                <ion-icon name="school-outline" class="kiosk-welcome-icon"></ion-icon>
+                                <h2>Bienvenido</h2>
+                                <p>Selecciona un grupo para ver su horario de clases</p>
+                            </div>
+                        </ng-template>
+                    </ion-card>
+                </ng-template>
             </div>
         </ion-content>
     `,
@@ -192,9 +196,13 @@ export class ScheduleKioskComponent implements OnInit
 
     groups: any[] = [];
     schedules: ScheduleSlot[] = [];
+    calendarEvents: ScheduleCalendarEvent[] = [];
+    calendarDays: number[] = [1, 2, 3, 4, 5, 6];
     selectedGroupId: number | null = null;
     selectedDay: number = 1;
-    viewMode: 'list' | 'day' = 'list';
+    viewMode: 'week' | 'day' = 'week';
+    calendarWeekDays = [1, 2, 3, 4, 5, 6];
+    selectedSchedule: ScheduleSlot | null = null;
     loading = false;
 
     private apiUrl = (environment.apiUrl || '').replace(/\/+$/, '');
@@ -225,6 +233,84 @@ export class ScheduleKioskComponent implements OnInit
     {
         const shorts = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
         return shorts[day] || '';
+    }
+
+    formatTime(time: string): string
+    {
+        return time ? time.substring(0, 5) : '';
+    }
+
+    getGroupLabel(group: ScheduleSlot['group']): string
+    {
+        if (!group) {
+            return '';
+        }
+
+        return group.parent ? `${group.parent.name}-${group.name}` : group.name;
+    }
+
+    private getDefaultDay(): number
+    {
+        const current = normalizeDayOfWeek(new Date().getDay());
+        return current === 7 ? 1 : current;
+    }
+
+    private syncCalendarState(): void
+    {
+        this.calendarDays = this.viewMode === 'day'
+            ? [this.selectedDay || this.getDefaultDay()]
+            : [...this.calendarWeekDays];
+
+        this.calendarEvents = this.schedules.map((schedule) => this.toCalendarEvent(schedule));
+    }
+
+    private toCalendarEvent(schedule: ScheduleSlot): ScheduleCalendarEvent
+    {
+        return {
+            id: Number(schedule.id),
+            dayOfWeek: schedule.dayOfWeek,
+            startTime: this.formatTime(schedule.startTime),
+            endTime: this.formatTime(schedule.endTime),
+            title: this.getSubjectLabel(schedule.subject),
+            subtitle: `${this.getDayName(schedule.dayOfWeek)} · ${this.formatTime(schedule.startTime)} - ${this.formatTime(schedule.endTime)}`,
+            meta: [
+                schedule.teacher?.name || 'Sin docente',
+                this.getGroupLabel(schedule.group),
+                schedule.classroom?.name || 'Sin aula'
+            ].filter((value): value is string => Boolean(value)),
+            selected: this.selectedSchedule != null && Number(this.selectedSchedule.id) === Number(schedule.id),
+            payload: schedule,
+        };
+    }
+
+    onViewModeChange(): void
+    {
+        if (this.viewMode === 'week') {
+            this.selectedDay = this.getDefaultDay();
+        }
+
+        this.syncCalendarState();
+
+        if (this.selectedGroupId) {
+            this.LoadSchedules();
+        }
+    }
+
+    selectDay(day: number): void
+    {
+        this.selectedDay = normalizeDayOfWeek(day);
+        this.viewMode = 'day';
+        this.syncCalendarState();
+
+        if (this.selectedGroupId) {
+            this.LoadSchedules();
+        }
+    }
+
+    onCalendarEventSelected(event: ScheduleCalendarEvent): void
+    {
+        this.selectedSchedule = event.payload as ScheduleSlot;
+        this.syncCalendarState();
     }
 
     getSubjectLabel(subject: ScheduleSlot['subject']): string
@@ -266,6 +352,8 @@ export class ScheduleKioskComponent implements OnInit
                 if (this.selectedGroupId && !this.groups.some(g => Number(g.id) === Number(this.selectedGroupId))) {
                     this.selectedGroupId = null;
                     this.schedules = [];
+                    this.selectedSchedule = null;
+                    this.syncCalendarState();
                 }
             },
             error: (err) => console.error('Error loading groups:', err)
@@ -277,27 +365,46 @@ export class ScheduleKioskComponent implements OnInit
         if (!this.selectedGroupId) return;
 
         this.loading = true;
+        const effectiveDay = this.viewMode === 'day' ? this.selectedDay : null;
         this.queryCache.load(
-            `public-schedule-group:${this.selectedGroupId}`,
+            `public-schedule-group:${this.selectedGroupId}:${this.viewMode}:${effectiveDay ?? 'all'}`,
             [RealtimeScope.Schedules, RealtimeScope.Groups],
-            () => this.http.get<ScheduleSlot[]>(`${this.apiUrl}/public/schedules?groupId=${this.selectedGroupId}`)
+            () => {
+                const dayQuery = effectiveDay ? `&dayOfWeek=${effectiveDay}` : '';
+                return this.http.get<ScheduleSlot[]>(`${this.apiUrl}/public/schedules?groupId=${this.selectedGroupId}${dayQuery}`);
+            }
         ).subscribe({
             next: (schedules: ScheduleSlot[]) => {
                 this.schedules = schedules;
                 this.loading = false;
-                // Auto-select el primer día con clases
-                for (let d = 1; d <= 6; d++) {
-                    if (this.getSchedulesForDay(d).length > 0) {
-                        this.selectedDay = d;
-                        break;
-                    }
+                this.selectedSchedule = this.selectedSchedule
+                    ? this.schedules.find(s => Number(s.id) === Number(this.selectedSchedule?.id)) ?? null
+                    : null;
+
+                if (this.viewMode === 'day') {
+                    const firstDayWithClasses = this.getFirstDayWithClasses();
+                    this.selectedDay = firstDayWithClasses ?? this.selectedDay;
                 }
+
+                this.syncCalendarState();
             },
             error: (err) => {
                 console.error('Error loading schedules:', err);
                 this.loading = false;
+                this.syncCalendarState();
             }
         });
+    }
+
+    private getFirstDayWithClasses(): number | null
+    {
+        for (const day of this.calendarWeekDays) {
+            if (this.schedules.some(schedule => schedule.dayOfWeek === day)) {
+                return day;
+            }
+        }
+
+        return null;
     }
 
     private setupRealtimeRefresh(): void
