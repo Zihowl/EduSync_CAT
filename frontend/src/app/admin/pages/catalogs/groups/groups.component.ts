@@ -3,17 +3,17 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
 import { map } from 'rxjs';
-import { 
-    IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, 
-    IonList, IonItem, IonLabel, 
-    IonButton, IonIcon, IonFab, IonFabButton, 
-    IonModal, IonInput, IonFooter, IonSearchbar
+import {
+    IonContent, IonList, IonItem, IonButtons, IonLabel,
+    IonButton, IonIcon, IonFab, IonFabButton,
+    IonInput, IonSearchbar
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trashOutline, addOutline, pencilOutline, peopleOutline, personOutline, searchOutline, returnDownForward, addCircleOutline, people, person } from 'ionicons/icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
+import { CatalogFormModalComponent } from '../../../../shared/components/catalog-form-modal/catalog-form-modal.component';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
@@ -67,10 +67,9 @@ const REMOVE_GROUP = gql`
     selector: 'app-groups',
     standalone: true,
     imports: [
-        CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, 
-        IonTitle, IonButtons, IonList, IonItem, 
-        IonLabel, IonButton, IonIcon, 
-        IonFab, IonFabButton, IonModal, IonInput, IonFooter, IonSearchbar, PageHeaderComponent, DataListComponent
+        CommonModule, FormsModule, IonContent, IonList, IonItem,
+        IonLabel, IonButtons, IonButton, IonIcon,
+        IonFab, IonFabButton, IonInput, IonSearchbar, PageHeaderComponent, DataListComponent, CatalogFormModalComponent
     ],
     template: `
         <app-page-header title="Grupos" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
@@ -115,37 +114,28 @@ const REMOVE_GROUP = gql`
                     </ion-fab-button>
                 </ion-fab>
 
-                <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false">
-                    <ng-template>
-                        <ion-header>
-                            <ion-toolbar color="primary">
-                                <ion-title>{{ getModalTitle() }}</ion-title>
-                                <ion-buttons slot="end">
-                                    <ion-button (click)="isModalOpen = false">Cerrar</ion-button>
-                                </ion-buttons>
-                            </ion-toolbar>
-                        </ion-header>
-                        <ion-content class="ion-padding">
-                            <ion-list>
-                                <ion-item fill="outline" class="groups-form-item">
-                                    <ion-label position="stacked">{{ formData.parentId ? 'Nombre del Subgrupo' : 'Nombre del Grupo' }}</ion-label>
-                                    <ion-input [(ngModel)]="formData.name" [placeholder]="formData.parentId ? 'Ej. Desarrollo, A, 1...' : 'Ej. 8A, Sistemas...' "></ion-input>
-                                    <ion-icon name="people-outline" slot="start"></ion-icon>
-                                </ion-item>
+                <app-catalog-form-modal
+                    [(isOpen)]="isModalOpen"
+                    [title]="getModalTitle()"
+                    subtitle="Crea grupos base o subgrupos dentro del catálogo."
+                    [saveLabel]="editingItem ? 'Actualizar' : 'Guardar'"
+                    [saveDisabled]="!formData.name"
+                    (save)="Save()">
+                    <ng-template #catalogFormBody>
+                        <ion-list>
+                            <ion-item fill="outline">
+                                <ion-label position="stacked">{{ formData.parentId ? 'Nombre del Subgrupo' : 'Nombre del Grupo' }}</ion-label>
+                                <ion-input [(ngModel)]="formData.name" [placeholder]="formData.parentId ? 'Ej. Desarrollo, A, 1...' : 'Ej. 8A, Sistemas...' "></ion-input>
+                                <ion-icon name="people-outline" slot="start"></ion-icon>
+                            </ion-item>
 
-                                <p *ngIf="formData.parentId" class="groups-preview-text">
-                                    <ion-icon name="arrow-forward-outline" class="groups-preview-icon"></ion-icon>
-                                    <span class="groups-preview-label">{{ getParentName(formData.parentId) }}-</span><strong>{{ formData.name || '...' }}</strong>
-                                </p>
-                            </ion-list>
-                        </ion-content>
-                        <ion-footer class="ion-padding">
-                            <ion-button expand="block" (click)="Save()" [disabled]="!formData.name">
-                                {{ editingItem ? 'Actualizar' : 'Guardar' }}
-                            </ion-button>
-                        </ion-footer>
+                            <p *ngIf="formData.parentId" class="groups-preview-text">
+                                <ion-icon name="arrow-forward-outline" class="groups-preview-icon"></ion-icon>
+                                <span class="groups-preview-label">{{ getParentName(formData.parentId) }}-</span><strong>{{ formData.name || '...' }}</strong>
+                            </p>
+                        </ion-list>
                     </ng-template>
-                </ion-modal>
+                </app-catalog-form-modal>
             </div>
         </ion-content>
     `,

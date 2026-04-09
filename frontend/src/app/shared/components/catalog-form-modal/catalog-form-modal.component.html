@@ -1,0 +1,52 @@
+<ion-modal
+  class="catalog-form-modal"
+  [isOpen]="isOpen"
+  [backdropDismiss]="backdropDismiss"
+  (didDismiss)="handleDidDismiss()"
+>
+  <ng-template>
+    <div class="catalog-form-modal__frame">
+      <section class="catalog-form-modal__dialog">
+        <header class="catalog-form-modal__header">
+          <div class="catalog-form-modal__titles">
+            <h2 class="catalog-form-modal__title">{{ title }}</h2>
+            <p *ngIf="subtitle" class="catalog-form-modal__subtitle">{{ subtitle }}</p>
+          </div>
+
+          <ion-button
+            fill="clear"
+            class="catalog-form-modal__close"
+            [attr.aria-label]="'Cerrar formulario'"
+            (click)="close()"
+          >
+            <ion-icon name="close-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </header>
+
+        <div class="catalog-form-modal__scroll">
+          <div class="catalog-form-modal__form">
+            <div class="catalog-form-modal__body">
+              <ng-container *ngIf="bodyTemplate">
+                <ng-container *ngTemplateOutlet="bodyTemplate"></ng-container>
+              </ng-container>
+            </div>
+
+            <p *ngIf="helperText" class="catalog-form-modal__helper">{{ helperText }}</p>
+
+            <div class="catalog-form-modal__footer">
+              <ion-button
+                type="button"
+                expand="block"
+                class="catalog-form-modal__save"
+                [disabled]="saveDisabled"
+                (click)="save.emit()"
+              >
+                {{ saveLabel }}
+              </ion-button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </ng-template>
+</ion-modal>

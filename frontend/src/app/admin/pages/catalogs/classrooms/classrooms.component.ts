@@ -3,17 +3,17 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
 import { map } from 'rxjs';
-import { 
-    IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, 
-    IonList, IonItem, IonLabel, IonSelect, 
-    IonSelectOption, IonButton, IonIcon, IonFab, IonFabButton, 
-    IonModal, IonInput, IonFooter
+import {
+    IonContent, IonList, IonItem, IonButtons, IonLabel, IonSelect,
+    IonSelectOption, IonButton, IonIcon, IonFab, IonFabButton,
+    IonInput
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trashOutline, addOutline, pencilOutline, homeOutline } from 'ionicons/icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
+import { CatalogFormModalComponent } from '../../../../shared/components/catalog-form-modal/catalog-form-modal.component';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
@@ -62,10 +62,9 @@ const REMOVE_CLASSROOM = gql`
     selector: 'app-classrooms',
     standalone: true,
     imports: [
-        CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, 
-        IonTitle, IonButtons, IonList, IonItem, 
-        IonLabel, IonSelect, IonSelectOption, IonButton, IonIcon, 
-        IonFab, IonFabButton, IonModal, IonInput, IonFooter, PageHeaderComponent, DataListComponent
+        CommonModule, FormsModule, IonContent, IonList, IonItem,
+        IonLabel, IonSelect, IonSelectOption, IonButtons, IonButton, IonIcon,
+        IonFab, IonFabButton, IonInput, PageHeaderComponent, DataListComponent, CatalogFormModalComponent
     ],
     template: `
         <app-page-header title="Aulas" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
@@ -105,41 +104,32 @@ const REMOVE_CLASSROOM = gql`
                     </ion-fab-button>
                 </ion-fab>
 
-                <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false">
-                    <ng-template>
-                        <ion-header>
-                            <ion-toolbar color="primary">
-                                <ion-title>{{ editingItem ? 'Editar' : 'Nueva' }} Aula</ion-title>
-                                <ion-buttons slot="end">
-                                    <ion-button (click)="isModalOpen = false">Cerrar</ion-button>
-                                </ion-buttons>
-                            </ion-toolbar>
-                        </ion-header>
-                        <ion-content class="ion-padding">
-                            <ion-list>
-                                <ion-item fill="outline" class="classroom-form-item">
-                                    <ion-label position="stacked">Nombre del aula / Salón</ion-label>
-                                    <ion-input [(ngModel)]="formData.name" placeholder="Ej. Laboratorio 1"></ion-input>
-                                </ion-item>
-                                
-                                <ion-item fill="outline">
-                                    <ion-label position="stacked">Edificio al que pertenece</ion-label>
-                                    <ion-select interface="popover" [(ngModel)]="formData.buildingId" placeholder="Seleccionar edificio">
-                                        <ion-select-option [value]="null">Sin edificio</ion-select-option>
-                                        <ion-select-option *ngFor="let b of buildings" [value]="b.id">
-                                            {{ b.name }}
-                                        </ion-select-option>
-                                    </ion-select>
-                                </ion-item>
-                            </ion-list>
-                        </ion-content>
-                        <ion-footer class="ion-padding">
-                            <ion-button expand="block" (click)="Save()" [disabled]="!formData.name">
-                                {{ editingItem ? 'Actualizar' : 'Guardar' }}
-                            </ion-button>
-                        </ion-footer>
+                <app-catalog-form-modal
+                    [(isOpen)]="isModalOpen"
+                    [title]="(editingItem ? 'Editar' : 'Nueva') + ' Aula'"
+                    subtitle="Asigna el aula y su edificio de referencia."
+                    [saveLabel]="editingItem ? 'Actualizar' : 'Guardar'"
+                    [saveDisabled]="!formData.name"
+                    (save)="Save()">
+                    <ng-template #catalogFormBody>
+                        <ion-list>
+                            <ion-item fill="outline">
+                                <ion-label position="stacked">Nombre del aula / Salón</ion-label>
+                                <ion-input [(ngModel)]="formData.name" placeholder="Ej. Laboratorio 1"></ion-input>
+                            </ion-item>
+
+                            <ion-item fill="outline">
+                                <ion-label position="stacked">Edificio al que pertenece</ion-label>
+                                <ion-select interface="popover" [(ngModel)]="formData.buildingId" placeholder="Seleccionar edificio">
+                                    <ion-select-option [value]="null">Sin edificio</ion-select-option>
+                                    <ion-select-option *ngFor="let b of buildings" [value]="b.id">
+                                        {{ b.name }}
+                                    </ion-select-option>
+                                </ion-select>
+                            </ion-item>
+                        </ion-list>
                     </ng-template>
-                </ion-modal>
+                </app-catalog-form-modal>
             </div>
         </ion-content>
     `,

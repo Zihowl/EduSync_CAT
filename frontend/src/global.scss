@@ -41,11 +41,25 @@
 	--app-shell-background-base: #0f172a;
 	--app-notification-header-offset: 56px;
 	--app-notification-gap: 0.75rem;
-}
 
-html,
-body {
-	height: 100%;
+        /* Catalog Form Modal & Unified Modal Theme Variables */
+        --cfm-surface-bg: rgba(15, 23, 42, 0.82);
+        --cfm-border: rgba(96, 165, 250, 0.22);
+        --cfm-shadow: 0 18px 36px rgba(0, 0, 0, 0.55);
+        --cfm-blur: 18px;
+        --cfm-title: #f8fafc;
+        --cfm-subtitle: rgba(219, 234, 254, 0.78);
+        --cfm-text: rgba(248, 250, 252, 0.96);
+        --cfm-muted: rgba(219, 234, 254, 0.72);
+        --cfm-accent-from: rgba(147, 197, 253, 0.95);
+        --cfm-accent-to: rgba(59, 130, 246, 0.72);
+        --cfm-input-bg: rgba(30, 64, 175, 0.18);
+        --cfm-input-border: rgba(96, 165, 250, 0.26);
+        --cfm-input-focus: rgba(191, 219, 254, 0.88);
+        --cfm-btn-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.98));
+        --cfm-btn-hover: linear-gradient(135deg, rgba(96, 165, 250, 1), rgba(37, 99, 235, 1));
+        --cfm-btn-active: linear-gradient(135deg, rgba(37, 99, 235, 1), rgba(29, 78, 216, 1));
+        --cfm-btn-shadow: 0 10px 18px rgba(37, 99, 235, 0.28);
 }
 
 body {
@@ -169,3 +183,41 @@ ion-toast.login-toast::part(icon) {
 		--app-notification-gap: 0.625rem;
 	}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Global dark-theme overrides for Ionic components
+   ───────────────────────────────────────────────────────────────────────
+   These ensure all Ionic components match the app's glassmorphism style
+   when used on top of the transparent/wallpaper background.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── ion-searchbar — dark glass ────────────────────────────────────── */
+ion-searchbar {
+	--background: rgba(15, 23, 42, 0.55);
+	--color: #f8fafc;
+	--placeholder-color: rgba(148, 163, 184, 0.7);
+	--icon-color: rgba(148, 163, 184, 0.8);
+	--clear-button-color: rgba(148, 163, 184, 0.8);
+	--border-radius: 12px;
+	--box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+	border: 1px solid rgba(148, 163, 184, 0.18);
+	border-radius: 12px;
+}
+
+/* ── ion-select popover — dark glass ───────────────────────────────── */
+ion-popover.select-popover {
+	--background: rgba(15, 23, 42, 0.92);
+	--color: #f8fafc;
+	--backdrop-opacity: 0.3;
+}
+
+ion-popover.select-popover ion-list {
+	background: transparent;
+}
+
+ion-popover.select-popover ion-item {
+	--background: transparent;
+	--color: #f8fafc;
+	--background-hover: rgba(59, 130, 246, 0.15);
+}
+

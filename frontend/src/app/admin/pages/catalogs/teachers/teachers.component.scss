@@ -2,8 +2,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--ion-color-light);
-    color: var(--ion-color-primary);
+    background: rgba(59, 130, 246, 0.2);
+    color: rgba(147, 197, 253, 0.95);
+    border-radius: 50%;
 }
 
 .teacher-initials {
@@ -13,21 +14,4 @@
 
 .teacher-name {
     font-weight: 600;
-}
-
-.teacher-empty-state {
-    text-align: center;
-    padding: 2rem 1rem;
-    opacity: 0.6;
-    margin-top: 2rem;
-}
-
-.teacher-empty-icon {
-    font-size: 64px;
-    display: block;
-    margin-bottom: 1rem;
-}
-
-.teacher-form-item {
-    margin-bottom: 1rem;
 }

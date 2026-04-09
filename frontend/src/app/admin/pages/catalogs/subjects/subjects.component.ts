@@ -3,17 +3,16 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
 import { map } from 'rxjs';
-import { 
-    IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, 
-    IonList, IonItem, IonLabel, IonButton, 
-    IonIcon, IonFab, IonFabButton, IonModal, IonInput, 
-    IonFooter
+import {
+    IonContent, IonList, IonItem, IonButtons, IonLabel, IonButton,
+    IonIcon, IonFab, IonFabButton, IonInput
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { trashOutline, addOutline, pencilOutline, bookOutline } from 'ionicons/icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
+import { CatalogFormModalComponent } from '../../../../shared/components/catalog-form-modal/catalog-form-modal.component';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
@@ -57,10 +56,9 @@ const REMOVE_SUBJECT = gql`
     selector: 'app-subjects',
     standalone: true,
     imports: [
-        CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, 
-        IonTitle, IonButtons, IonList, IonItem, 
-        IonLabel, IonButton, IonIcon, IonFab, IonFabButton, 
-        IonModal, IonInput, IonFooter, PageHeaderComponent, DataListComponent
+        CommonModule, FormsModule, IonContent, IonList, IonItem,
+        IonLabel, IonButtons, IonButton, IonIcon, IonFab, IonFabButton,
+        IonInput, PageHeaderComponent, DataListComponent, CatalogFormModalComponent
     ],
     template: `
         <app-page-header title="Materias" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
@@ -99,36 +97,27 @@ const REMOVE_SUBJECT = gql`
                     </ion-fab-button>
                 </ion-fab>
 
-                <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false">
-                    <ng-template>
-                        <ion-header>
-                            <ion-toolbar color="primary">
-                                <ion-title>{{ editingItem ? 'Editar' : 'Nueva' }} Materia</ion-title>
-                                <ion-buttons slot="end">
-                                    <ion-button (click)="isModalOpen = false">Cerrar</ion-button>
-                                </ion-buttons>
-                            </ion-toolbar>
-                        </ion-header>
-                        <ion-content class="ion-padding">
-                            <ion-list>
-                                <ion-item fill="outline" class="subject-form-item">
-                                    <ion-label position="stacked">Clave de la materia</ion-label>
-                                    <ion-input [(ngModel)]="formData.code" placeholder="Ej. MAT101"></ion-input>
-                                </ion-item>
-                                
-                                <ion-item fill="outline">
-                                    <ion-label position="stacked">Nombre de la materia</ion-label>
-                                    <ion-input [(ngModel)]="formData.name" placeholder="Ej. Matemáticas I"></ion-input>
-                                </ion-item>
-                            </ion-list>
-                        </ion-content>
-                        <ion-footer class="ion-padding">
-                            <ion-button expand="block" (click)="Save()" [disabled]="!formData.code || !formData.name">
-                                {{ editingItem ? 'Actualizar' : 'Guardar' }}
-                            </ion-button>
-                        </ion-footer>
+                <app-catalog-form-modal
+                    [(isOpen)]="isModalOpen"
+                    [title]="(editingItem ? 'Editar' : 'Nueva') + ' Materia'"
+                    subtitle="Define la clave y el nombre de la materia."
+                    [saveLabel]="editingItem ? 'Actualizar' : 'Guardar'"
+                    [saveDisabled]="!formData.code || !formData.name"
+                    (save)="Save()">
+                    <ng-template #catalogFormBody>
+                        <ion-list>
+                            <ion-item fill="outline">
+                                <ion-label position="stacked">Clave de la materia</ion-label>
+                                <ion-input [(ngModel)]="formData.code" placeholder="Ej. MAT101"></ion-input>
+                            </ion-item>
+
+                            <ion-item fill="outline">
+                                <ion-label position="stacked">Nombre de la materia</ion-label>
+                                <ion-input [(ngModel)]="formData.name" placeholder="Ej. Matemáticas I"></ion-input>
+                            </ion-item>
+                        </ion-list>
                     </ng-template>
-                </ion-modal>
+                </app-catalog-form-modal>
             </div>
         </ion-content>
     `,

@@ -4,16 +4,16 @@ import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
 import { map } from 'rxjs';
 import {
-    IonContent, IonHeader, IonToolbar, IonTitle, IonButtons, 
-    IonList, IonItem, IonLabel, IonAvatar, 
-    IonIcon, IonSearchbar, IonFab, IonFabButton, IonModal, 
-    IonInput, IonFooter, IonButton
+    IonContent, IonList, IonItem, IonButtons, IonLabel, IonAvatar,
+    IonIcon, IonSearchbar, IonFab, IonFabButton,
+    IonInput, IonButton
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { personOutline, trashOutline, addOutline, pencilOutline, mailOutline, cardOutline } from 'ionicons/icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
+import { CatalogFormModalComponent } from '../../../../shared/components/catalog-form-modal/catalog-form-modal.component';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
@@ -59,10 +59,9 @@ const REMOVE_TEACHER = gql`
     selector: 'app-teachers',
     standalone: true,
     imports: [
-        CommonModule, FormsModule, IonContent, IonHeader, IonToolbar, 
-        IonTitle, IonButtons, IonList, IonItem, 
-        IonLabel, IonAvatar, IonIcon, IonSearchbar, IonFab, 
-        IonFabButton, IonModal, IonInput, IonFooter, IonButton, PageHeaderComponent, DataListComponent
+        CommonModule, FormsModule, IonContent, IonList, IonItem,
+        IonLabel, IonAvatar, IonButtons, IonIcon, IonSearchbar, IonFab,
+        IonFabButton, IonInput, IonButton, PageHeaderComponent, DataListComponent, CatalogFormModalComponent
     ],
     template: `
         <app-page-header title="Docentes" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
@@ -107,44 +106,35 @@ const REMOVE_TEACHER = gql`
                     </ion-fab-button>
                 </ion-fab>
 
-                <ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false">
-                    <ng-template>
-                        <ion-header>
-                            <ion-toolbar color="primary">
-                                <ion-title>{{ editingItem ? 'Editar' : 'Nuevo' }} Docente</ion-title>
-                                <ion-buttons slot="end">
-                                    <ion-button (click)="isModalOpen = false">Cerrar</ion-button>
-                                </ion-buttons>
-                            </ion-toolbar>
-                        </ion-header>
-                        <ion-content class="ion-padding">
-                            <ion-list>
-                                <ion-item fill="outline" class="teacher-form-item">
-                                    <ion-label position="stacked">Nombre completo</ion-label>
-                                    <ion-input [(ngModel)]="formData.name" placeholder="Ej. Juan Pérez"></ion-input>
-                                    <ion-icon name="person-outline" slot="start"></ion-icon>
-                                </ion-item>
-                                
-                                <ion-item fill="outline" class="teacher-form-item">
-                                    <ion-label position="stacked">Número de empleado</ion-label>
-                                    <ion-input [(ngModel)]="formData.employeeNumber" placeholder="Ej. 123456"></ion-input>
-                                    <ion-icon name="card-outline" slot="start"></ion-icon>
-                                </ion-item>
+                <app-catalog-form-modal
+                    [(isOpen)]="isModalOpen"
+                    [title]="(editingItem ? 'Editar' : 'Nuevo') + ' Docente'"
+                    subtitle="Completa los datos principales del docente."
+                    [saveLabel]="editingItem ? 'Actualizar' : 'Guardar'"
+                    [saveDisabled]="!formData.name || !formData.employeeNumber"
+                    (save)="Save()">
+                    <ng-template #catalogFormBody>
+                        <ion-list>
+                            <ion-item fill="outline">
+                                <ion-label position="stacked">Nombre completo</ion-label>
+                                <ion-input [(ngModel)]="formData.name" placeholder="Ej. Juan Pérez"></ion-input>
+                                <ion-icon name="person-outline" slot="start"></ion-icon>
+                            </ion-item>
 
-                                <ion-item fill="outline">
-                                    <ion-label position="stacked">Correo institucional</ion-label>
-                                    <ion-input type="email" [(ngModel)]="formData.email" placeholder="ejemplo@correo.com"></ion-input>
-                                    <ion-icon name="mail-outline" slot="start"></ion-icon>
-                                </ion-item>
-                            </ion-list>
-                        </ion-content>
-                        <ion-footer class="ion-padding">
-                            <ion-button expand="block" (click)="Save()" [disabled]="!formData.name || !formData.employeeNumber">
-                                {{ editingItem ? 'Actualizar' : 'Guardar' }}
-                            </ion-button>
-                        </ion-footer>
+                            <ion-item fill="outline">
+                                <ion-label position="stacked">Número de empleado</ion-label>
+                                <ion-input [(ngModel)]="formData.employeeNumber" placeholder="Ej. 123456"></ion-input>
+                                <ion-icon name="card-outline" slot="start"></ion-icon>
+                            </ion-item>
+
+                            <ion-item fill="outline">
+                                <ion-label position="stacked">Correo institucional</ion-label>
+                                <ion-input type="email" [(ngModel)]="formData.email" placeholder="ejemplo@correo.com"></ion-input>
+                                <ion-icon name="mail-outline" slot="start"></ion-icon>
+                            </ion-item>
+                        </ion-list>
                     </ng-template>
-                </ion-modal>
+                </app-catalog-form-modal>
             </div>
         </ion-content>
     `,
