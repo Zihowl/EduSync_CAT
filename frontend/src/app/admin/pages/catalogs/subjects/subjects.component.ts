@@ -24,6 +24,7 @@ const GET_SUBJECTS = gql`
             id
             code
             name
+            grade
         }
     }
 `;
@@ -32,7 +33,9 @@ const CREATE_SUBJECT = gql`
     mutation CreateSubject($input: CreateSubjectInput!) {
         CreateSubject(input: $input) {
             id
+            code
             name
+            grade
         }
     }
 `;
@@ -43,6 +46,7 @@ const UPDATE_SUBJECT = gql`
             id
             code
             name
+            grade
         }
     }
 `;
@@ -79,6 +83,7 @@ const REMOVE_SUBJECT = gql`
                             <ion-label>
                                 <h2 class="subject-name">{{ s.name }}</h2>
                                 <p>Clave: {{ s.code }}</p>
+                                <p *ngIf="s.grade !== null && s.grade !== undefined">Grado: {{ s.grade }}</p>
                             </ion-label>
                             <ion-buttons slot="end">
                                 <ion-button color="medium" (click)="OpenModal(s)">
@@ -101,7 +106,7 @@ const REMOVE_SUBJECT = gql`
                 <app-catalog-form-modal
                     [(isOpen)]="isModalOpen"
                     [title]="(editingItem ? 'Editar' : 'Nueva') + ' Materia'"
-                    subtitle="Define la clave y el nombre de la materia."
+                    subtitle="Define la clave, el nombre y el grado opcional de la materia."
                     [saveLabel]="editingItem ? 'Actualizar' : 'Guardar'"
                     [saveDisabled]="!formData.code || !formData.name"
                     (save)="Save()">
@@ -115,6 +120,11 @@ const REMOVE_SUBJECT = gql`
                             <ion-item fill="outline">
                                 <ion-label position="stacked">Nombre de la materia</ion-label>
                                 <ion-input [(ngModel)]="formData.name" placeholder="Ej. Matemáticas I"></ion-input>
+                            </ion-item>
+
+                            <ion-item fill="outline">
+                                <ion-label position="stacked">Grado (opcional)</ion-label>
+                                <ion-input [(ngModel)]="formData.grade" type="number" inputmode="numeric" min="1" step="1" placeholder="Ej. 2"></ion-input>
                             </ion-item>
                         </ion-list>
                     </ng-template>
@@ -139,7 +149,8 @@ export class SubjectsComponent implements OnInit
     editingItem: any = null;
     formData = {
         code: '',
-        name: ''
+        name: '',
+        grade: null as number | null
     };
 
     ngOnInit() {
@@ -196,9 +207,9 @@ export class SubjectsComponent implements OnInit
     OpenModal(item: any = null) {
         this.editingItem = item;
         if (item) {
-            this.formData = { code: item.code, name: item.name };
+            this.formData = { code: item.code, name: item.name, grade: item.grade ?? null };
         } else {
-            this.formData = { code: '', name: '' };
+            this.formData = { code: '', name: '', grade: null };
         }
         this.isModalOpen = true;
     }
@@ -206,9 +217,15 @@ export class SubjectsComponent implements OnInit
     Save() {
         if (!this.formData.code || !this.formData.name) return;
 
+        const rawGrade: number | string | null = this.formData.grade as number | string | null;
+        const grade = rawGrade == null || rawGrade === ''
+            ? null
+            : Number(rawGrade);
+
         const subjectInput = {
             code: this.formData.code,
-            name: this.formData.name
+            name: this.formData.name,
+            grade
         };
 
         if (this.editingItem) {

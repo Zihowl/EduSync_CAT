@@ -5,6 +5,7 @@ use crate::domain::{
     errors::DomainError,
     models::teacher::Teacher,
     ports::teacher_repository::TeacherRepository,
+    validation::normalize_email,
 };
 
 #[derive(Clone)]
@@ -32,7 +33,7 @@ impl From<TeacherRow> for Teacher {
             id: v.id,
             employee_number: v.employee_number,
             name: v.name,
-            email: v.email,
+            email: v.email.map(|email| email.to_ascii_lowercase()),
         }
     }
 }
@@ -76,8 +77,9 @@ impl TeacherRepository for PgTeacherRepository {
     }
 
     async fn find_by_email(&self, email: &str) -> Result<Option<Teacher>, DomainError> {
+        let email = normalize_email(email);
         let row = sqlx::query_as::<_, TeacherRow>(
-            "SELECT id, employee_number, name, email FROM teachers WHERE email = $1",
+            "SELECT id, employee_number, name, email FROM teachers WHERE lower(email) = $1",
         )
         .bind(email)
         .fetch_optional(&self.pool)
@@ -87,6 +89,7 @@ impl TeacherRepository for PgTeacherRepository {
     }
 
     async fn create(&self, employee_number: &str, name: &str, email: Option<&str>) -> Result<Teacher, DomainError> {
+        let email = email.map(normalize_email);
         let row = sqlx::query_as::<_, TeacherRow>(
             "INSERT INTO teachers (employee_number, name, email)
              VALUES ($1, $2, $3)
@@ -114,7 +117,7 @@ impl TeacherRepository for PgTeacherRepository {
             current.name = v.to_string();
         }
         if let Some(v) = email {
-            current.email = v.map(|x| x.to_string());
+            current.email = v.map(normalize_email);
         }
 
         let row = sqlx::query_as::<_, TeacherRow>(

@@ -40,6 +40,7 @@ pub struct PublicTeacherDto {
 pub struct PublicSubjectDto {
     pub id: i32,
     pub name: String,
+    pub grade: Option<i32>,
 }
 
 #[derive(Serialize)]
@@ -139,6 +140,7 @@ async fn build_public_schedule(
         subject: PublicSubjectDto {
             id: subject.id,
             name: subject.name,
+            grade: subject.grade,
         },
         classroom: PublicClassroomDto {
             id: classroom.id,

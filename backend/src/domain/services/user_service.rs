@@ -14,6 +14,7 @@ use crate::domain::{
         allowed_domain_repository::AllowedDomainRepository,
         user_repository::UserRepository,
     },
+    validation::normalize_email,
 };
 
 #[derive(Clone)]
@@ -40,14 +41,16 @@ impl UserService {
 
     #[allow(dead_code)]
     pub async fn find_by_email(&self, email: &str) -> Result<Option<User>, DomainError> {
-        self.repo.find_by_email(email).await
+        let email = normalize_email(email);
+        self.repo.find_by_email(&email).await
     }
 
     pub async fn create_admin(&self, email: &str, full_name: &str) -> Result<(User, String), DomainError> {
-        self.ensure_email_format(email)?;
-        self.ensure_domain_allowed(email).await?;
+        let email = normalize_email(email);
+        self.ensure_email_format(&email)?;
+        self.ensure_domain_allowed(&email).await?;
 
-        if self.repo.find_by_email(email).await?.is_some() {
+        if self.repo.find_by_email(&email).await?.is_some() {
             return Err(DomainError::Conflict("El correo ya esta registrado".to_string()));
         }
 
@@ -55,7 +58,7 @@ impl UserService {
         let hash = self.hash_password(&temp_password)?;
         let user = self
             .repo
-            .create_admin(email, full_name, &hash, false)
+            .create_admin(&email, full_name, &hash, false)
             .await?;
 
         tracing::info!(
@@ -167,7 +170,7 @@ impl UserService {
             .nth(1)
             .ok_or_else(|| DomainError::BadRequest("Email invalido".to_string()))?;
         let allowed = self.allowed_domain_repo.find_all().await?;
-        if !allowed.iter().any(|d| d.domain == domain) {
+        if !allowed.iter().any(|d| d.domain.eq_ignore_ascii_case(domain)) {
             return Err(DomainError::BadRequest(format!(
                 "El dominio @{domain} no esta permitido"
             )));
@@ -229,11 +232,11 @@ mod tests {
     #[async_trait]
     impl AllowedDomainRepository for MockAllowedDomainRepository {
         async fn find_all(&self) -> Result<Vec<AllowedDomain>, DomainError> {
-            Ok(vec![])
+            Ok(vec![AllowedDomain { id: 1, domain: "example.com".to_string() }])
         }
 
         async fn find_by_domain(&self, _domain: &str) -> Result<Option<AllowedDomain>, DomainError> {
-            Ok(None)
+            Ok(Some(AllowedDomain { id: 1, domain: "example.com".to_string() }))
         }
 
         async fn create(&self, domain: &str) -> Result<AllowedDomain, DomainError> {
@@ -281,12 +284,25 @@ mod tests {
 
         async fn create_admin(
             &self,
-            _email: &str,
-            _full_name: &str,
-            _password_hash: &str,
-            _is_super_admin: bool,
+            email: &str,
+            full_name: &str,
+            password_hash: &str,
+            is_super_admin: bool,
         ) -> Result<User, DomainError> {
-            Err(DomainError::Internal("create_admin not implemented".into()))
+            let mut user = self.user.lock().unwrap().clone();
+            user.email = email.to_string();
+            user.full_name = Some(full_name.to_string());
+            user.password_hash = password_hash.to_string();
+            user.role = if is_super_admin {
+                UserRole::SuperAdmin
+            } else {
+                UserRole::AdminHorarios
+            };
+            user.is_temp_password = true;
+            user.failed_login_attempts = 0;
+            user.lockout_until = None;
+            user.updated_at = Utc::now();
+            Ok(user)
         }
 
         async fn increment_failed_login_attempts(&self, user_id: Uuid) -> Result<(), DomainError> {
@@ -435,5 +451,31 @@ mod tests {
         let parsed_hash = PasswordHash::new(&stored_user.password_hash).expect("hash valido");
         assert!(Argon2::default().verify_password(temp_password.as_bytes(), &parsed_hash).is_ok());
         assert!(Argon2::default().verify_password(TEST_PASSWORD.as_bytes(), &parsed_hash).is_err());
+    }
+
+    #[tokio::test]
+    async fn test_create_admin_normalizes_email_to_lowercase() {
+        let user = make_user("existing@example.com", UserRole::SuperAdmin, true);
+        let (service, _repo) = build_service(user);
+
+        let (created_user, temp_password) = service
+            .create_admin("New.Admin@Example.COM", "Nuevo Admin")
+            .await
+            .expect("debe crear usuario");
+
+        assert_eq!(created_user.email, "new.admin@example.com");
+        assert_eq!(created_user.full_name.as_deref(), Some("Nuevo Admin"));
+        assert!(created_user.is_temp_password);
+        assert!(!temp_password.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_create_admin_blocks_case_insensitive_duplicates() {
+        let user = make_user("existing@example.com", UserRole::SuperAdmin, true);
+        let (service, _repo) = build_service(user);
+
+        let result = service.create_admin("EXISTING@EXAMPLE.COM", "Duplicado").await;
+
+        assert!(matches!(result, Err(DomainError::Conflict(msg)) if msg.contains("El correo ya esta registrado")));
     }
 }

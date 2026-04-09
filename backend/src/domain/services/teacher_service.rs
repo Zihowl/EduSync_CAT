@@ -4,7 +4,7 @@ use crate::domain::{
     errors::DomainError,
     models::teacher::Teacher,
     ports::teacher_repository::TeacherRepository,
-    validation::{normalize_optional_text, normalize_required_text},
+    validation::{normalize_optional_email, normalize_required_text},
 };
 
 #[derive(Clone)]
@@ -28,7 +28,7 @@ impl TeacherService {
     pub async fn create(&self, employee_number: &str, name: &str, email: Option<&str>) -> Result<Teacher, DomainError> {
         let employee_number = normalize_required_text("Número de empleado", employee_number)?;
         let name = normalize_required_text("Nombre del docente", name)?;
-        let email = normalize_optional_text(email);
+        let email = normalize_optional_email(email);
 
         if self.repo.find_by_employee_number(&employee_number).await?.is_some() {
             return Err(DomainError::Conflict("El numero de empleado ya existe".to_string()));
@@ -73,7 +73,7 @@ impl TeacherService {
         }
 
         if let Some(email) = email {
-            let normalized_email = normalize_optional_text(email);
+            let normalized_email = normalize_optional_email(email);
             if let Some(email) = normalized_email.as_deref() {
                 if current.email.as_deref() != Some(email) {
                     if let Some(existing) = self.repo.find_by_email(email).await? {

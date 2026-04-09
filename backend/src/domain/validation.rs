@@ -10,6 +10,14 @@ pub fn normalize_required_text(field_name: &str, value: &str) -> Result<String, 
     Ok(normalized.to_string())
 }
 
+pub fn normalize_email(value: &str) -> String {
+    value.trim().to_ascii_lowercase()
+}
+
+pub fn normalize_optional_email(value: Option<&str>) -> Option<String> {
+    value.map(normalize_email).filter(|text| !text.is_empty())
+}
+
 pub fn normalize_optional_text(value: Option<&str>) -> Option<String> {
     value.map(str::trim).filter(|text| !text.is_empty()).map(ToString::to_string)
 }

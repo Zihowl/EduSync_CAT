@@ -105,7 +105,7 @@ import { environment } from '../../../../environments/environment';
                                     <h3 class="upload-guide__title">Columnas del archivo</h3>
                                     <p class="upload-guide__text">
                                         La importación busca cada encabezado por nombre exacto. Aula, Edificio, Día, Hora Inicio y Hora Fin son obligatorios.
-                                        NoEmpleado, Docente y Subgrupo pueden ir vacíos.
+                                        Grado puede ir vacío o como NULL. NoEmpleado, Docente y Subgrupo pueden ir vacíos; Subgrupo admite texto o números libres.
                                     </p>
                                 </div>
 
@@ -138,6 +138,7 @@ export class UploadComponent implements OnInit
     expectedColumns = [
         { label: 'ClaveMateria', required: true },
         { label: 'Materia', required: true },
+        { label: 'Grado', required: false },
         { label: 'NoEmpleado', required: false },
         { label: 'Docente', required: false },
         { label: 'Grupo', required: true },

@@ -9,6 +9,7 @@ use crate::domain::{
     errors::DomainError,
     models::user::{User, UserRole},
     ports::user_repository::UserRepository,
+    validation::normalize_email,
 };
 
 #[derive(Clone)]
@@ -70,7 +71,7 @@ impl AuthService {
     }
 
     pub async fn validate_user(&self, email: &str, password: &str) -> Result<User, DomainError> {
-        let normalized_email = email.trim();
+        let normalized_email = normalize_email(email);
         if normalized_email.is_empty() {
             return Err(DomainError::BadRequest("Email es requerido".to_string()));
         }
@@ -81,7 +82,7 @@ impl AuthService {
 
         let user = self
             .repo
-            .find_by_email(normalized_email)
+            .find_by_email(&normalized_email)
             .await?
             .ok_or_else(|| DomainError::Unauthorized("Credenciales invalidas".to_string()))?;
 
@@ -187,9 +188,9 @@ impl AuthService {
         new_email: &str,
         new_password: &str,
     ) -> Result<User, DomainError> {
-        let current_email = current_email.trim();
+        let current_email = normalize_email(current_email);
         let current_password = current_password.trim();
-        let new_email = new_email.trim();
+        let new_email = normalize_email(new_email);
         let new_password = new_password.trim();
 
         if current_email.is_empty() || current_password.is_empty() {
@@ -202,7 +203,7 @@ impl AuthService {
 
         let user = self
             .repo
-            .find_by_email(current_email)
+            .find_by_email(&current_email)
             .await?
             .ok_or_else(|| DomainError::Unauthorized("Credenciales invalidas".to_string()))?;
 
@@ -212,7 +213,7 @@ impl AuthService {
 
         self.verify_user_password(&user, current_password, true).await?;
 
-        if !is_valid_email(new_email) {
+        if !is_valid_email(&new_email) {
             return Err(DomainError::BadRequest("Nuevo correo invalido".to_string()));
         }
 
@@ -225,7 +226,7 @@ impl AuthService {
         }
 
         if new_email != current_email {
-            if self.repo.find_by_email(new_email).await?.is_some() {
+            if self.repo.find_by_email(&new_email).await?.is_some() {
                 return Err(DomainError::Conflict("El correo ya esta registrado".to_string()));
             }
         }
@@ -250,7 +251,7 @@ impl AuthService {
 
         let updated_user = self
             .repo
-            .update_credentials(user.id, new_email, &new_password_hash, false)
+            .update_credentials(user.id, &new_email, &new_password_hash, false)
             .await?;
 
         Ok(updated_user)
@@ -467,6 +468,16 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_validate_user_accepts_uppercase_email_input() {
+        let (auth_service, _repo) = setup_auth_service().await;
+
+        let result = auth_service.validate_user("ADMIN@EXAMPLE.COM", TEST_PASSWORD).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().email, "admin@example.com");
+    }
+
+    #[tokio::test]
     async fn test_change_credentials_transitions_from_temp_password() {
         let (auth_service, repo) = setup_auth_service().await;
 
@@ -497,6 +508,32 @@ mod tests {
 
         let login_result = auth_service.login(validate.unwrap()).unwrap();
         assert!(!login_result.access_token.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_change_credentials_normalizes_new_email_to_lowercase() {
+        let (auth_service, repo) = setup_auth_service().await;
+
+        {
+            let mut user = repo.user.lock().unwrap();
+            user.role = UserRole::SuperAdmin;
+        }
+
+        let result = auth_service
+            .change_credentials(
+                "ADMIN@EXAMPLE.COM",
+                TEST_PASSWORD,
+                "New-Admin@Example.COM",
+                "NewStrongPass1!",
+            )
+            .await;
+
+        assert!(result.is_ok());
+        let updated_user = result.unwrap();
+        assert_eq!(updated_user.email, "new-admin@example.com");
+
+        let stored_user = repo.find_by_email("new-admin@example.com").await.unwrap().unwrap();
+        assert_eq!(stored_user.email, "new-admin@example.com");
     }
 
     #[tokio::test]

@@ -1,27 +1,27 @@
-ClaveMateria,Materia,NoEmpleado,Docente,Grupo,Subgrupo,Aula,Edificio,Dia,HoraInicio,HoraFin
-ING101,Inglés Académico I,EMP-1001,Ana Torres Guzmán,1,,IDI-101,Edificio de Idiomas,Martes,07:00,08:30
-ING101,Inglés Académico I,EMP-1001,Ana Torres Guzmán,1,,IDI-101,Edificio de Idiomas,Jueves,07:00,08:30
-MAT101,Cálculo Diferencial,EMP-1002,Carlos Herrera López,1,,CB-201,Edificio de Ciencias Básicas,Lunes,08:30,10:00
-MAT101,Cálculo Diferencial,EMP-1002,Carlos Herrera López,1,,CB-201,Edificio de Ciencias Básicas,Miércoles,08:30,10:00
-FIS101,Física General,EMP-1003,María González Ruiz,1,,LAB-FIS-1,Edificio de Ciencias Básicas,Martes,10:00,11:30
-FIS101,Física General,EMP-1003,María González Ruiz,1,,LAB-FIS-1,Edificio de Ciencias Básicas,Jueves,10:00,11:30
-PRO101,Programación I,EMP-1004,Javier Medina Soto,2,A,LAB-COMP-1,Edificio de Ingeniería,Lunes,10:00,12:00
-PRO101,Programación I,EMP-1004,Javier Medina Soto,2,A,LAB-COMP-1,Edificio de Ingeniería,Miércoles,10:00,12:00
-BD201,Bases de Datos,EMP-1004,Javier Medina Soto,2,A,LAB-COMP-2,Edificio de Ingeniería,Martes,10:00,12:00
-BD201,Bases de Datos,EMP-1004,Javier Medina Soto,2,A,LAB-COMP-2,Edificio de Ingeniería,Jueves,10:00,12:00
-RED201,Redes de Computadoras,EMP-1005,Sofía Navarro Díaz,2,B,LAB-NET-1,Edificio de Ingeniería,Lunes,12:00,13:30
-RED201,Redes de Computadoras,EMP-1005,Sofía Navarro Díaz,2,B,LAB-NET-1,Edificio de Ingeniería,Viernes,12:00,13:30
-QUI101,Química General,EMP-1006,Patricia Castillo León,2,B,LAB-QUI-1,Edificio de Ciencias Básicas,Miércoles,12:00,13:30
-QUI101,Química General,EMP-1006,Patricia Castillo León,2,B,LAB-QUI-1,Edificio de Ciencias Básicas,Viernes,12:00,13:30
-HIS101,Historia de México,EMP-1007,Elena Gómez Rivera,3,,HUM-104,Edificio de Humanidades,Martes,08:30,10:00
-HIS101,Historia de México,EMP-1007,Elena Gómez Rivera,3,,HUM-104,Edificio de Humanidades,Viernes,08:30,10:00
-ADM101,Administración,EMP-1008,Ricardo Salas Moreno,3,,ADM-202,Edificio Administrativo,Lunes,14:00,15:30
-ADM101,Administración,EMP-1008,Ricardo Salas Moreno,3,,ADM-202,Edificio Administrativo,Miércoles,14:00,15:30
-EST101,Estadística Aplicada,EMP-1009,Laura Chávez Martínez,3,,ECON-110,Edificio de Ciencias Económicas,Martes,12:00,13:30
-EST101,Estadística Aplicada,EMP-1009,Laura Chávez Martínez,3,,ECON-110,Edificio de Ciencias Económicas,Jueves,12:00,13:30
-RED301,Seguridad Informática,EMP-1010,Daniel Herrera Cruz,3,A,LAB-NET-2,Edificio de Ingeniería,Martes,16:00,18:00
-RED301,Seguridad Informática,EMP-1010,Daniel Herrera Cruz,3,A,LAB-NET-2,Edificio de Ingeniería,Viernes,16:00,18:00
-DIB101,Dibujo Técnico,EMP-1011,Miguel Ángel Ruiz,2,B,ARQ-301,Edificio de Arquitectura,Lunes,16:00,17:30
-DIB101,Dibujo Técnico,EMP-1011,Miguel Ángel Ruiz,2,B,ARQ-301,Edificio de Arquitectura,Miércoles,16:00,17:30
-INV201,Metodología de la Investigación,EMP-1012,Verónica Pineda Ortega,3,,POS-204,Edificio de Posgrado,Jueves,18:00,19:30
-INV201,Metodología de la Investigación,EMP-1012,Verónica Pineda Ortega,3,,POS-204,Edificio de Posgrado,Sábado,09:00,10:30
+ClaveMateria,Materia,Grado,NoEmpleado,Docente,Grupo,Subgrupo,Aula,Edificio,Dia,HoraInicio,HoraFin
+ING101,Inglés Académico I,1,EMP-1001,Ana Torres Guzmán,A,,IDI-101,Edificio de Idiomas,Martes,07:00,08:30
+ING101,Inglés Académico I,1,EMP-1001,Ana Torres Guzmán,A,,IDI-101,Edificio de Idiomas,Jueves,07:00,08:30
+MAT101,Cálculo Diferencial,2,EMP-1002,Carlos Herrera López,A,Software,CB-201,Edificio de Ciencias Básicas,Lunes,08:30,10:00
+MAT101,Cálculo Diferencial,2,EMP-1002,Carlos Herrera López,A,Software,CB-201,Edificio de Ciencias Básicas,Miércoles,08:30,10:00
+FIS101,Física General,8,EMP-1003,María González Ruiz,C,1,LAB-FIS-1,Edificio de Ciencias Básicas,Martes,10:00,11:30
+FIS101,Física General,8,EMP-1003,María González Ruiz,C,1,LAB-FIS-1,Edificio de Ciencias Básicas,Jueves,10:00,11:30
+PRO101,Programación I,2,EMP-1004,Javier Medina Soto,A,Software,LAB-COMP-1,Edificio de Ingeniería,Lunes,10:00,12:00
+PRO101,Programación I,2,EMP-1004,Javier Medina Soto,A,Software,LAB-COMP-1,Edificio de Ingeniería,Miércoles,10:00,12:00
+BD201,Bases de Datos,2,EMP-1004,Javier Medina Soto,C,1,LAB-COMP-2,Edificio de Ingeniería,Martes,10:00,12:00
+BD201,Bases de Datos,2,EMP-1004,Javier Medina Soto,C,1,LAB-COMP-2,Edificio de Ingeniería,Jueves,10:00,12:00
+RED201,Redes de Computadoras,NULL,EMP-1005,Sofía Navarro Díaz,Lucha,Principiantes,LAB-NET-1,Edificio de Ingeniería,Lunes,12:00,13:30
+RED201,Redes de Computadoras,NULL,EMP-1005,Sofía Navarro Díaz,Lucha,Principiantes,LAB-NET-1,Edificio de Ingeniería,Viernes,12:00,13:30
+QUI101,Química General,3,EMP-1006,Patricia Castillo León,B,,LAB-QUI-1,Edificio de Ciencias Básicas,Miércoles,12:00,13:30
+QUI101,Química General,3,EMP-1006,Patricia Castillo León,B,,LAB-QUI-1,Edificio de Ciencias Básicas,Viernes,12:00,13:30
+HIS101,Historia de México,NULL,EMP-1007,Elena Gómez Rivera,Ajedrez,Principiantes,HUM-104,Edificio de Humanidades,Martes,08:30,10:00
+HIS101,Historia de México,NULL,EMP-1007,Elena Gómez Rivera,Ajedrez,Principiantes,HUM-104,Edificio de Humanidades,Viernes,08:30,10:00
+ADM101,Administración,NULL,EMP-1008,Ricardo Salas Moreno,Lucha,Principiantes,ADM-202,Edificio Administrativo,Lunes,14:00,15:30
+ADM101,Administración,NULL,EMP-1008,Ricardo Salas Moreno,Lucha,Principiantes,ADM-202,Edificio Administrativo,Miércoles,14:00,15:30
+EST101,Estadística Aplicada,3,EMP-1009,Laura Chávez Martínez,B,,ECON-110,Edificio de Ciencias Económicas,Martes,12:00,13:30
+EST101,Estadística Aplicada,3,EMP-1009,Laura Chávez Martínez,B,,ECON-110,Edificio de Ciencias Económicas,Jueves,12:00,13:30
+RED301,Seguridad Informática,8,EMP-1010,Daniel Herrera Cruz,C,1,LAB-NET-2,Edificio de Ingeniería,Martes,16:00,18:00
+RED301,Seguridad Informática,8,EMP-1010,Daniel Herrera Cruz,C,1,LAB-NET-2,Edificio de Ingeniería,Viernes,16:00,18:00
+DIB101,Dibujo Técnico,2,EMP-1011,Miguel Ángel Ruiz,Puentes de Palitos,,ARQ-301,Edificio de Arquitectura,Lunes,16:00,17:30
+DIB101,Dibujo Técnico,2,EMP-1011,Miguel Ángel Ruiz,Puentes de Palitos,,ARQ-301,Edificio de Arquitectura,Miércoles,16:00,17:30
+INV201,Metodología de la Investigación,NULL,EMP-1012,Verónica Pineda Ortega,Ajedrez,+1000 ELO,POS-204,Edificio de Posgrado,Jueves,18:00,19:30
+INV201,Metodología de la Investigación,NULL,EMP-1012,Verónica Pineda Ortega,Ajedrez,+500 ELO,POS-204,Edificio de Posgrado,Sábado,09:00,10:30

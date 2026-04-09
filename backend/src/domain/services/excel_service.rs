@@ -98,6 +98,7 @@ impl ExcelService {
 
         let clave_materia = value(&["ClaveMateria"]);
         let materia = value(&["Materia"]);
+        let grade = parse_optional_grade(&value(&["Grado", "Grade"]))?;
         let no_empleado = value(&["NoEmpleado"]);
         let docente = value(&["Docente"]);
         let grupo = value(&["Grupo"]);
@@ -125,11 +126,19 @@ impl ExcelService {
         let subject = match self.subject_service.create(
             &clave_materia,
             if materia.is_empty() { "Materia Sin Nombre" } else { &materia },
-            None,
+            grade,
             None,
         ).await {
             Ok(v) => v,
-            Err(DomainError::Conflict(_)) => self.subject_service.find_all().await?.into_iter().find(|s| s.code == clave_materia).ok_or_else(|| DomainError::NotFound("Materia no encontrada".to_string()))?,
+            Err(DomainError::Conflict(_)) => {
+                let existing = self.subject_service.find_all().await?.into_iter().find(|s| s.code == clave_materia).ok_or_else(|| DomainError::NotFound("Materia no encontrada".to_string()))?;
+
+                if existing.grade.is_none() && grade.is_some() {
+                    let _ = self.subject_service.update(existing.id, None, None, grade, None).await?;
+                }
+
+                existing
+            },
             Err(e) => return Err(e),
         };
 
@@ -226,6 +235,19 @@ fn normalize_time(value: &str) -> String {
         return format!("{:0>2}:{:0>2}:{:0>2}", parts[0], parts[1], parts[2]);
     }
     "00:00:00".to_string()
+}
+
+fn parse_optional_grade(value: &str) -> Result<Option<i32>, DomainError> {
+    let normalized = value.trim();
+
+    if normalized.is_empty() || normalized.eq_ignore_ascii_case("null") {
+        return Ok(None);
+    }
+
+    normalized
+        .parse::<i32>()
+        .map(Some)
+        .map_err(|_| DomainError::BadRequest(format!("Grado invalido: {normalized}")))
 }
 
 fn parse_uploaded_schedule_table(file: &[u8]) -> Result<ParsedScheduleTable, DomainError> {

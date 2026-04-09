@@ -29,7 +29,7 @@ interface ScheduleSlot {
     endTime: string;
     subgroup: string | null;
     teacher?: { id: number; name: string } | null;
-    subject: { id: number; name: string };
+    subject: { id: number; name: string; grade?: number | null };
     classroom: { id: number; name: string };
     group: { id: number; name: string; parent?: { id: number; name: string } };
 }
@@ -103,7 +103,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                                         <ion-item>
                                             <ion-icon name="time-outline" slot="start" color="primary"></ion-icon>
                                             <ion-label>
-                                                <h2 class="kiosk-subject-title">{{ s.subject.name }}</h2>
+                                                <h2 class="kiosk-subject-title">{{ getSubjectLabel(s.subject) }}</h2>
                                                 <p>{{ s.startTime.substring(0,5) }} - {{ s.endTime.substring(0,5) }}</p>
                                                 <p>
                                                     <ion-icon name="person-outline" class="kiosk-inline-icon"></ion-icon>
@@ -143,7 +143,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                                                 <ng-template #itemTemplate let-s>
                                                     <ion-item>
                                                         <ion-label>
-                                                            <h3 class="kiosk-subject-title">{{ s.subject.name }}</h3>
+                                                            <h3 class="kiosk-subject-title">{{ getSubjectLabel(s.subject) }}</h3>
                                                             <p class="kiosk-time-badge">
                                                                 <ion-chip color="primary" outline>
                                                                     {{ s.startTime.substring(0,5) }} - {{ s.endTime.substring(0,5) }}
@@ -223,6 +223,11 @@ export class ScheduleKioskComponent implements OnInit
     {
         const shorts = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
         return shorts[day] || '';
+    }
+
+    getSubjectLabel(subject: ScheduleSlot['subject']): string
+    {
+        return subject?.grade != null ? `Grado ${subject.grade} - ${subject.name}` : subject?.name ?? '';
     }
 
     getSchedulesForDay(day: number): ScheduleSlot[]

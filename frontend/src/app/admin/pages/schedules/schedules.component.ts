@@ -35,7 +35,7 @@ const GET_SCHEDULES = gql`
             subgroup
             isPublished
             teacher { id name }
-            subject { id name }
+            subject { id name grade }
             classroom { id name }
             group { id name parent { id name } }
             createdAt
@@ -46,7 +46,7 @@ const GET_SCHEDULES = gql`
 const GET_CATALOGS = gql`
     query GetCatalogs {
         GetTeachers { id name }
-        GetSubjects { id name }
+        GetSubjects { id name grade }
         GetClassrooms { id name }
         GetGroups { id name parent { id name } }
     }
@@ -126,7 +126,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                     <ion-select [(ngModel)]="filterGroupId" (ionChange)="LoadSchedules()" placeholder="Filtrar por grupo" interface="popover" class="schedule-filter">
                         <ion-select-option [value]="null">Todos los grupos</ion-select-option>
                         <ion-select-option *ngFor="let g of groups" [value]="g.id">
-                            {{ g.parent ? g.parent.name + '-' : '' }}{{ g.name }}
+                            {{ getGroupLabel(g) }}
                         </ion-select-option>
                     </ion-select>
                     <ion-select [(ngModel)]="filterDay" (ionChange)="LoadSchedules()" placeholder="Día" interface="popover" class="schedule-filter">
@@ -151,7 +151,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                         <ion-icon name="calendar-outline" slot="start" [color]="s.isPublished ? 'success' : 'medium'"></ion-icon>
                         <ion-label>
                             <h2 class="schedule-subject-title">
-                                {{ s.subject.name }}
+                                {{ getSubjectLabel(s.subject) }}
                                 <ion-badge [color]="s.isPublished ? 'success' : 'warning'" class="schedule-badge">
                                     {{ s.isPublished ? 'Publicado' : 'Borrador' }}
                                 </ion-badge>
@@ -166,7 +166,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                             </p>
                             <p>
                                 <ion-icon name="layers-outline" class="schedule-inline-icon"></ion-icon>
-                                {{ s.group.parent ? s.group.parent.name + '-' : '' }}{{ s.group.name }}
+                                {{ getGroupLabel(s.group) }}
                                 <span *ngIf="s.subgroup" class="schedule-subgroup">({{ s.subgroup }})</span>
                             </p>
                             <p>
@@ -212,7 +212,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                                 <ion-label position="stacked">Grupo *</ion-label>
                                 <ion-select [(ngModel)]="formData.groupId" interface="popover" placeholder="Seleccionar grupo" [compareWith]="compareIds">
                                     <ion-select-option *ngFor="let g of groups" [value]="g.id">
-                                        {{ g.parent ? g.parent.name + '-' : '' }}{{ g.name }}
+                                        {{ getGroupLabel(g) }}
                                     </ion-select-option>
                                 </ion-select>
                                 <ion-icon name="layers-outline" slot="start"></ion-icon>
@@ -220,17 +220,14 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
 
                             <ion-item fill="outline" class="schedule-form-item">
                                 <ion-label position="stacked">Subgrupo (opcional)</ion-label>
-                                <ion-select [(ngModel)]="formData.subgroup" interface="popover" placeholder="Sin subgrupo">
-                                    <ion-select-option [value]="''">Sin subgrupo</ion-select-option>
-                                    <ion-select-option *ngFor="let sg of subgroupOptions" [value]="sg">{{ sg }}</ion-select-option>
-                                </ion-select>
+                                <ion-input [(ngModel)]="formData.subgroup" type="text" placeholder="Ej. 1, Software, Principiantes"></ion-input>
                                 <ion-icon name="git-branch-outline" slot="start"></ion-icon>
                             </ion-item>
 
                             <ion-item fill="outline" class="schedule-form-item">
                                 <ion-label position="stacked">Materia *</ion-label>
                                 <ion-select [(ngModel)]="formData.subjectId" interface="popover" placeholder="Seleccionar materia" [compareWith]="compareIds">
-                                    <ion-select-option *ngFor="let s of subjects" [value]="s.id">{{ s.name }}</ion-select-option>
+                                    <ion-select-option *ngFor="let s of subjects" [value]="s.id">{{ getSubjectLabel(s) }}</ion-select-option>
                                 </ion-select>
                                 <ion-icon name="book-outline" slot="start"></ion-icon>
                             </ion-item>
@@ -344,8 +341,6 @@ export class SchedulesComponent implements OnInit
     editingItem: any = null;
     originalFormData: string = '';
 
-    subgroupOptions = ['A', 'B', 'C', 'D', 'Desarrollo', 'Diseño', 'Teoría', 'Práctica', 'Lab 1', 'Lab 2'];
-
     formData = {
         groupId: null as number | null,
         subjectId: null as number | null,
@@ -378,6 +373,18 @@ export class SchedulesComponent implements OnInit
     getDayName(day: number): string
     {
         return DAYS[day] || '';
+    }
+
+    getGroupLabel(group: any): string
+    {
+        if (!group) return '';
+        return group.parent ? `${group.parent.name}-${group.name}` : group.name;
+    }
+
+    getSubjectLabel(subject: any): string
+    {
+        if (!subject) return '';
+        return subject.grade != null ? `Grado ${subject.grade} - ${subject.name}` : subject.name;
     }
 
     formatTime(time: string): string

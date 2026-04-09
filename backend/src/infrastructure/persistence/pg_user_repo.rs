@@ -7,6 +7,7 @@ use crate::domain::{
     errors::DomainError,
     models::user::{User, UserRole},
     ports::user_repository::UserRepository,
+    validation::normalize_email,
 };
 
 #[derive(Clone)]
@@ -39,7 +40,7 @@ impl From<UserRow> for User {
     fn from(v: UserRow) -> Self {
         Self {
             id: v.id,
-            email: v.email,
+            email: v.email.to_ascii_lowercase(),
             full_name: v.full_name,
             password_hash: v.password_hash,
             role: UserRole::from_str(&v.role),
@@ -81,8 +82,9 @@ impl UserRepository for PgUserRepository {
     }
 
     async fn find_by_email(&self, email: &str) -> Result<Option<User>, DomainError> {
+        let email = normalize_email(email);
         let row = sqlx::query_as::<_, UserRow>(
-            "SELECT id, email, full_name, password_hash, role::text AS role, is_active, is_temp_password, failed_login_attempts, lockout_until, created_at, updated_at FROM users WHERE email = $1",
+            "SELECT id, email, full_name, password_hash, role::text AS role, is_active, is_temp_password, failed_login_attempts, lockout_until, created_at, updated_at FROM users WHERE lower(email) = $1",
         )
         .bind(email)
         .fetch_optional(&self.pool)
@@ -98,6 +100,7 @@ impl UserRepository for PgUserRepository {
         password_hash: &str,
         is_super_admin: bool,
     ) -> Result<User, DomainError> {
+        let email = normalize_email(email);
         let role = if is_super_admin {
             "SUPER_ADMIN"
         } else {
@@ -168,6 +171,7 @@ impl UserRepository for PgUserRepository {
     }
 
     async fn update_credentials(&self, user_id: Uuid, email: &str, password_hash: &str, is_temp_password: bool) -> Result<User, DomainError> {
+        let email = normalize_email(email);
         let row = sqlx::query_as::<_, UserRow>(
             "UPDATE users
              SET email = $2,

@@ -92,7 +92,7 @@ const REMOVE_GROUP = gql`
                             <ion-icon [name]="g.parent ? 'return-down-forward' : 'people-outline'" slot="start" [color]="g.parent ? 'medium' : 'primary'"></ion-icon>
                             <ion-label>
                                 <h2 class="groups-title"><span *ngIf="g.parent" class="groups-parent-prefix">{{ g.parent.name }}-</span>{{ g.name }}</h2>
-                                <p *ngIf="!g.parent">Grupo Base</p>
+                                <p *ngIf="!g.parent">Grupo principal</p>
                             </ion-label>
                             <ion-buttons slot="end">
                                 <ion-button *ngIf="!g.parent" color="primary" (click)="AddSubgroup(g)">
@@ -118,7 +118,7 @@ const REMOVE_GROUP = gql`
                 <app-catalog-form-modal
                     [(isOpen)]="isModalOpen"
                     [title]="getModalTitle()"
-                    subtitle="Crea grupos base o subgrupos dentro del catálogo."
+                    subtitle="Crea grupos flexibles como 1A, 2B, 3C o Taller, y subgrupos con números o texto libre."
                     [saveLabel]="editingItem ? 'Actualizar' : 'Guardar'"
                     [saveDisabled]="!formData.name"
                     (save)="Save()">
@@ -126,7 +126,7 @@ const REMOVE_GROUP = gql`
                         <ion-list>
                             <ion-item fill="outline">
                                 <ion-label position="stacked">{{ formData.parentId ? 'Nombre del Subgrupo' : 'Nombre del Grupo' }}</ion-label>
-                                <ion-input [(ngModel)]="formData.name" [placeholder]="formData.parentId ? 'Ej. Desarrollo, A, 1...' : 'Ej. 8A, Sistemas...' "></ion-input>
+                                <ion-input [(ngModel)]="formData.name" [placeholder]="formData.parentId ? 'Ej. 1, Software, Principiantes' : 'Ej. A, Ajedrez o Taller'"></ion-input>
                                 <ion-icon name="people-outline" slot="start"></ion-icon>
                             </ion-item>
 
