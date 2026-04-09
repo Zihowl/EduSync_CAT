@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { Apollo, gql } from 'apollo-angular';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, catchError, map, of, switchMap, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, catchError, finalize, map, of, switchMap, throwError } from 'rxjs';
 
 import { RealtimeQueryCacheService } from './realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from './realtime-sync.service';
@@ -104,6 +104,9 @@ export class AuthService {
   private accessTokenSignal = signal<string | null>(null);
   private refreshTokenSignal = signal<string | null>(null);
   private tokenExpirySignal = signal<number | null>(null);
+  private readonly sessionRevalidationIntervalMs = 5000;
+  private sessionRevalidationTimerId: number | null = null;
+  private sessionValidationInFlight = false;
 
   user$ = this.userSubject.asObservable();
   isAuthenticated = computed(() => {
@@ -271,12 +274,15 @@ export class AuthService {
       this.accessTokenSignal.set(token.accessToken);
       this.refreshTokenSignal.set(token.refreshToken || null);
       this.tokenExpirySignal.set(token.expiresAt);
+      this.startSessionRevalidationTimer();
     } catch {
       this.clearSession();
     }
   }
 
   private clearSession(): void {
+    this.stopSessionRevalidationTimer();
+
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.REFRESH_TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
@@ -316,7 +322,10 @@ export class AuthService {
             next: () => undefined,
             error: () => undefined,
           });
+          return;
         }
+
+        this.startSessionRevalidationTimer();
       } catch {
         this.clearSession();
       }
@@ -325,27 +334,66 @@ export class AuthService {
 
   private setupSessionRevalidationWatcher(): void {
     this.realtimeSync.watchScopes([RealtimeScope.Users]).subscribe(() => {
-      const token = this.getAccessToken();
+      this.revalidateSession();
+    });
+  }
 
-      if (!token) {
-        return;
+  private startSessionRevalidationTimer(): void {
+    if (typeof window === 'undefined' || this.sessionRevalidationTimerId !== null || !this.getAccessToken()) {
+      return;
+    }
+
+    this.sessionRevalidationTimerId = window.setInterval(() => {
+      if (this.getAccessToken()) {
+        this.revalidateSession();
       }
+    }, this.sessionRevalidationIntervalMs);
+  }
 
-      const sessionCheck$ = this.isTokenExpired(token)
-        ? this.refreshAccessToken().pipe(switchMap(() => this.verifySession()))
-        : this.verifySession();
+  private stopSessionRevalidationTimer(): void {
+    if (typeof window === 'undefined' || this.sessionRevalidationTimerId === null) {
+      return;
+    }
 
-      sessionCheck$.subscribe({
+    window.clearInterval(this.sessionRevalidationTimerId);
+    this.sessionRevalidationTimerId = null;
+    this.sessionValidationInFlight = false;
+  }
+
+  private revalidateSession(): void {
+    const token = this.getAccessToken();
+
+    if (!token || this.sessionValidationInFlight) {
+      return;
+    }
+
+    this.sessionValidationInFlight = true;
+
+    const sessionCheck$ = this.isTokenExpired(token)
+      ? this.refreshAccessToken().pipe(switchMap(() => this.verifySession()))
+      : this.verifySession();
+
+    sessionCheck$
+      .pipe(
+        finalize(() => {
+          this.sessionValidationInFlight = false;
+        })
+      )
+      .subscribe({
         next: (user) => {
           if (!user) {
             this.logout();
           }
         },
         error: (err) => {
+          if (this.isSessionValidationError(err)) {
+            this.logout();
+            return;
+          }
+
           console.warn('No se pudo revalidar la sesión tras cambios en usuarios:', err);
         },
       });
-    });
   }
 
   private getTokenExpiry(token: string, expiresIn?: number): number {
@@ -394,14 +442,9 @@ export class AuthService {
   }
 
   private isSessionValidationError(error: unknown): boolean {
-    const gqlErr = (error as any)?.graphQLErrors?.[0];
-
-    if (!gqlErr) {
-      return false;
-    }
-
+    const gqlErr = this.getFirstGraphQLError(error);
     const code = String(gqlErr?.extensions?.code ?? '').toUpperCase();
-    const message = String(gqlErr?.message ?? '').toLowerCase();
+    const message = String(gqlErr?.message ?? (error as any)?.message ?? '').toLowerCase();
 
     return (
       code === 'UNAUTHENTICATED' ||
@@ -413,13 +456,23 @@ export class AuthService {
     );
   }
 
+  private getFirstGraphQLError(error: unknown): any | null {
+    const possibleErrors = [
+      ...(Array.isArray((error as any)?.graphQLErrors) ? (error as any).graphQLErrors : []),
+      ...(Array.isArray((error as any)?.errors) ? (error as any).errors : []),
+      ...(Array.isArray((error as any)?.networkError?.result?.errors) ? (error as any).networkError.result.errors : []),
+    ];
+
+    return possibleErrors[0] ?? null;
+  }
+
   parseAuthError(error: unknown): {
     message: string;
     title: string;
     style: 'danger' | 'warning' | 'info';
     lockoutSeconds?: number;
   } {
-    const gqlErr = (error as any)?.graphQLErrors?.[0];
+    const gqlErr = this.getFirstGraphQLError(error);
     const networkErr = (error as any)?.networkError;
     const message = gqlErr?.message?.toString?.() || (error as any)?.message?.toString?.() || '';
 
