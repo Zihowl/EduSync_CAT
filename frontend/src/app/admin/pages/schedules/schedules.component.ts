@@ -20,7 +20,7 @@ import {
     eyeOutline, eyeOffOutline, gitBranchOutline
 } from 'ionicons/icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CatalogFormModalComponent } from '../../../shared/components/catalog-form-modal/catalog-form-modal.component';
+import { ModalComponent } from '../../../shared/components/modal/modal.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { NotificationService } from '../../../shared/services/notification.service';
 import { RealtimeQueryCacheService } from '../../../core/services/realtime-query-cache.service';
@@ -108,7 +108,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
         IonSegment, IonSegmentButton, IonToggle,
         IonDatetime, IonDatetimeButton, IonPopover,
         IonCard, IonCardContent,
-        CatalogFormModalComponent,
+        ModalComponent,
         PageHeaderComponent, ScheduleCalendarComponent
     ],
     template: `
@@ -174,7 +174,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                     </ion-fab-button>
                 </ion-fab>
 
-                <app-public-modal
+                <app-modal
                     [isOpen]="isModalOpen"
                     (isOpenChange)="SetOpen($event)"
                     [title]="(editingItem ? 'Editar' : 'Nuevo') + ' Horario'"
@@ -183,7 +183,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                     [saveLabel]="editingItem ? 'Actualizar' : 'Guardar'"
                     [saveDisabled]="!canSave()"
                     (save)="Save()">
-                    <ng-template #catalogFormBody>
+                    <ng-template #modalBody>
                         <ion-list>
                             <ion-item fill="outline" class="schedule-form-item">
                                 <ion-label position="stacked">Grupo *</ion-label>
@@ -280,7 +280,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                             <small>La hora de fin debe ser posterior a la hora de inicio</small>
                         </div>
                     </ng-template>
-                </app-public-modal>
+                </app-modal>
             </div>
         </ion-content>
     `,

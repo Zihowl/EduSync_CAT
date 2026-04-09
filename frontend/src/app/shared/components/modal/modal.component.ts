@@ -8,13 +8,13 @@ import { closeOutline } from 'ionicons/icons';
 import { inject, DestroyRef } from '@angular/core';
 
 @Component({
-  selector: 'app-public-modal, app-catalog-form-modal',
+  selector: 'app-modal',
   standalone: true,
   imports: [CommonModule, IonModal, IonButton, IonIcon],
-  templateUrl: './catalog-form-modal.component.html',
-  styleUrls: ['./catalog-form-modal.component.scss']
+  templateUrl: './modal.component.html',
+  styleUrls: ['./modal.component.scss']
 })
-export class CatalogFormModalComponent implements OnInit
+export class ModalComponent implements OnInit
 {
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
@@ -32,7 +32,7 @@ export class CatalogFormModalComponent implements OnInit
   @Output() save = new EventEmitter<void>();
 
   /** Template reference for the form body content */
-  @ContentChild('catalogFormBody', { static: false }) bodyTemplate!: TemplateRef<any>;
+  @ContentChild('modalBody', { static: false }) bodyTemplate!: TemplateRef<any>;
 
   ngOnInit(): void
   {

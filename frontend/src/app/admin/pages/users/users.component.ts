@@ -19,7 +19,7 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { personAddOutline, personOutline, mailOutline, shieldCheckmarkOutline, lockClosedOutline, lockOpenOutline, refreshOutline } from 'ionicons/icons';
-import { CatalogFormModalComponent } from '../../../shared/components/catalog-form-modal/catalog-form-modal.component';
+import { ModalComponent } from '../../../shared/components/modal/modal.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../shared/components/data-list/data-list.component';
 import { NotificationService } from '../../../shared/services/notification.service';
@@ -113,7 +113,7 @@ const GET_ALLOWED_DOMAINS = gql`
         IonBadge,
         IonFab,
         IonFabButton,
-        CatalogFormModalComponent,
+        ModalComponent,
         PageHeaderComponent,
         DataListComponent
     ],
@@ -181,7 +181,7 @@ const GET_ALLOWED_DOMAINS = gql`
                     </ion-fab-button>
                 </ion-fab>
 
-                <app-public-modal
+                <app-modal
                     [isOpen]="isModalOpen"
                     (isOpenChange)="SetOpen($event)"
                     title="Nuevo Administrador"
@@ -190,7 +190,7 @@ const GET_ALLOWED_DOMAINS = gql`
                     saveLabel="Registrar Usuario"
                     [saveDisabled]="adminForm.invalid || isLoading || (isAllowedDomainsLoaded && adminForm.get('email')?.value && !isDomainAllowed())"
                     (save)="CreateUser()">
-                    <ng-template #catalogFormBody>
+                    <ng-template #modalBody>
                         <form [formGroup]="adminForm" class="users-modal-form">
                             <ion-list>
                                 <ion-item fill="outline">
@@ -222,7 +222,7 @@ const GET_ALLOWED_DOMAINS = gql`
                             </ion-note>
                         </form>
                     </ng-template>
-                </app-public-modal>
+                </app-modal>
             </div>
         </ion-content>
     `,

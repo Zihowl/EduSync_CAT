@@ -12,7 +12,7 @@ import { trashOutline, addOutline, pencilOutline, bookOutline } from 'ionicons/i
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
-import { CatalogFormModalComponent } from '../../../../shared/components/catalog-form-modal/catalog-form-modal.component';
+import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { getGraphQLErrorMessage } from '../../../../shared/utils/graphql-error';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
@@ -63,7 +63,7 @@ const REMOVE_SUBJECT = gql`
     imports: [
         CommonModule, FormsModule, IonContent, IonList, IonItem,
         IonLabel, IonButtons, IonButton, IonIcon, IonFab, IonFabButton,
-        IonInput, PageHeaderComponent, DataListComponent, CatalogFormModalComponent
+        IonInput, PageHeaderComponent, DataListComponent, ModalComponent
     ],
     template: `
         <app-page-header title="Materias" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
@@ -103,14 +103,14 @@ const REMOVE_SUBJECT = gql`
                     </ion-fab-button>
                 </ion-fab>
 
-                <app-public-modal
+                <app-modal
                     [(isOpen)]="isModalOpen"
                     [title]="(editingItem ? 'Editar' : 'Nueva') + ' Materia'"
                     subtitle="Define la clave, el nombre y el grado opcional de la materia."
                     [saveLabel]="editingItem ? 'Actualizar' : 'Guardar'"
                     [saveDisabled]="!formData.code || !formData.name"
                     (save)="Save()">
-                    <ng-template #catalogFormBody>
+                    <ng-template #modalBody>
                         <ion-list>
                             <ion-item fill="outline">
                                 <ion-label position="stacked">Clave de la materia</ion-label>
@@ -128,7 +128,7 @@ const REMOVE_SUBJECT = gql`
                             </ion-item>
                         </ion-list>
                     </ng-template>
-                </app-public-modal>
+                </app-modal>
             </div>
         </ion-content>
     `,

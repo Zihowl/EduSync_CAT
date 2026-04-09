@@ -13,7 +13,7 @@ import { trashOutline, addOutline, pencilOutline, businessOutline } from 'ionico
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
-import { CatalogFormModalComponent } from '../../../../shared/components/catalog-form-modal/catalog-form-modal.component';
+import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { getGraphQLErrorMessage } from '../../../../shared/utils/graphql-error';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
@@ -60,7 +60,7 @@ const REMOVE_BUILDING = gql`
     imports: [
         CommonModule, FormsModule, IonContent, IonList, IonItem,
         IonLabel, IonButtons, IonButton, IonIcon, IonFab, IonFabButton,
-        IonInput, IonTextarea, PageHeaderComponent, DataListComponent, CatalogFormModalComponent
+        IonInput, IonTextarea, PageHeaderComponent, DataListComponent, ModalComponent
     ],
     template: `
         <app-page-header title="Edificios" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
@@ -99,14 +99,14 @@ const REMOVE_BUILDING = gql`
                     </ion-fab-button>
                 </ion-fab>
 
-                <app-public-modal
+                <app-modal
                     [(isOpen)]="isModalOpen"
                     [title]="(editingItem ? 'Editar' : 'Nuevo') + ' Edificio'"
                     subtitle="Captura el nombre y una descripción opcional."
                     [saveLabel]="editingItem ? 'Actualizar' : 'Guardar'"
                     [saveDisabled]="!formData.name"
                     (save)="Save()">
-                    <ng-template #catalogFormBody>
+                    <ng-template #modalBody>
                         <ion-list>
                             <ion-item fill="outline">
                                 <ion-label position="stacked">Nombre del edificio</ion-label>
@@ -119,7 +119,7 @@ const REMOVE_BUILDING = gql`
                             </ion-item>
                         </ion-list>
                     </ng-template>
-                </app-public-modal>
+                </app-modal>
             </div>
         </ion-content>
     `,

@@ -13,7 +13,7 @@ import { trashOutline, addOutline, pencilOutline, homeOutline } from 'ionicons/i
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
-import { CatalogFormModalComponent } from '../../../../shared/components/catalog-form-modal/catalog-form-modal.component';
+import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { getGraphQLErrorMessage } from '../../../../shared/utils/graphql-error';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
@@ -65,7 +65,7 @@ const REMOVE_CLASSROOM = gql`
     imports: [
         CommonModule, FormsModule, IonContent, IonList, IonItem,
         IonLabel, IonSelect, IonSelectOption, IonButtons, IonButton, IonIcon,
-        IonFab, IonFabButton, IonInput, PageHeaderComponent, DataListComponent, CatalogFormModalComponent
+        IonFab, IonFabButton, IonInput, PageHeaderComponent, DataListComponent, ModalComponent
     ],
     template: `
         <app-page-header title="Aulas" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
@@ -105,14 +105,14 @@ const REMOVE_CLASSROOM = gql`
                     </ion-fab-button>
                 </ion-fab>
 
-                <app-public-modal
+                <app-modal
                     [(isOpen)]="isModalOpen"
                     [title]="(editingItem ? 'Editar' : 'Nueva') + ' Aula'"
                     subtitle="Asigna el aula y su edificio de referencia."
                     [saveLabel]="editingItem ? 'Actualizar' : 'Guardar'"
                     [saveDisabled]="!formData.name || !formData.buildingId"
                     (save)="Save()">
-                    <ng-template #catalogFormBody>
+                    <ng-template #modalBody>
                         <ion-list>
                             <ion-item fill="outline">
                                 <ion-label position="stacked">Nombre del aula / Salón</ion-label>
@@ -129,7 +129,7 @@ const REMOVE_CLASSROOM = gql`
                             </ion-item>
                         </ion-list>
                     </ng-template>
-                </app-public-modal>
+                </app-modal>
             </div>
         </ion-content>
     `,

@@ -13,7 +13,7 @@ import { trashOutline, addOutline, pencilOutline, peopleOutline, personOutline, 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
 import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
-import { CatalogFormModalComponent } from '../../../../shared/components/catalog-form-modal/catalog-form-modal.component';
+import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { getGraphQLErrorMessage } from '../../../../shared/utils/graphql-error';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
@@ -70,7 +70,7 @@ const REMOVE_GROUP = gql`
     imports: [
         CommonModule, FormsModule, IonContent, IonList, IonItem,
         IonLabel, IonButtons, IonButton, IonIcon,
-        IonFab, IonFabButton, IonInput, IonSearchbar, PageHeaderComponent, DataListComponent, CatalogFormModalComponent
+        IonFab, IonFabButton, IonInput, IonSearchbar, PageHeaderComponent, DataListComponent, ModalComponent
     ],
     template: `
         <app-page-header title="Grupos" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
@@ -115,14 +115,14 @@ const REMOVE_GROUP = gql`
                     </ion-fab-button>
                 </ion-fab>
 
-                <app-public-modal
+                <app-modal
                     [(isOpen)]="isModalOpen"
                     [title]="getModalTitle()"
                     subtitle="Crea grupos flexibles como 1A, 2B, 3C o Taller, y subgrupos con números o texto libre."
                     [saveLabel]="editingItem ? 'Actualizar' : 'Guardar'"
                     [saveDisabled]="!formData.name"
                     (save)="Save()">
-                    <ng-template #catalogFormBody>
+                    <ng-template #modalBody>
                         <ion-list>
                             <ion-item fill="outline">
                                 <ion-label position="stacked">{{ formData.parentId ? 'Nombre del Subgrupo' : 'Nombre del Grupo' }}</ion-label>
@@ -136,7 +136,7 @@ const REMOVE_GROUP = gql`
                             </p>
                         </ion-list>
                     </ng-template>
-                </app-public-modal>
+                </app-modal>
             </div>
         </ion-content>
     `,
