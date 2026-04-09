@@ -1,20 +1,19 @@
-<ion-card class="menu-card" button [routerLink]="card.route" [attr.aria-label]="'Abrir ' + card.title">
-    <ion-card-content>
-        <div class="menu-card__content">
-            <div class="menu-card__icon-shell">
-                <ion-icon [name]="card.icon" class="menu-card__icon"></ion-icon>
-            </div>
-
-            <div class="menu-card__body">
-                <h2 class="menu-card__title">{{ card.title }}</h2>
-                <p class="menu-card__description">{{ card.description }}</p>
-            </div>
-
-            <ion-icon
-                name="chevron-forward-outline"
-                class="menu-card__chevron"
-                aria-hidden="true">
-            </ion-icon>
+<a class="menu-card ion-activatable ripple-parent" [routerLink]="card.route" [attr.aria-label]="'Abrir ' + card.title">
+    <div class="menu-card__content">
+        <div class="menu-card__icon-shell">
+            <ion-icon [name]="card.icon" class="menu-card__icon"></ion-icon>
         </div>
-    </ion-card-content>
-</ion-card>
+
+        <div class="menu-card__body">
+            <h2 class="menu-card__title">{{ card.title }}</h2>
+            <p class="menu-card__description">{{ card.description }}</p>
+        </div>
+
+        <ion-icon
+            name="chevron-forward-outline"
+            class="menu-card__chevron"
+            aria-hidden="true">
+        </ion-icon>
+    </div>
+    <ion-ripple-effect></ion-ripple-effect>
+</a>

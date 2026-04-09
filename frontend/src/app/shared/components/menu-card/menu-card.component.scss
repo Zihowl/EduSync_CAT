@@ -35,7 +35,7 @@
   --icon-size: 2.2rem;
   --icon-font-size: 1.1rem;
   --icon-radius: 0.7rem;
-  --icon-bg: rgba(15, 23, 42, 0.42);
+  --icon-bg: transparent;
   --icon-color: rgba(248, 250, 252, 0.84);
 
   /* Typography */
@@ -58,20 +58,16 @@
 
   display: block;
   width: 100%;
-  height: 100%;
 }
 
 /* ── Card shell ────────────────────────────────────────────────────── */
 .menu-card {
   position: relative;
+  display: block;
   width: 100%;
-  height: 100%;
   min-height: var(--card-min-height);
   margin: 0;
-
-  // Ionic Shadow-DOM overrides — kill native backgrounds
-  --background: transparent;
-  --color: var(--title-color);
+  text-decoration: none;
 
   background: var(--card-bg);
   border: 1px solid var(--card-border);
@@ -108,21 +104,6 @@
     border-color: var(--hover-border);
     box-shadow: var(--hover-shadow);
   }
-
-  /* ── Ionic ion-card-content reset ────────────────────────────────── */
-  ion-card-content {
-    width: 100%;
-    flex: 1 1 auto;
-    padding: 0;
-    --padding-start: 0;
-    --padding-end: 0;
-    --inner-padding-start: 0;
-    --inner-padding-end: 0;
-    --background: transparent;
-    background: transparent;
-    display: flex;
-    align-items: stretch;
-  }
 }
 
 /* ── Inner grid layout ─────────────────────────────────────────────── */
@@ -130,6 +111,7 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
+  align-content: center;
   gap: var(--card-gap);
   width: 100%;
   padding:
@@ -148,7 +130,7 @@
   justify-content: center;
   border-radius: var(--icon-radius);
   background: var(--icon-bg);
-  border: 1px solid var(--card-border);
+  border: 1px solid rgba(148, 163, 184, 0.14);
   flex: 0 0 auto;
 }
 
