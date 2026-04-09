@@ -4,11 +4,8 @@ use crate::domain::{
     errors::DomainError,
     models::subject::Subject,
     ports::subject_repository::SubjectRepository,
+    validation::{normalize_optional_text, normalize_required_text},
 };
-
-fn normalize_optional_text(value: Option<&str>) -> Option<&str> {
-    value.map(str::trim).filter(|text| !text.is_empty())
-}
 
 #[derive(Clone)]
 pub struct SubjectService {
@@ -35,11 +32,15 @@ impl SubjectService {
         grade: Option<i32>,
         division: Option<&str>,
     ) -> Result<Subject, DomainError> {
-        if self.repo.find_by_code(code).await?.is_some() {
+        let code = normalize_required_text("Clave de materia", code)?;
+        let name = normalize_required_text("Nombre de la materia", name)?;
+        let division = normalize_optional_text(division);
+
+        if self.repo.find_by_code(&code).await?.is_some() {
             return Err(DomainError::Conflict("El codigo de materia ya existe".to_string()));
         }
         self.repo
-            .create(code, name, grade, normalize_optional_text(division))
+            .create(&code, &name, grade, division.as_deref())
             .await
     }
 
@@ -51,8 +52,38 @@ impl SubjectService {
         grade: Option<i32>,
         division: Option<&str>,
     ) -> Result<Subject, DomainError> {
+        let mut current = self
+            .repo
+            .find_by_id(id)
+            .await?
+            .ok_or_else(|| DomainError::NotFound("Subject not found".to_string()))?;
+
+        if let Some(code) = code {
+            let code = normalize_required_text("Clave de materia", code)?;
+            if code != current.code {
+                if let Some(existing) = self.repo.find_by_code(&code).await? {
+                    if existing.id != id {
+                        return Err(DomainError::Conflict("El codigo de materia ya existe".to_string()));
+                    }
+                }
+            }
+            current.code = code;
+        }
+
+        if let Some(name) = name {
+            current.name = normalize_required_text("Nombre de la materia", name)?;
+        }
+
+        if let Some(grade) = grade {
+            current.grade = Some(grade);
+        }
+
+        if let Some(division) = division {
+            current.division = normalize_optional_text(Some(division));
+        }
+
         self.repo
-            .update(id, code, name, grade, normalize_optional_text(division))
+            .update(id, Some(&current.code), Some(&current.name), current.grade, current.division.as_deref())
             .await
     }
 

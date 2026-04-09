@@ -4,6 +4,7 @@ use crate::domain::{
     errors::DomainError,
     models::teacher::Teacher,
     ports::teacher_repository::TeacherRepository,
+    validation::{normalize_optional_text, normalize_required_text},
 };
 
 #[derive(Clone)]
@@ -25,10 +26,21 @@ impl TeacherService {
     }
 
     pub async fn create(&self, employee_number: &str, name: &str, email: Option<&str>) -> Result<Teacher, DomainError> {
-        if self.repo.find_by_employee_number(employee_number).await?.is_some() {
+        let employee_number = normalize_required_text("Número de empleado", employee_number)?;
+        let name = normalize_required_text("Nombre del docente", name)?;
+        let email = normalize_optional_text(email);
+
+        if self.repo.find_by_employee_number(&employee_number).await?.is_some() {
             return Err(DomainError::Conflict("El numero de empleado ya existe".to_string()));
         }
-        self.repo.create(employee_number, name, email).await
+
+        if let Some(email) = email.as_deref() {
+            if self.repo.find_by_email(email).await?.is_some() {
+                return Err(DomainError::Conflict("El correo ya esta registrado".to_string()));
+            }
+        }
+
+        self.repo.create(&employee_number, &name, email.as_deref()).await
     }
 
     pub async fn update(
@@ -38,7 +50,45 @@ impl TeacherService {
         name: Option<&str>,
         email: Option<Option<&str>>,
     ) -> Result<Teacher, DomainError> {
-        self.repo.update(id, employee_number, name, email).await
+        let mut current = self
+            .repo
+            .find_by_id(id)
+            .await?
+            .ok_or_else(|| DomainError::NotFound("Teacher not found".to_string()))?;
+
+        if let Some(employee_number) = employee_number {
+            let employee_number = normalize_required_text("Número de empleado", employee_number)?;
+            if employee_number != current.employee_number {
+                if let Some(existing) = self.repo.find_by_employee_number(&employee_number).await? {
+                    if existing.id != id {
+                        return Err(DomainError::Conflict("El numero de empleado ya existe".to_string()));
+                    }
+                }
+            }
+            current.employee_number = employee_number;
+        }
+
+        if let Some(name) = name {
+            current.name = normalize_required_text("Nombre del docente", name)?;
+        }
+
+        if let Some(email) = email {
+            let normalized_email = normalize_optional_text(email);
+            if let Some(email) = normalized_email.as_deref() {
+                if current.email.as_deref() != Some(email) {
+                    if let Some(existing) = self.repo.find_by_email(email).await? {
+                        if existing.id != id {
+                            return Err(DomainError::Conflict("El correo ya esta registrado".to_string()));
+                        }
+                    }
+                }
+            }
+            current.email = normalized_email;
+        }
+
+        self.repo
+            .update(id, Some(&current.employee_number), Some(&current.name), Some(current.email.as_deref()))
+            .await
     }
 
     pub async fn delete(&self, id: i32) -> Result<bool, DomainError> {

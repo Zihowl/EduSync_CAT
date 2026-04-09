@@ -4,6 +4,7 @@ use crate::domain::{
     errors::DomainError,
     models::building::Building,
     ports::building_repository::BuildingRepository,
+    validation::{normalize_optional_text, normalize_required_text},
 };
 
 #[derive(Clone)]
@@ -25,14 +26,41 @@ impl BuildingService {
     }
 
     pub async fn create(&self, name: &str, description: Option<&str>) -> Result<Building, DomainError> {
-        if self.repo.find_by_name(name).await?.is_some() {
+        let name = normalize_required_text("Nombre del edificio", name)?;
+        let description = normalize_optional_text(description);
+
+        if self.repo.find_by_name(&name).await?.is_some() {
             return Err(DomainError::Conflict("El edificio ya existe".to_string()));
         }
-        self.repo.create(name, description).await
+        self.repo.create(&name, description.as_deref()).await
     }
 
     pub async fn update(&self, id: i32, name: Option<&str>, description: Option<Option<&str>>) -> Result<Building, DomainError> {
-        self.repo.update(id, name, description).await
+        let mut current = self
+            .repo
+            .find_by_id(id)
+            .await?
+            .ok_or_else(|| DomainError::NotFound("Building not found".to_string()))?;
+
+        if let Some(name) = name {
+            let name = normalize_required_text("Nombre del edificio", name)?;
+            if name != current.name {
+                if let Some(existing) = self.repo.find_by_name(&name).await? {
+                    if existing.id != id {
+                        return Err(DomainError::Conflict("El edificio ya existe".to_string()));
+                    }
+                }
+            }
+            current.name = name;
+        }
+
+        if let Some(description) = description {
+            current.description = normalize_optional_text(description);
+        }
+
+        self.repo
+            .update(id, Some(&current.name), Some(current.description.as_deref()))
+            .await
     }
 
     pub async fn delete(&self, id: i32) -> Result<bool, DomainError> {

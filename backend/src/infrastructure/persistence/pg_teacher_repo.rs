@@ -75,6 +75,17 @@ impl TeacherRepository for PgTeacherRepository {
         Ok(row.map(Into::into))
     }
 
+    async fn find_by_email(&self, email: &str) -> Result<Option<Teacher>, DomainError> {
+        let row = sqlx::query_as::<_, TeacherRow>(
+            "SELECT id, employee_number, name, email FROM teachers WHERE email = $1",
+        )
+        .bind(email)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+        Ok(row.map(Into::into))
+    }
+
     async fn create(&self, employee_number: &str, name: &str, email: Option<&str>) -> Result<Teacher, DomainError> {
         let row = sqlx::query_as::<_, TeacherRow>(
             "INSERT INTO teachers (employee_number, name, email)

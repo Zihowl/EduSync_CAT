@@ -15,6 +15,7 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
 import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
 import { CatalogFormModalComponent } from '../../../../shared/components/catalog-form-modal/catalog-form-modal.component';
 import { NotificationService } from '../../../../shared/services/notification.service';
+import { getGraphQLErrorMessage } from '../../../../shared/utils/graphql-error';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
@@ -109,7 +110,7 @@ const REMOVE_CLASSROOM = gql`
                     [title]="(editingItem ? 'Editar' : 'Nueva') + ' Aula'"
                     subtitle="Asigna el aula y su edificio de referencia."
                     [saveLabel]="editingItem ? 'Actualizar' : 'Guardar'"
-                    [saveDisabled]="!formData.name"
+                    [saveDisabled]="!formData.name || !formData.buildingId"
                     (save)="Save()">
                     <ng-template #catalogFormBody>
                         <ion-list>
@@ -121,7 +122,6 @@ const REMOVE_CLASSROOM = gql`
                             <ion-item fill="outline">
                                 <ion-label position="stacked">Edificio al que pertenece</ion-label>
                                 <ion-select interface="popover" [(ngModel)]="formData.buildingId" placeholder="Seleccionar edificio">
-                                    <ion-select-option [value]="null">Sin edificio</ion-select-option>
                                     <ion-select-option *ngFor="let b of buildings" [value]="b.id">
                                         {{ b.name }}
                                     </ion-select-option>
@@ -250,17 +250,13 @@ export class ClassroomsComponent implements OnInit
     }
 
     Save() {
-        if (!this.formData.name) return;
+        if (!this.formData.name || !this.formData.buildingId) return;
 
         const classroomInput: any = { 
             name: this.formData.name 
         };
 
-        if (this.formData.buildingId) {
-            classroomInput.buildingId = Number(this.formData.buildingId);
-        } else {
-            classroomInput.buildingId = null;
-        }
+        classroomInput.buildingId = Number(this.formData.buildingId);
 
         if (this.editingItem) {
             this.apollo.mutate({
@@ -280,7 +276,7 @@ export class ClassroomsComponent implements OnInit
                 },
                 error: (err) => {
                     console.error('Update classroom error:', err);
-                    this.notifications.danger('Error al actualizar: ' + err.message);
+                    this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo guardar el aula.'));
                 }
             });
         } else {
@@ -295,7 +291,7 @@ export class ClassroomsComponent implements OnInit
                 },
                 error: (err) => {
                     console.error('Create classroom error:', err);
-                    this.notifications.danger('Error al crear: ' + err.message);
+                    this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo guardar el aula.'));
                 }
             });
         }
@@ -318,7 +314,7 @@ export class ClassroomsComponent implements OnInit
                 this.LoadBuildings(true);
                 this.LoadClassrooms(true);
             },
-            error: (err) => this.notifications.danger('Error al eliminar: ' + err.message)
+            error: (err) => this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo eliminar el aula.'))
         });
     }
 }

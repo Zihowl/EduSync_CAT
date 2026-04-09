@@ -4,6 +4,7 @@ use crate::domain::{
     errors::DomainError,
     models::group::Group,
     ports::group_repository::GroupRepository,
+    validation::normalize_required_text,
 };
 
 #[derive(Clone)]
@@ -25,21 +26,45 @@ impl GroupService {
     }
 
     pub async fn create(&self, name: &str, parent_id: Option<i32>) -> Result<Group, DomainError> {
-        if self.repo.find_by_name(name).await?.is_some() {
+        let name = normalize_required_text("Nombre del grupo", name)?;
+
+        if self.repo.find_by_name(&name).await?.is_some() {
             return Err(DomainError::Conflict("El grupo ya existe".to_string()));
         }
 
         self.validate_parent_link(None, parent_id).await?;
 
-        self.repo.create(name, parent_id).await
+        self.repo.create(&name, parent_id).await
     }
 
     pub async fn update(&self, id: i32, name: Option<&str>, parent_id: Option<Option<i32>>) -> Result<Group, DomainError> {
-        if let Some(parent_id) = parent_id.flatten() {
-            self.validate_parent_link(Some(id), Some(parent_id)).await?;
+        let mut current = self
+            .repo
+            .find_by_id(id)
+            .await?
+            .ok_or_else(|| DomainError::NotFound("Group not found".to_string()))?;
+
+        if let Some(name) = name {
+            let name = normalize_required_text("Nombre del grupo", name)?;
+            if name != current.name {
+                if let Some(existing) = self.repo.find_by_name(&name).await? {
+                    if existing.id != id {
+                        return Err(DomainError::Conflict("El grupo ya existe".to_string()));
+                    }
+                }
+            }
+            current.name = name;
         }
 
-        self.repo.update(id, name, parent_id).await
+        if let Some(parent_id) = parent_id {
+            current.parent_id = parent_id;
+
+            if let Some(parent_id) = parent_id {
+                self.validate_parent_link(Some(id), Some(parent_id)).await?;
+            }
+        }
+
+        self.repo.update(id, Some(&current.name), Some(current.parent_id)).await
     }
 
     pub async fn delete(&self, id: i32) -> Result<bool, DomainError> {

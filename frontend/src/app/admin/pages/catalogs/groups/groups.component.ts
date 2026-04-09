@@ -15,6 +15,7 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
 import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
 import { CatalogFormModalComponent } from '../../../../shared/components/catalog-form-modal/catalog-form-modal.component';
 import { NotificationService } from '../../../../shared/services/notification.service';
+import { getGraphQLErrorMessage } from '../../../../shared/utils/graphql-error';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
@@ -380,7 +381,7 @@ export class GroupsComponent implements OnInit
                 },
                 error: (err) => {
                     console.error('Update group error:', err);
-                    this.notifications.danger('Error al actualizar: ' + err.message);
+                    this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo guardar el grupo.'));
                 }
             });
         } else {
@@ -394,7 +395,7 @@ export class GroupsComponent implements OnInit
                 },
                 error: (err) => {
                     console.error('Create group error:', err);
-                    this.notifications.danger('Error al crear: ' + err.message);
+                    this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo guardar el grupo.'));
                 }
             });
         }
@@ -422,7 +423,7 @@ export class GroupsComponent implements OnInit
             next: () => this.LoadGroups(true),
             error: (err) => {
                 console.error('Delete group error:', err);
-                this.notifications.danger('Error al eliminar: ' + err.message);
+                this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo eliminar el grupo.'));
             }
         });
     }

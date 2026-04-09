@@ -67,6 +67,18 @@ impl ClassroomRepository for PgClassroomRepository {
         Ok(row.map(Into::into))
     }
 
+    async fn find_by_name_and_building(&self, name: &str, building_id: i32) -> Result<Option<Classroom>, DomainError> {
+        let row = sqlx::query_as::<_, ClassroomRow>(
+            "SELECT id, name, building_id FROM classrooms WHERE name = $1 AND building_id = $2",
+        )
+        .bind(name)
+        .bind(building_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+        Ok(row.map(Into::into))
+    }
+
     async fn create(&self, name: &str, building_id: Option<i32>) -> Result<Classroom, DomainError> {
         let row = sqlx::query_as::<_, ClassroomRow>(
             "INSERT INTO classrooms (name, building_id) VALUES ($1, $2) RETURNING id, name, building_id",

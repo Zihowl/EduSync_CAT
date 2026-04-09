@@ -15,6 +15,7 @@ import { PageHeaderComponent } from '../../../../shared/components/page-header/p
 import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
 import { CatalogFormModalComponent } from '../../../../shared/components/catalog-form-modal/catalog-form-modal.component';
 import { NotificationService } from '../../../../shared/services/notification.service';
+import { getGraphQLErrorMessage } from '../../../../shared/utils/graphql-error';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
 
@@ -295,7 +296,7 @@ export class TeachersComponent implements OnInit
                 },
                 error: (err) => {
                     console.error('Update teacher error:', err);
-                    this.notifications.danger('Error al actualizar: ' + (err.message || 'Error desconocido'));
+                    this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo guardar el docente.'));
                 }
             });
         } else {
@@ -309,7 +310,7 @@ export class TeachersComponent implements OnInit
                 },
                 error: (err) => {
                     console.error('Create teacher error:', err);
-                    this.notifications.danger('Error al crear: ' + (err.message || 'Error desconocido'));
+                    this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo guardar el docente.'));
                 }
             });
         }
@@ -329,7 +330,7 @@ export class TeachersComponent implements OnInit
             variables: { id: parseInt(id.toString()) },
         }).subscribe({
             next: () => this.LoadTeachers(true),
-            error: (err) => this.notifications.danger('Error al eliminar: ' + err.message)
+            error: (err) => this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo eliminar el docente.'))
         });
     }
 }
