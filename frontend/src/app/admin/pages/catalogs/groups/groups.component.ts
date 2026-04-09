@@ -115,7 +115,7 @@ const REMOVE_GROUP = gql`
                     </ion-fab-button>
                 </ion-fab>
 
-                <app-catalog-form-modal
+                <app-public-modal
                     [(isOpen)]="isModalOpen"
                     [title]="getModalTitle()"
                     subtitle="Crea grupos flexibles como 1A, 2B, 3C o Taller, y subgrupos con números o texto libre."
@@ -136,7 +136,7 @@ const REMOVE_GROUP = gql`
                             </p>
                         </ion-list>
                     </ng-template>
-                </app-catalog-form-modal>
+                </app-public-modal>
             </div>
         </ion-content>
     `,

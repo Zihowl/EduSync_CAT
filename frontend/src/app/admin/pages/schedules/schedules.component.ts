@@ -4,10 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
 import { map } from 'rxjs';
 import {
-    IonContent, IonHeader, IonToolbar, IonTitle, IonButtons,
+    IonContent,
     IonList, IonItem, IonLabel, IonSelect,
-    IonSelectOption, IonButton, IonIcon, IonFab, IonFabButton,
-    IonModal, IonInput, IonFooter,
+    IonSelectOption, IonIcon, IonFab, IonFabButton,
+    IonInput,
     IonSegment, IonSegmentButton, IonToggle,
     IonDatetime, IonDatetimeButton, IonPopover,
     IonCard, IonCardContent
@@ -20,6 +20,7 @@ import {
     eyeOutline, eyeOffOutline, gitBranchOutline
 } from 'ionicons/icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { CatalogFormModalComponent } from '../../../shared/components/catalog-form-modal/catalog-form-modal.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { NotificationService } from '../../../shared/services/notification.service';
 import { RealtimeQueryCacheService } from '../../../core/services/realtime-query-cache.service';
@@ -101,13 +102,13 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
     selector: 'app-schedules',
     standalone: true,
     imports: [
-        CommonModule, FormsModule, IonContent, IonHeader, IonToolbar,
-        IonTitle, IonButtons, IonList, IonItem, IonLabel,
-        IonSelect, IonSelectOption, IonButton, IonIcon, IonFab, IonFabButton,
-        IonModal, IonFooter,
+        CommonModule, FormsModule, IonContent,
+        IonList, IonItem, IonLabel,
+        IonSelect, IonSelectOption, IonIcon, IonFab, IonFabButton,
         IonSegment, IonSegmentButton, IonToggle,
         IonDatetime, IonDatetimeButton, IonPopover,
         IonCard, IonCardContent,
+        CatalogFormModalComponent,
         PageHeaderComponent, ScheduleCalendarComponent
     ],
     template: `
@@ -173,121 +174,113 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                     </ion-fab-button>
                 </ion-fab>
 
-                <!-- Modal de creación/edición -->
-                <ion-modal class="audit-glass-modal" [isOpen]="isModalOpen" (didDismiss)="CloseModal()">
-                    <ng-template>
-                        <ion-header>
-                            <ion-toolbar color="primary">
-                                <ion-title>{{ editingItem ? 'Editar' : 'Nuevo' }} Horario</ion-title>
-                                <ion-buttons slot="end">
-                                    <ion-button (click)="CloseModal()">Cerrar</ion-button>
-                                </ion-buttons>
-                            </ion-toolbar>
-                        </ion-header>
-                        <ion-content class="ion-padding">
-                            <ion-list>
-                                <ion-item fill="outline" class="schedule-form-item">
-                                    <ion-label position="stacked">Grupo *</ion-label>
-                                    <ion-select [(ngModel)]="formData.groupId" interface="popover" placeholder="Seleccionar grupo" [compareWith]="compareIds">
-                                        <ion-select-option *ngFor="let g of groups" [value]="g.id">
-                                            {{ getGroupLabel(g) }}
-                                        </ion-select-option>
-                                    </ion-select>
-                                    <ion-icon name="layers-outline" slot="start"></ion-icon>
-                                </ion-item>
+                <app-public-modal
+                    [isOpen]="isModalOpen"
+                    (isOpenChange)="SetOpen($event)"
+                    [title]="(editingItem ? 'Editar' : 'Nuevo') + ' Horario'"
+                    subtitle="Completa los datos del horario y define su estado de publicación."
+                    helperText="Revisa que la hora de fin sea posterior a la de inicio antes de guardar."
+                    [saveLabel]="editingItem ? 'Actualizar' : 'Guardar'"
+                    [saveDisabled]="!canSave()"
+                    (save)="Save()">
+                    <ng-template #catalogFormBody>
+                        <ion-list>
+                            <ion-item fill="outline" class="schedule-form-item">
+                                <ion-label position="stacked">Grupo *</ion-label>
+                                <ion-select [(ngModel)]="formData.groupId" interface="popover" placeholder="Seleccionar grupo" [compareWith]="compareIds">
+                                    <ion-select-option *ngFor="let g of groups" [value]="g.id">
+                                        {{ getGroupLabel(g) }}
+                                    </ion-select-option>
+                                </ion-select>
+                                <ion-icon name="layers-outline" slot="start"></ion-icon>
+                            </ion-item>
 
-                                <ion-item fill="outline" class="schedule-form-item">
-                                    <ion-label position="stacked">Subgrupo (opcional)</ion-label>
-                                    <ion-input [(ngModel)]="formData.subgroup" type="text" placeholder="Ej. 1, Software, Principiantes"></ion-input>
-                                    <ion-icon name="git-branch-outline" slot="start"></ion-icon>
-                                </ion-item>
+                            <ion-item fill="outline" class="schedule-form-item">
+                                <ion-label position="stacked">Subgrupo (opcional)</ion-label>
+                                <ion-input [(ngModel)]="formData.subgroup" type="text" placeholder="Ej. 1, Software, Principiantes"></ion-input>
+                                <ion-icon name="git-branch-outline" slot="start"></ion-icon>
+                            </ion-item>
 
-                                <ion-item fill="outline" class="schedule-form-item">
-                                    <ion-label position="stacked">Materia *</ion-label>
-                                    <ion-select [(ngModel)]="formData.subjectId" interface="popover" placeholder="Seleccionar materia" [compareWith]="compareIds">
-                                        <ion-select-option *ngFor="let s of subjects" [value]="s.id">{{ getSubjectLabel(s) }}</ion-select-option>
-                                    </ion-select>
-                                    <ion-icon name="book-outline" slot="start"></ion-icon>
-                                </ion-item>
+                            <ion-item fill="outline" class="schedule-form-item">
+                                <ion-label position="stacked">Materia *</ion-label>
+                                <ion-select [(ngModel)]="formData.subjectId" interface="popover" placeholder="Seleccionar materia" [compareWith]="compareIds">
+                                    <ion-select-option *ngFor="let s of subjects" [value]="s.id">{{ getSubjectLabel(s) }}</ion-select-option>
+                                </ion-select>
+                                <ion-icon name="book-outline" slot="start"></ion-icon>
+                            </ion-item>
 
-                                <ion-item fill="outline" class="schedule-form-item">
-                                    <ion-label position="stacked">Docente (opcional)</ion-label>
-                                    <ion-select [(ngModel)]="formData.teacherId" interface="popover" placeholder="Seleccionar docente" [compareWith]="compareIds">
-                                        <ion-select-option [value]="null">Sin docente</ion-select-option>
-                                        <ion-select-option *ngFor="let t of teachers" [value]="t.id">{{ t.name }}</ion-select-option>
-                                    </ion-select>
-                                    <ion-icon name="person-outline" slot="start"></ion-icon>
-                                </ion-item>
+                            <ion-item fill="outline" class="schedule-form-item">
+                                <ion-label position="stacked">Docente (opcional)</ion-label>
+                                <ion-select [(ngModel)]="formData.teacherId" interface="popover" placeholder="Seleccionar docente" [compareWith]="compareIds">
+                                    <ion-select-option [value]="null">Sin docente</ion-select-option>
+                                    <ion-select-option *ngFor="let t of teachers" [value]="t.id">{{ t.name }}</ion-select-option>
+                                </ion-select>
+                                <ion-icon name="person-outline" slot="start"></ion-icon>
+                            </ion-item>
 
-                                <ion-item fill="outline" class="schedule-form-item">
-                                    <ion-label position="stacked">Aula *</ion-label>
-                                    <ion-select [(ngModel)]="formData.classroomId" interface="popover" placeholder="Seleccionar aula" [compareWith]="compareIds">
-                                        <ion-select-option *ngFor="let c of classrooms" [value]="c.id">{{ c.name }}</ion-select-option>
-                                    </ion-select>
-                                    <ion-icon name="business-outline" slot="start"></ion-icon>
-                                </ion-item>
+                            <ion-item fill="outline" class="schedule-form-item">
+                                <ion-label position="stacked">Aula *</ion-label>
+                                <ion-select [(ngModel)]="formData.classroomId" interface="popover" placeholder="Seleccionar aula" [compareWith]="compareIds">
+                                    <ion-select-option *ngFor="let c of classrooms" [value]="c.id">{{ c.name }}</ion-select-option>
+                                </ion-select>
+                                <ion-icon name="business-outline" slot="start"></ion-icon>
+                            </ion-item>
 
-                                <ion-item fill="outline" class="schedule-form-item">
-                                    <ion-label position="stacked">Día de la semana *</ion-label>
-                                    <ion-select [(ngModel)]="formData.dayOfWeek" interface="popover">
-                                        <ion-select-option *ngFor="let d of [1,2,3,4,5,6,7]" [value]="d">{{ getDayName(d) }}</ion-select-option>
-                                    </ion-select>
-                                    <ion-icon name="calendar-outline" slot="start"></ion-icon>
-                                </ion-item>
+                            <ion-item fill="outline" class="schedule-form-item">
+                                <ion-label position="stacked">Día de la semana *</ion-label>
+                                <ion-select [(ngModel)]="formData.dayOfWeek" interface="popover">
+                                    <ion-select-option *ngFor="let d of [1,2,3,4,5,6,7]" [value]="d">{{ getDayName(d) }}</ion-select-option>
+                                </ion-select>
+                                <ion-icon name="calendar-outline" slot="start"></ion-icon>
+                            </ion-item>
 
-                                <ion-item fill="outline" class="schedule-form-item">
-                                    <ion-label position="stacked">Hora de inicio *</ion-label>
-                                    <ion-datetime-button datetime="startTimePicker"></ion-datetime-button>
-                                    <ion-popover [keepContentsMounted]="true">
-                                        <ng-template>
-                                            <ion-datetime
-                                                id="startTimePicker"
-                                                presentation="time"
-                                                [value]="getTimeAsISO(formData.startTime)"
-                                                (ionChange)="onStartTimeChange($event)"
-                                                hourCycle="h12"
-                                                minuteValues="0,5,10,15,20,25,30,35,40,45,50,55">
-                                            </ion-datetime>
-                                        </ng-template>
-                                    </ion-popover>
-                                    <ion-icon name="time-outline" slot="start"></ion-icon>
-                                </ion-item>
+                            <ion-item fill="outline" class="schedule-form-item">
+                                <ion-label position="stacked">Hora de inicio *</ion-label>
+                                <ion-datetime-button datetime="startTimePicker"></ion-datetime-button>
+                                <ion-popover [keepContentsMounted]="true">
+                                    <ng-template>
+                                        <ion-datetime
+                                            id="startTimePicker"
+                                            presentation="time"
+                                            [value]="getTimeAsISO(formData.startTime)"
+                                            (ionChange)="onStartTimeChange($event)"
+                                            hourCycle="h12"
+                                            minuteValues="0,5,10,15,20,25,30,35,40,45,50,55">
+                                        </ion-datetime>
+                                    </ng-template>
+                                </ion-popover>
+                                <ion-icon name="time-outline" slot="start"></ion-icon>
+                            </ion-item>
 
-                                <ion-item fill="outline" class="schedule-form-item">
-                                    <ion-label position="stacked">Hora de fin *</ion-label>
-                                    <ion-datetime-button datetime="endTimePicker"></ion-datetime-button>
-                                    <ion-popover [keepContentsMounted]="true">
-                                        <ng-template>
-                                            <ion-datetime
-                                                id="endTimePicker"
-                                                presentation="time"
-                                                [value]="getTimeAsISO(formData.endTime)"
-                                                (ionChange)="onEndTimeChange($event)"
-                                                hourCycle="h12"
-                                                minuteValues="0,5,10,15,20,25,30,35,40,45,50,55">
-                                            </ion-datetime>
-                                        </ng-template>
-                                    </ion-popover>
-                                    <ion-icon name="time-outline" slot="start"></ion-icon>
-                                </ion-item>
+                            <ion-item fill="outline" class="schedule-form-item">
+                                <ion-label position="stacked">Hora de fin *</ion-label>
+                                <ion-datetime-button datetime="endTimePicker"></ion-datetime-button>
+                                <ion-popover [keepContentsMounted]="true">
+                                    <ng-template>
+                                        <ion-datetime
+                                            id="endTimePicker"
+                                            presentation="time"
+                                            [value]="getTimeAsISO(formData.endTime)"
+                                            (ionChange)="onEndTimeChange($event)"
+                                            hourCycle="h12"
+                                            minuteValues="0,5,10,15,20,25,30,35,40,45,50,55">
+                                        </ion-datetime>
+                                    </ng-template>
+                                </ion-popover>
+                                <ion-icon name="time-outline" slot="start"></ion-icon>
+                            </ion-item>
 
-                                <ion-item>
-                                    <ion-label>Publicar inmediatamente</ion-label>
-                                    <ion-toggle [(ngModel)]="formData.isPublished" slot="end"></ion-toggle>
-                                </ion-item>
-                            </ion-list>
+                            <ion-item>
+                                <ion-label>Publicar inmediatamente</ion-label>
+                                <ion-toggle [(ngModel)]="formData.isPublished" slot="end"></ion-toggle>
+                            </ion-item>
+                        </ion-list>
 
-                            <div *ngIf="formData.startTime >= formData.endTime" class="schedule-time-error">
-                                <small>La hora de fin debe ser posterior a la hora de inicio</small>
-                            </div>
-                        </ion-content>
-                        <ion-footer class="ion-padding">
-                            <ion-button expand="block" (click)="Save()" [disabled]="!canSave()">
-                                {{ editingItem ? 'Actualizar' : 'Guardar' }}
-                            </ion-button>
-                        </ion-footer>
+                        <div *ngIf="formData.startTime >= formData.endTime" class="schedule-time-error">
+                            <small>La hora de fin debe ser posterior a la hora de inicio</small>
+                        </div>
                     </ng-template>
-                </ion-modal>
+                </app-public-modal>
             </div>
         </ion-content>
     `,
@@ -754,10 +747,18 @@ export class SchedulesComponent implements OnInit
         this.isModalOpen = true;
     }
 
+    SetOpen(isOpen: boolean)
+    {
+        this.isModalOpen = isOpen;
+
+        if (!isOpen) {
+            this.editingItem = null;
+        }
+    }
+
     CloseModal()
     {
-        this.isModalOpen = false;
-        this.editingItem = null;
+        this.SetOpen(false);
     }
 
     hasChanges(): boolean

@@ -8,7 +8,7 @@ import { closeOutline } from 'ionicons/icons';
 import { inject, DestroyRef } from '@angular/core';
 
 @Component({
-  selector: 'app-catalog-form-modal',
+  selector: 'app-public-modal, app-catalog-form-modal',
   standalone: true,
   imports: [CommonModule, IonModal, IonButton, IonIcon],
   templateUrl: './catalog-form-modal.component.html',

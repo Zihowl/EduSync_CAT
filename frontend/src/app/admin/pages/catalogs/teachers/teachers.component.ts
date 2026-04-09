@@ -107,7 +107,7 @@ const REMOVE_TEACHER = gql`
                     </ion-fab-button>
                 </ion-fab>
 
-                <app-catalog-form-modal
+                <app-public-modal
                     [(isOpen)]="isModalOpen"
                     [title]="(editingItem ? 'Editar' : 'Nuevo') + ' Docente'"
                     subtitle="Completa los datos principales del docente."
@@ -135,7 +135,7 @@ const REMOVE_TEACHER = gql`
                             </ion-item>
                         </ion-list>
                     </ng-template>
-                </app-catalog-form-modal>
+                </app-public-modal>
             </div>
         </ion-content>
     `,

@@ -99,7 +99,7 @@ const REMOVE_BUILDING = gql`
                     </ion-fab-button>
                 </ion-fab>
 
-                <app-catalog-form-modal
+                <app-public-modal
                     [(isOpen)]="isModalOpen"
                     [title]="(editingItem ? 'Editar' : 'Nuevo') + ' Edificio'"
                     subtitle="Captura el nombre y una descripción opcional."
@@ -119,7 +119,7 @@ const REMOVE_BUILDING = gql`
                             </ion-item>
                         </ion-list>
                     </ng-template>
-                </app-catalog-form-modal>
+                </app-public-modal>
             </div>
         </ion-content>
     `,

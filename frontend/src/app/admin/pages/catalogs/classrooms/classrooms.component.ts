@@ -105,7 +105,7 @@ const REMOVE_CLASSROOM = gql`
                     </ion-fab-button>
                 </ion-fab>
 
-                <app-catalog-form-modal
+                <app-public-modal
                     [(isOpen)]="isModalOpen"
                     [title]="(editingItem ? 'Editar' : 'Nueva') + ' Aula'"
                     subtitle="Asigna el aula y su edificio de referencia."
@@ -129,7 +129,7 @@ const REMOVE_CLASSROOM = gql`
                             </ion-item>
                         </ion-list>
                     </ng-template>
-                </app-catalog-form-modal>
+                </app-public-modal>
             </div>
         </ion-content>
     `,

@@ -181,7 +181,7 @@ const GET_ALLOWED_DOMAINS = gql`
                     </ion-fab-button>
                 </ion-fab>
 
-                <app-catalog-form-modal
+                <app-public-modal
                     [isOpen]="isModalOpen"
                     (isOpenChange)="SetOpen($event)"
                     title="Nuevo Administrador"
@@ -222,7 +222,7 @@ const GET_ALLOWED_DOMAINS = gql`
                             </ion-note>
                         </form>
                     </ng-template>
-                </app-catalog-form-modal>
+                </app-public-modal>
             </div>
         </ion-content>
     `,
