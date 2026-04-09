@@ -1,4 +1,5 @@
 pub mod allowed_domain_repository;
+pub mod audit_log_repository;
 pub mod building_repository;
 pub mod classroom_repository;
 pub mod group_repository;

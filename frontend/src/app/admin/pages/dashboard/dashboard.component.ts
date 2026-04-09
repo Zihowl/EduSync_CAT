@@ -6,7 +6,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
 import { MenuCardComponent, MenuCardData } from '../../../shared/components/menu-card/menu-card.component';
 import { IonContent } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { settingsOutline, peopleOutline, logOutOutline, cloudUploadOutline, bookOutline, layersOutline, businessOutline, homeOutline, calendarOutline, shieldCheckmarkOutline, personCircleOutline } from 'ionicons/icons';
+import { settingsOutline, peopleOutline, logOutOutline, cloudUploadOutline, bookOutline, layersOutline, businessOutline, homeOutline, calendarOutline, shieldCheckmarkOutline, personCircleOutline, documentTextOutline } from 'ionicons/icons';
 
 type Role = 'SUPER_ADMIN' | 'ADMIN_HORARIOS';
 
@@ -62,6 +62,7 @@ export class DashboardComponent implements OnInit
 
     cards: DashboardCard[] = [
         { title: 'Configuración', icon: 'settings-outline', route: '/admin/config', roles: ['SUPER_ADMIN'], description: 'Gestionar ciclo escolar y dominios.' },
+        { title: 'Bitácora', icon: 'document-text-outline', route: '/admin/audit-logs', roles: ['SUPER_ADMIN'], description: 'Consultar acciones críticas registradas.' },
         { title: 'Usuarios', icon: 'people-outline', route: '/admin/users', roles: ['SUPER_ADMIN'], description: 'Altas y bajas de administradores.' },
         { title: 'Horarios', icon: 'calendar-outline', route: '/admin/schedules', roles: ['ADMIN_HORARIOS'], description: 'Gestionar horarios de grupos y subgrupos.' },
         { title: 'Carga de Horarios', icon: 'cloud-upload-outline', route: '/admin/upload', roles: ['ADMIN_HORARIOS'], description: 'Importar archivos Excel masivos.' },
@@ -74,7 +75,7 @@ export class DashboardComponent implements OnInit
 
     ngOnInit() 
     {
-        addIcons({ settingsOutline, peopleOutline, logOutOutline, cloudUploadOutline, bookOutline, layersOutline, businessOutline, homeOutline, calendarOutline, shieldCheckmarkOutline, personCircleOutline });
+        addIcons({ settingsOutline, peopleOutline, logOutOutline, cloudUploadOutline, bookOutline, layersOutline, businessOutline, homeOutline, calendarOutline, shieldCheckmarkOutline, personCircleOutline, documentTextOutline });
     }
 
     getRoleLabel(role: Role | null): string {

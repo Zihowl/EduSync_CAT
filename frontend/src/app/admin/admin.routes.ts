@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { AuthGuard } from '../core/guards/auth.guard';
+import { SuperAdminGuard } from '../core/guards/super-admin.guard';
 
 export const adminRoutes: Routes = [
 {
@@ -14,8 +15,15 @@ export const adminRoutes: Routes = [
     },
     {   
         path: 'config', 
+        canActivate: [SuperAdminGuard],
         loadComponent: () => 
             import('./pages/config/config.component').then(m => m.ConfigComponent)
+    },
+    {
+        path: 'audit-logs',
+        canActivate: [SuperAdminGuard],
+        loadComponent: () =>
+            import('./pages/audit-logs/audit-logs.component').then(m => m.AuditLogsComponent)
     },
     {
         path: 'upload', 
@@ -29,6 +37,7 @@ export const adminRoutes: Routes = [
     },
     {
         path: 'users',
+        canActivate: [SuperAdminGuard],
         loadComponent: () => 
             import('./pages/users/users.component').then(m => m.UsersComponent)
     },

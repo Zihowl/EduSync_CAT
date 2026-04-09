@@ -8,6 +8,7 @@ use tokio::sync::broadcast;
 pub enum RealtimeScope {
     AllowedDomains,
     CurrentSchoolYear,
+    AuditLogs,
     Users,
     Teachers,
     Subjects,

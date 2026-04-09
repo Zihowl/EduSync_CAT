@@ -1,4 +1,5 @@
 pub mod allowed_domain;
+pub mod audit_log;
 pub mod building;
 pub mod classroom;
 pub mod group;

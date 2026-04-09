@@ -11,7 +11,7 @@ use super::{
         user_mutation::UserMutation,
     },
     queries::{
-        building_query::BuildingQuery, classroom_query::ClassroomQuery,
+        audit_log_query::AuditLogQuery, building_query::BuildingQuery, classroom_query::ClassroomQuery,
         config_query::ConfigQuery, group_query::GroupQuery, schedule_query::ScheduleQuery,
         subject_query::SubjectQuery, teacher_query::TeacherQuery, user_query::UserQuery,
     },
@@ -20,6 +20,7 @@ use super::{
 
 #[derive(MergedObject, Default)]
 pub struct MergedQuery(
+    AuditLogQuery,
     UserQuery,
     ConfigQuery,
     TeacherQuery,

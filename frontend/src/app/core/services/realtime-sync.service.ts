@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 export enum RealtimeScope {
     AllowedDomains = 'ALLOWED_DOMAINS',
     CurrentSchoolYear = 'CURRENT_SCHOOL_YEAR',
+    AuditLogs = 'AUDIT_LOGS',
     Users = 'USERS',
     Teachers = 'TEACHERS',
     Subjects = 'SUBJECTS',
@@ -163,6 +164,9 @@ export class RealtimeSyncService {
             case 'CURRENT_SCHOOL_YEAR':
             case 'CurrentSchoolYear':
                 return RealtimeScope.CurrentSchoolYear;
+            case 'AUDIT_LOGS':
+            case 'AuditLogs':
+                return RealtimeScope.AuditLogs;
             case 'USERS':
             case 'Users':
                 return RealtimeScope.Users;

@@ -26,6 +26,7 @@ use rand::RngExt;
 use domain::{
     ports::{
         allowed_domain_repository::AllowedDomainRepository,
+        audit_log_repository::AuditLogRepository,
         building_repository::BuildingRepository,
         classroom_repository::ClassroomRepository,
         group_repository::GroupRepository,
@@ -50,6 +51,7 @@ use domain::{
 };
 use infrastructure::persistence::{
     pg_allowed_domain_repo::PgAllowedDomainRepository,
+    pg_audit_log_repo::PgAuditLogRepository,
     pg_building_repo::PgBuildingRepository,
     pg_classroom_repo::PgClassroomRepository,
     pg_group_repo::PgGroupRepository,
@@ -91,6 +93,7 @@ async fn main() -> anyhow::Result<()> {
     let user_repo: Arc<dyn UserRepository> = Arc::new(PgUserRepository::new(pool.clone()));
     let allowed_domain_repo: Arc<dyn AllowedDomainRepository> =
         Arc::new(PgAllowedDomainRepository::new(pool.clone()));
+    let audit_log_repo: Arc<dyn AuditLogRepository> = Arc::new(PgAuditLogRepository::new(pool.clone()));
     let school_year_repo: Arc<dyn SchoolYearRepository> = Arc::new(PgSchoolYearRepository::new(pool.clone()));
     let teacher_repo: Arc<dyn TeacherRepository> = Arc::new(PgTeacherRepository::new(pool.clone()));
     let subject_repo: Arc<dyn SubjectRepository> = Arc::new(PgSubjectRepository::new(pool.clone()));
@@ -130,10 +133,13 @@ async fn main() -> anyhow::Result<()> {
     ));
     let realtime = Arc::new(RealtimeBroadcaster::new());
 
+    spawn_audit_retention_task(audit_log_repo.clone());
+
     let schema = build_schema()
         .data(auth_service.clone())
         .data(user_service.clone())
         .data(config_service.clone())
+        .data(audit_log_repo.clone())
         .data(teacher_service.clone())
         .data(subject_service.clone())
         .data(building_service.clone())
@@ -314,4 +320,30 @@ fn build_cors_layer(cors_origin: &str) -> anyhow::Result<CorsLayer> {
 
     layer = layer.allow_origin(origins);
     Ok(layer)
+}
+
+fn spawn_audit_retention_task(audit_repo: Arc<dyn AuditLogRepository>) {
+    tokio::spawn(async move {
+        const RETENTION_MONTHS: i32 = 12;
+        const RETENTION_INTERVAL_SECS: u64 = 60 * 60 * 24;
+
+        if let Err(err) = audit_repo.delete_older_than_months(RETENTION_MONTHS).await {
+            tracing::warn!(error = %err, months = RETENTION_MONTHS, "AUDIT: initial retention cleanup failed");
+        }
+
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(RETENTION_INTERVAL_SECS));
+
+        loop {
+            interval.tick().await;
+
+            match audit_repo.delete_older_than_months(RETENTION_MONTHS).await {
+                Ok(removed) => {
+                    tracing::info!(removed, months = RETENTION_MONTHS, "AUDIT: retention cleanup completed");
+                }
+                Err(err) => {
+                    tracing::warn!(error = %err, months = RETENTION_MONTHS, "AUDIT: retention cleanup failed");
+                }
+            }
+        }
+    });
 }
