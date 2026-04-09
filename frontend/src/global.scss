@@ -43,19 +43,19 @@
 	--app-notification-gap: 0.75rem;
 
         /* Catalog Form Modal & Unified Modal Theme Variables */
-        --cfm-surface-bg: rgba(15, 23, 42, 0.82);
-        --cfm-border: rgba(96, 165, 250, 0.22);
-        --cfm-shadow: 0 18px 36px rgba(0, 0, 0, 0.55);
-        --cfm-blur: 18px;
+        --cfm-surface-bg: rgba(15, 23, 42, 0.88);
+        --cfm-border: rgba(148, 163, 184, 0.18);
+        --cfm-shadow: 0 18px 36px rgba(0, 0, 0, 0.5);
+        --cfm-blur: 16px;
         --cfm-title: #f8fafc;
-        --cfm-subtitle: rgba(219, 234, 254, 0.78);
+        --cfm-subtitle: rgba(248, 250, 252, 0.78);
         --cfm-text: rgba(248, 250, 252, 0.96);
-        --cfm-muted: rgba(219, 234, 254, 0.72);
-        --cfm-accent-from: rgba(147, 197, 253, 0.95);
+        --cfm-muted: rgba(248, 250, 252, 0.72);
+        --cfm-accent-from: rgba(96, 165, 250, 0.92);
         --cfm-accent-to: rgba(59, 130, 246, 0.72);
-        --cfm-input-bg: rgba(30, 64, 175, 0.18);
-        --cfm-input-border: rgba(96, 165, 250, 0.26);
-        --cfm-input-focus: rgba(191, 219, 254, 0.88);
+        --cfm-input-bg: rgba(8, 13, 23, 0.58);
+        --cfm-input-border: rgba(96, 165, 250, 0.22);
+        --cfm-input-focus: rgba(191, 219, 254, 0.92);
         --cfm-btn-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.98));
         --cfm-btn-hover: linear-gradient(135deg, rgba(96, 165, 250, 1), rgba(37, 99, 235, 1));
         --cfm-btn-active: linear-gradient(135deg, rgba(37, 99, 235, 1), rgba(29, 78, 216, 1));
@@ -236,6 +236,133 @@ ion-modal.catalog-form-modal::part(backdrop) {
   background: rgba(2, 6, 23, 0.6);
 }
 
+ion-modal.audit-glass-modal {
+  --background: transparent;
+  --box-shadow: none;
+  --border-radius: 0;
+}
+
+ion-modal.audit-glass-modal::part(content) {
+  background: transparent;
+  box-shadow: none;
+}
+
+ion-modal.audit-glass-modal::part(backdrop) {
+  background: rgba(2, 6, 23, 0.68);
+}
+
+ion-modal.audit-glass-modal ion-header ion-toolbar {
+  --background: rgba(15, 23, 42, 0.88);
+  --color: #f8fafc;
+  --border-color: rgba(148, 163, 184, 0.16);
+  --min-height: 56px;
+}
+
+ion-modal.audit-glass-modal ion-title {
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+ion-modal.audit-glass-modal ion-content {
+  --background: rgba(15, 23, 42, 0.88);
+  --color: #f8fafc;
+}
+
+ion-modal.audit-glass-modal ion-content::part(background) {
+  background: rgba(15, 23, 42, 0.88);
+}
+
+ion-modal.audit-glass-modal ion-footer {
+  background: rgba(15, 23, 42, 0.88);
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+ion-modal.audit-glass-modal ion-list {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  --ion-item-background: transparent;
+}
+
+ion-modal.audit-glass-modal ion-item {
+  margin: 0 0 0.9rem;
+  --background: rgba(30, 64, 175, 0.18);
+  --background-hover: rgba(59, 130, 246, 0.18);
+  --background-focused: rgba(59, 130, 246, 0.22);
+  --background-activated: rgba(59, 130, 246, 0.22);
+  --border-color: rgba(96, 165, 250, 0.24);
+  --border-color-focused: rgba(191, 219, 254, 0.9);
+  --border-radius: 0.95rem;
+  --color: #f8fafc;
+  --highlight-color: rgba(191, 219, 254, 0.9);
+  --highlight-color-focused: rgba(191, 219, 254, 1);
+  --padding-start: 0.95rem;
+  --padding-end: 0.9rem;
+  --padding-top: 0.55rem;
+  --padding-bottom: 0.55rem;
+  --min-height: 3.5rem;
+}
+
+ion-modal.audit-glass-modal ion-item:last-child {
+  margin-bottom: 0;
+}
+
+ion-modal.audit-glass-modal ion-item ion-label {
+  color: #f8fafc !important;
+  font-weight: 600;
+}
+
+ion-modal.audit-glass-modal ion-item ion-icon[slot='start'] {
+  color: rgba(147, 197, 253, 0.95);
+  font-size: 1.05rem;
+}
+
+ion-modal.audit-glass-modal ion-item ion-input,
+ion-modal.audit-glass-modal ion-item ion-select,
+ion-modal.audit-glass-modal ion-item ion-textarea {
+  --color: #f8fafc;
+  --placeholder-color: rgba(248, 250, 252, 0.72);
+  --highlight-color: rgba(191, 219, 254, 0.92);
+  --highlight-color-focused: rgba(191, 219, 254, 1);
+}
+
+ion-modal.audit-glass-modal ion-item ion-select::part(icon) {
+  color: rgba(226, 232, 240, 0.82);
+}
+
+ion-modal.audit-glass-modal ion-note {
+  color: rgba(226, 232, 240, 0.76);
+}
+
+ion-modal.audit-glass-modal ion-footer ion-button,
+ion-modal.audit-glass-modal ion-button[type='submit'] {
+  --border-radius: 10px;
+  --padding-start: 1rem;
+  --padding-end: 1rem;
+  --padding-top: 0.82rem;
+  --padding-bottom: 0.82rem;
+  --background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.98));
+  --background-hover: linear-gradient(135deg, rgba(96, 165, 250, 1), rgba(37, 99, 235, 1));
+  --background-activated: linear-gradient(135deg, rgba(37, 99, 235, 1), rgba(29, 78, 216, 1));
+  --box-shadow: 0 10px 18px rgba(37, 99, 235, 0.24);
+  --color: #ffffff;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+ion-modal.audit-glass-modal ion-header ion-button {
+  --background: rgba(59, 130, 246, 0.14);
+  --background-hover: rgba(96, 165, 250, 0.18);
+  --background-activated: rgba(37, 99, 235, 0.22);
+  --color: rgba(248, 250, 252, 0.96);
+  --border-radius: 999px;
+}
+
+ion-modal.audit-glass-modal ion-content .ion-padding {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
 /* ── Frame — centers the dialog ────────────────────────────────────── */
 .catalog-form-modal__frame {
   display: flex;
@@ -336,12 +463,12 @@ ion-modal.catalog-form-modal::part(backdrop) {
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
-  padding: 1rem 1rem 0.25rem;
+  padding: 1.1rem 1.1rem 0.35rem;
 }
 
 .catalog-form-modal__helper {
   margin: 0;
-  padding: 0.1rem 1rem 0.2rem;
+  padding: 0.1rem 1.1rem 0.2rem;
   color: var(--cfm-subtitle);
   font-size: 0.82rem;
   line-height: 1.35;
@@ -349,7 +476,7 @@ ion-modal.catalog-form-modal::part(backdrop) {
 
 /* ── Footer ────────────────────────────────────────────────────────── */
 .catalog-form-modal__footer {
-  padding: 0.85rem 1rem 1rem;
+  padding: 0.85rem 1.1rem 1rem;
 }
 
 .catalog-form-modal__save {
@@ -393,11 +520,11 @@ ion-modal.catalog-form-modal::part(backdrop) {
   --color: var(--cfm-text);
   --highlight-color: var(--cfm-input-focus);
   --highlight-color-focused: rgba(56, 189, 248, 0.95);
-  --padding-start: 0.8rem;
-  --padding-end: 0.75rem;
-  --padding-top: 0.45rem;
-  --padding-bottom: 0.45rem;
-  --min-height: 3.5rem;
+  --padding-start: 0.95rem;
+  --padding-end: 0.9rem;
+  --padding-top: 0.55rem;
+  --padding-bottom: 0.55rem;
+  --min-height: 3.6rem;
 }
 
 .catalog-form-modal__body ion-item:last-child {
@@ -408,6 +535,8 @@ ion-modal.catalog-form-modal::part(backdrop) {
 .catalog-form-modal__body ion-item ion-label {
   color: var(--cfm-text) !important;
   font-weight: 600;
+  font-size: 0.94rem;
+  line-height: 1.25;
   --color: var(--cfm-text);
 }
 
@@ -422,7 +551,7 @@ ion-modal.catalog-form-modal::part(backdrop) {
 .catalog-form-modal__body ion-item ion-select,
 .catalog-form-modal__body ion-item ion-textarea {
   --color: var(--cfm-text);
-  --placeholder-color: rgba(148, 163, 184, 0.65);
+  --placeholder-color: rgba(248, 250, 252, 0.72);
   --highlight-color: var(--cfm-input-focus);
   --highlight-color-focused: rgba(56, 189, 248, 0.95);
 }

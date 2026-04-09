@@ -187,7 +187,7 @@ const GET_ALLOWED_DOMAINS = gql`
                     </ion-fab-button>
                 </ion-fab>
 
-                <ion-modal [isOpen]="isModalOpen" (willDismiss)="SetOpen(false)">
+                <ion-modal class="audit-glass-modal" [isOpen]="isModalOpen" (willDismiss)="SetOpen(false)">
                     <ng-template>
                         <ion-header>
                             <ion-toolbar>

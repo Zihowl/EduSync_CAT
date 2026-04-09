@@ -196,7 +196,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
             </ion-fab>
 
             <!-- Modal de creación/edición -->
-            <ion-modal [isOpen]="isModalOpen" (didDismiss)="CloseModal()">
+            <ion-modal class="audit-glass-modal" [isOpen]="isModalOpen" (didDismiss)="CloseModal()">
                 <ng-template>
                     <ion-header>
                         <ion-toolbar color="primary">
