@@ -61,6 +61,7 @@ use infrastructure::persistence::{
     pg_teacher_repo::PgTeacherRepository,
     pg_user_repo::PgUserRepository,
 };
+use infrastructure::email::brevo_sender::BrevoEmailSender;
 use sqlx::PgPool;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -104,7 +105,23 @@ async fn main() -> anyhow::Result<()> {
 
     genesis_protocol(user_repo.clone()).await?;
 
-    let user_service = Arc::new(UserService::new(user_repo.clone(), allowed_domain_repo.clone()));
+    if config.brevo_api_key.trim().is_empty() || config.brevo_sender_email.trim().is_empty() {
+        tracing::warn!(
+            "Brevo no está configurado por completo. La simulación por terminal seguirá activa, pero el correo real fallará hasta completar BREVO_API_KEY y BREVO_SENDER_EMAIL."
+        );
+    }
+
+    let brevo_email_sender = Arc::new(BrevoEmailSender::new(
+        config.brevo_api_key.clone(),
+        config.brevo_sender_email.clone(),
+        config.brevo_sender_name.clone(),
+    ));
+
+    let user_service = Arc::new(UserService::new(
+        user_repo.clone(),
+        allowed_domain_repo.clone(),
+        brevo_email_sender,
+    ));
     let auth_service = Arc::new(AuthService::new(
         user_repo.clone(),
         config.jwt_secret.clone(),

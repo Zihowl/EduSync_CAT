@@ -12,6 +12,7 @@ use crate::domain::{
     models::user::User,
     ports::{
         allowed_domain_repository::AllowedDomainRepository,
+        email_sender::{EmailMessage, EmailSender},
         user_repository::UserRepository,
     },
     validation::normalize_email,
@@ -21,13 +22,19 @@ use crate::domain::{
 pub struct UserService {
     repo: Arc<dyn UserRepository>,
     allowed_domain_repo: Arc<dyn AllowedDomainRepository>,
+    email_sender: Arc<dyn EmailSender>,
 }
 
 impl UserService {
-    pub fn new(repo: Arc<dyn UserRepository>, allowed_domain_repo: Arc<dyn AllowedDomainRepository>) -> Self {
+    pub fn new(
+        repo: Arc<dyn UserRepository>,
+        allowed_domain_repo: Arc<dyn AllowedDomainRepository>,
+        email_sender: Arc<dyn EmailSender>,
+    ) -> Self {
         Self {
             repo,
             allowed_domain_repo,
+            email_sender,
         }
     }
 
@@ -61,11 +68,16 @@ impl UserService {
             .create_admin(&email, full_name, &hash, false)
             .await?;
 
-        tracing::info!(
-            "SIMULACIÓN EMAIL -> to={} temp_password={} (forzar cambio en primer login)",
-            email,
-            temp_password
-        );
+        self.print_temp_password_simulation(&email, &temp_password, "forzar cambio en primer login");
+        self.send_temp_password_email(
+            &email,
+            full_name,
+            &temp_password,
+            "Credenciales temporales de acceso",
+            "Se te asignaron nuevas credenciales temporales para acceder al sistema.",
+            "create_admin",
+        )
+        .await;
 
         Ok((user, temp_password))
     }
@@ -88,12 +100,21 @@ impl UserService {
             .update_credentials(target_user.id, &target_user.email, &hash, true)
             .await?;
 
-        tracing::info!(
-            target_email = %updated_user.email,
-            temp_password = %temp_password,
-            action = "force_reset_admin_password",
-            "SIMULACIÓN EMAIL -> restablecimiento forzado con contraseña temporal"
-        );
+        let recipient_name = updated_user
+            .full_name
+            .as_deref()
+            .unwrap_or(updated_user.email.as_str());
+
+        self.print_temp_password_simulation(&updated_user.email, &temp_password, "restablecimiento forzado");
+        self.send_temp_password_email(
+            &updated_user.email,
+            recipient_name,
+            &temp_password,
+            "Restablecimiento de contraseña temporal",
+            "El administrador restableció tu acceso y generó una nueva contraseña temporal.",
+            "force_reset_admin_password",
+        )
+        .await;
 
         tracing::warn!(
             actor_user_id = %actor_user_id,
@@ -105,6 +126,82 @@ impl UserService {
         );
 
         Ok((updated_user, temp_password))
+    }
+
+    fn print_temp_password_simulation(&self, email: &str, temp_password: &str, reason: &str) {
+        println!(
+            "SIMULACIÓN EMAIL -> to={} temp_password={} ({reason})",
+            email,
+            temp_password
+        );
+    }
+
+    async fn send_temp_password_email(
+        &self,
+        email: &str,
+        recipient_name: &str,
+        temp_password: &str,
+        subject: &str,
+        intro: &str,
+        action: &str,
+    ) {
+        let message = self.build_temp_password_email(
+            email,
+            recipient_name,
+            temp_password,
+            subject,
+            intro,
+        );
+
+        if let Err(error) = self.email_sender.send(message).await {
+            tracing::warn!(
+                target_email = %email,
+                action = action,
+                error = %error,
+                "No se pudo enviar el correo real; se conserva la simulación por terminal"
+            );
+        }
+    }
+
+    fn build_temp_password_email(
+        &self,
+        email: &str,
+        recipient_name: &str,
+        temp_password: &str,
+        subject: &str,
+        intro: &str,
+    ) -> EmailMessage {
+        let display_name = recipient_name.trim();
+        let display_name = if display_name.is_empty() { email } else { display_name };
+        let escaped_name = Self::escape_html(display_name);
+        let escaped_email = Self::escape_html(email);
+        let escaped_password = Self::escape_html(temp_password);
+        let escaped_intro = Self::escape_html(intro);
+
+        let text_content = format!(
+            "Hola {display_name},\n\n{intro}\n\nCorreo: {email}\nContraseña temporal: {temp_password}\n\nIngresa al sistema y cambia la contraseña en tu primer acceso.\n"
+        );
+
+        let html_content = format!(
+            "<!DOCTYPE html><html><body><p>Hola <strong>{escaped_name}</strong>,</p><p>{escaped_intro}</p><p><strong>Correo:</strong> {escaped_email}<br /><strong>Contraseña temporal:</strong> {escaped_password}</p><p>Ingresa al sistema y cambia la contraseña en tu primer acceso.</p></body></html>"
+        );
+
+        EmailMessage {
+            to_email: email.to_string(),
+            to_name: Some(display_name.to_string()),
+            subject: subject.to_string(),
+            text_content,
+            html_content: Some(html_content),
+        }
+    }
+
+    fn escape_html(value: &str) -> String {
+        value
+            .replace('&', "&amp;")
+            .replace('<', "&lt;")
+            .replace('>', "&gt;")
+            .replace('"', "&quot;")
+            .replace('\'', "&#39;")
     }
 
     async fn toggle_admin_access(&self, actor_user_id: Uuid, target_user_id: Uuid, is_active: bool) -> Result<User, DomainError> {
@@ -258,6 +355,37 @@ mod tests {
         }
     }
 
+    struct MockEmailSender {
+        sent_messages: Mutex<Vec<EmailMessage>>,
+        should_fail: bool,
+    }
+
+    impl MockEmailSender {
+        fn new(should_fail: bool) -> Self {
+            Self {
+                sent_messages: Mutex::new(Vec::new()),
+                should_fail,
+            }
+        }
+
+        fn messages(&self) -> Vec<EmailMessage> {
+            self.sent_messages.lock().unwrap().clone()
+        }
+    }
+
+    #[async_trait]
+    impl EmailSender for MockEmailSender {
+        async fn send(&self, message: EmailMessage) -> Result<(), DomainError> {
+            self.sent_messages.lock().unwrap().push(message);
+
+            if self.should_fail {
+                return Err(DomainError::Internal("Fallo simulado del correo".to_string()));
+            }
+
+            Ok(())
+        }
+    }
+
     #[async_trait]
     impl UserRepository for MockUserRepository {
         async fn find_all(&self) -> Result<Vec<User>, DomainError> {
@@ -392,16 +520,21 @@ mod tests {
         }
     }
 
-    fn build_service(user: User) -> (UserService, Arc<MockUserRepository>) {
+    fn build_service(user: User, should_fail_email: bool) -> (UserService, Arc<MockUserRepository>, Arc<MockEmailSender>) {
         let repo = Arc::new(MockUserRepository::new(user));
         let allowed_domain_repo = Arc::new(MockAllowedDomainRepository);
-        (UserService::new(repo.clone(), allowed_domain_repo), repo)
+        let email_sender = Arc::new(MockEmailSender::new(should_fail_email));
+        (
+            UserService::new(repo.clone(), allowed_domain_repo, email_sender.clone()),
+            repo,
+            email_sender,
+        )
     }
 
     #[tokio::test]
     async fn test_disable_admin_access_rejects_self_disable() {
         let user = make_user("admin@example.com", UserRole::SuperAdmin, true);
-        let (service, repo) = build_service(user);
+        let (service, repo, _email_sender) = build_service(user, false);
         let user_id = repo.user.lock().unwrap().id;
 
         let result = service.disable_admin_access(user_id, user_id).await;
@@ -412,7 +545,7 @@ mod tests {
     #[tokio::test]
     async fn test_reactivate_admin_access_enables_user() {
         let user = make_user("admin@example.com", UserRole::AdminHorarios, false);
-        let (service, repo) = build_service(user);
+        let (service, repo, _email_sender) = build_service(user, false);
         let actor_user_id = Uuid::new_v4();
         let target_user_id = repo.user.lock().unwrap().id;
 
@@ -431,7 +564,7 @@ mod tests {
     #[tokio::test]
     async fn test_force_reset_admin_password_replaces_hash_and_marks_temp() {
         let user = make_user("admin@example.com", UserRole::AdminHorarios, true);
-        let (service, repo) = build_service(user);
+        let (service, repo, email_sender) = build_service(user, false);
         let actor_user_id = Uuid::new_v4();
         let target_user_id = repo.user.lock().unwrap().id;
         let original_hash = repo.user.lock().unwrap().password_hash.clone();
@@ -447,6 +580,7 @@ mod tests {
         let stored_user = repo.user.lock().unwrap().clone();
         assert!(stored_user.is_temp_password);
         assert_ne!(stored_user.password_hash, original_hash);
+        assert_eq!(email_sender.messages().len(), 1);
 
         let parsed_hash = PasswordHash::new(&stored_user.password_hash).expect("hash válido");
         assert!(Argon2::default().verify_password(temp_password.as_bytes(), &parsed_hash).is_ok());
@@ -456,7 +590,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_admin_normalizes_email_to_lowercase() {
         let user = make_user("existing@example.com", UserRole::SuperAdmin, true);
-        let (service, _repo) = build_service(user);
+        let (service, _repo, email_sender) = build_service(user, false);
 
         let (created_user, temp_password) = service
             .create_admin("New.Admin@Example.COM", "Nuevo Admin")
@@ -467,15 +601,31 @@ mod tests {
         assert_eq!(created_user.full_name.as_deref(), Some("Nuevo Admin"));
         assert!(created_user.is_temp_password);
         assert!(!temp_password.is_empty());
+        assert_eq!(email_sender.messages().len(), 1);
     }
 
     #[tokio::test]
     async fn test_create_admin_blocks_case_insensitive_duplicates() {
         let user = make_user("existing@example.com", UserRole::SuperAdmin, true);
-        let (service, _repo) = build_service(user);
+        let (service, _repo, email_sender) = build_service(user, false);
 
         let result = service.create_admin("EXISTING@EXAMPLE.COM", "Duplicado").await;
 
         assert!(matches!(result, Err(DomainError::Conflict(msg)) if msg.contains("El correo ya está registrado")));
+        assert_eq!(email_sender.messages().len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_create_admin_keeps_working_when_email_sender_fails() {
+        let user = make_user("existing@example.com", UserRole::SuperAdmin, true);
+        let (service, _repo, email_sender) = build_service(user, true);
+
+        let (_created_user, temp_password) = service
+            .create_admin("new.admin@example.com", "Nuevo Admin")
+            .await
+            .expect("la simulación en terminal no debe bloquear el flujo");
+
+        assert!(!temp_password.is_empty());
+        assert_eq!(email_sender.messages().len(), 1);
     }
 }

@@ -436,7 +436,7 @@ export class UsersComponent implements OnInit
         this.executeUserAction(
             user,
             FORCE_RESET_ADMIN_PASSWORD,
-            'Contraseña temporal regenerada. Revisa la consola del servidor.'
+            'Contraseña temporal regenerada. Revisa el correo y la consola del servidor.'
         );
     }
 
@@ -486,7 +486,7 @@ export class UsersComponent implements OnInit
                     this.SetOpen(false);
                     this.cdr.detectChanges();
                     this.notifications.success(
-                        'Usuario creado con éxito.\nRevisa la consola del servidor para ver la contraseña temporal.',
+                        'Usuario creado con éxito.\nRevisa el correo y la consola del servidor para ver la contraseña temporal.',
                         'Usuario creado'
                     );
                 });

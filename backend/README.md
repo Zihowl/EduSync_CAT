@@ -32,6 +32,9 @@ Ver archivo `.env`:
 - `JWT_SECRET`
 - `JWT_EXPIRES_IN_SECS`
 - `CORS_ORIGIN`
+- `BREVO_API_KEY`
+- `BREVO_SENDER_EMAIL`
+- `BREVO_SENDER_NAME`
 - `GENESIS_SUPER_ADMIN_EMAIL`
 - `GENESIS_SUPER_ADMIN_PASSWORD`
 - `GENESIS_SUPER_ADMIN_NAME`
@@ -88,4 +91,5 @@ Notas:
 - Al iniciar, se ejecutan migraciones SQLx (`sqlx::migrate!`).
 - Si no hay usuarios, corre Genesis Protocol y crea el super admin.
 - Las credenciales temporales generadas se guardan en `.genesis-super-admin.json`.
+- Las credenciales temporales de administradores de horarios se siguen mostrando en terminal como simulación y además se envían por Brevo cuando la configuración está completa.
 - El backend NestJS permanece intacto en `backend/`.
