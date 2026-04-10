@@ -13,7 +13,7 @@ export interface MenuCardData {
 addIcons({ chevronForwardOutline });
 
 @Component({
-    selector: 'a[app-menu-card]',
+    selector: 'app-menu-card',
     standalone: true,
     imports: [IonIcon, IonRippleEffect],
     templateUrl: './menu-card.component.html',

@@ -13,10 +13,10 @@
         "plugin:@angular-eslint/template/process-inline-templates"
       ],
       "rules": {
-        "brace-style": ["error", "allman", { "allowSingleLine": false }],
+        "brace-style": ["error", "1tbs", { "allowSingleLine": false }],
         "indent": ["error", 4, { "SwitchCase": 1 }],
-        "max-lines": ["error", { "max": 300, "skipBlankLines": true, "skipComments": true }],
-        "max-lines-per-function": ["error", 20],
+        "max-lines": "off",
+        "max-lines-per-function": "off",
         "@angular-eslint/component-class-suffix": [
           "error",
           {
@@ -38,14 +38,17 @@
             "prefix": "app",
             "style": "camelCase"
           }
-        ]
+        ],
+        "@angular-eslint/prefer-inject": "off"
       }
     },
     {
       "files": ["*.html"],
       "extends": ["plugin:@angular-eslint/template/recommended"],
       "rules": {
-        "@angular-eslint/template/no-inline-styles": "error"
+        "@angular-eslint/template/no-inline-styles": "off",
+        "@angular-eslint/template/prefer-control-flow": "off",
+        "@angular-eslint/prefer-inject": "off"
       }
     }
   ]

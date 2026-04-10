@@ -234,8 +234,7 @@ const GET_ALLOWED_DOMAINS = gql`
     `,
     styleUrls: ['./users.component.scss']
 })
-export class UsersComponent implements OnInit
-{
+export class UsersComponent implements OnInit {
     private apollo = inject(Apollo);
     private fb = inject(FormBuilder);
     private cdr = inject(ChangeDetectorRef);
@@ -257,32 +256,27 @@ export class UsersComponent implements OnInit
         email: ['', [Validators.required, Validators.email]]
     });
 
-    private runInZone(action: () => void): void
-    {
+    private runInZone(action: () => void): void {
         this.ngZone.run(action);
     }
 
-    ngOnInit() 
-    {
+    ngOnInit() {
         addIcons({ personAddOutline, personOutline, mailOutline, shieldCheckmarkOutline, lockClosedOutline, lockOpenOutline, refreshOutline });
         this.setupRealtimeRefresh();
     }
 
-    ionViewWillEnter(): void
-    {
+    ionViewWillEnter(): void {
         this.LoadUsers();
         this.LoadAllowedDomains();
     }
 
-    ionViewWillLeave(): void
-    {
+    ionViewWillLeave(): void {
         this.isUsersLoaded = true;
         this.isAllowedDomainsLoaded = true;
         this.cdr.detectChanges();
     }
 
-    LoadAllowedDomains(forceRefresh: boolean = false)
-    {
+    LoadAllowedDomains(forceRefresh: boolean = false) {
         const loadAllowedDomains = () => this.apollo.query<any>({ query: GET_ALLOWED_DOMAINS, fetchPolicy: 'network-only' }).pipe(
             map((res: any) => (res?.data?.GetAllowedDomains ?? []).map((d: any) => d.domain.toLowerCase()))
         );
@@ -300,52 +294,46 @@ export class UsersComponent implements OnInit
             );
 
         request$
-        .subscribe({
-            next: (domains: string[]) => {
-                this.runInZone(() => {
-                    this.allowedDomains = domains;
-                    this.isAllowedDomainsLoaded = true;
-                    this.cdr.detectChanges();
-                });
-            },
-            error: (err) => {
-                this.runInZone(() => {
-                    console.error('Error de red al obtener dominios permitidos (usuarios):', err);
-                    this.isAllowedDomainsLoaded = true;
-                    this.cdr.detectChanges();
-                });
-            }
-        });
+            .subscribe({
+                next: (domains: string[]) => {
+                    this.runInZone(() => {
+                        this.allowedDomains = domains;
+                        this.isAllowedDomainsLoaded = true;
+                        this.cdr.detectChanges();
+                    });
+                },
+                error: (err) => {
+                    this.runInZone(() => {
+                        console.error('Error de red al obtener dominios permitidos (usuarios):', err);
+                        this.isAllowedDomainsLoaded = true;
+                        this.cdr.detectChanges();
+                    });
+                }
+            });
     }
 
-    getEmailDomain(): string | null
-    {
+    getEmailDomain(): string | null {
         const email = this.adminForm.get('email')?.value;
-      if (!email || !email.includes('@'))
-      {
-        return null;
-      }
+        if (!email || !email.includes('@')) {
+            return null;
+        }
         return email.split('@')[1].toLowerCase();
     }
 
-    isDomainAllowed(): boolean
-    {
+    isDomainAllowed(): boolean {
         const d = this.getEmailDomain();
-        if (!d)
-        {
+        if (!d) {
             return true;
         }
 
-        if (!this.isAllowedDomainsLoaded)
-        {
+        if (!this.isAllowedDomainsLoaded) {
             return true;
         }
 
         return this.allowedDomains.includes(d);
     }
 
-    LoadUsers(forceRefresh: boolean = false) 
-    {
+    LoadUsers(forceRefresh: boolean = false) {
         const loadUsers = () => this.apollo.query<any>({ query: GET_USERS, fetchPolicy: 'network-only' }).pipe(
             map((res: any) => this.sortUsers(res?.data?.GetUsers ?? []))
         );
@@ -363,22 +351,22 @@ export class UsersComponent implements OnInit
             );
 
         request$
-        .subscribe({
-            next: (users: AdminUserRow[]) => {
-                this.runInZone(() => {
-                    this.users = users;
-                    this.isUsersLoaded = true;
-                    this.cdr.detectChanges();
-                });
-            },
-            error: (err) => {
-                this.runInZone(() => {
-                    console.error('Error de red al obtener usuarios:', err);
-                    this.isUsersLoaded = true;
-                    this.cdr.detectChanges();
-                });
-            }
-        });
+            .subscribe({
+                next: (users: AdminUserRow[]) => {
+                    this.runInZone(() => {
+                        this.users = users;
+                        this.isUsersLoaded = true;
+                        this.cdr.detectChanges();
+                    });
+                },
+                error: (err) => {
+                    this.runInZone(() => {
+                        console.error('Error de red al obtener usuarios:', err);
+                        this.isUsersLoaded = true;
+                        this.cdr.detectChanges();
+                    });
+                }
+            });
     }
 
     private sortUsers(users: AdminUserRow[]): AdminUserRow[] {
@@ -396,13 +384,11 @@ export class UsersComponent implements OnInit
             .map(({ user }) => user);
     }
 
-    SetOpen(isOpen: boolean) 
-    {
+    SetOpen(isOpen: boolean) {
         this.isModalOpen = isOpen;
-      if (!isOpen)
-      {
-        this.adminForm.reset();
-      }
+        if (!isOpen) {
+            this.adminForm.reset();
+        }
     }
 
 
@@ -478,12 +464,10 @@ export class UsersComponent implements OnInit
             }
         });
     }
-    CreateUser() 
-    {
-            if (this.adminForm.invalid || (this.isAllowedDomainsLoaded && this.adminForm.get('email')?.value && !this.isDomainAllowed()))
-      {
-        return;
-      }
+    CreateUser() {
+        if (this.adminForm.invalid || (this.isAllowedDomainsLoaded && this.adminForm.get('email')?.value && !this.isDomainAllowed())) {
+            return;
+        }
 
         this.isLoading = true;
         const input = this.adminForm.value;
@@ -492,8 +476,7 @@ export class UsersComponent implements OnInit
             mutation: CREATE_ADMIN,
             variables: { input },
         }).subscribe({
-          next: () =>
-          {
+            next: () => {
                 this.runInZone(() => {
                     this.isLoading = false;
                     this.SetOpen(false);
@@ -505,8 +488,7 @@ export class UsersComponent implements OnInit
                 });
                 this.LoadUsers(true);
             },
-          error: (err) =>
-          {
+            error: (err) => {
                 this.runInZone(() => {
                     this.isLoading = false;
                     this.cdr.detectChanges();
@@ -517,8 +499,7 @@ export class UsersComponent implements OnInit
         });
     }
 
-    private setupRealtimeRefresh(): void
-    {
+    private setupRealtimeRefresh(): void {
         this.realtimeSync.watchScopes([RealtimeScope.Users, RealtimeScope.AllowedDomains])
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe(() => {

@@ -330,24 +330,24 @@ export class AuditLogsComponent implements OnInit {
             variables: { filter },
             fetchPolicy: 'network-only',
         })
-        .pipe(map((result) => result?.data?.GetAuditLogs ?? { items: [], totalCount: 0, page: this.page, limit: this.pageSize }))
-        .subscribe({
-            next: (page) => {
-                this.auditLogs = page.items ?? [];
-                this.totalCount = page.totalCount ?? 0;
-                this.page = page.page ?? this.page;
-                this.pageSize = page.limit ?? this.pageSize;
-                this.isLoaded = true;
-                this.cdr.detectChanges();
-            },
-            error: (error) => {
-                console.error('Error al cargar registros de auditoría:', error);
-                this.auditLogs = [];
-                this.totalCount = 0;
-                this.isLoaded = true;
-                this.cdr.detectChanges();
-            },
-        });
+            .pipe(map((result) => result?.data?.GetAuditLogs ?? { items: [], totalCount: 0, page: this.page, limit: this.pageSize }))
+            .subscribe({
+                next: (page) => {
+                    this.auditLogs = page.items ?? [];
+                    this.totalCount = page.totalCount ?? 0;
+                    this.page = page.page ?? this.page;
+                    this.pageSize = page.limit ?? this.pageSize;
+                    this.isLoaded = true;
+                    this.cdr.detectChanges();
+                },
+                error: (error) => {
+                    console.error('Error al cargar registros de auditoría:', error);
+                    this.auditLogs = [];
+                    this.totalCount = 0;
+                    this.isLoaded = true;
+                    this.cdr.detectChanges();
+                },
+            });
     }
 
     OnSearchChange(event: Event): void {

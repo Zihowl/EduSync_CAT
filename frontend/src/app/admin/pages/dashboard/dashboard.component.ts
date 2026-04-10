@@ -45,12 +45,11 @@ interface DashboardCard extends MenuCardData {
                 <div class="dashboard-shell app-page-shell">
                     <div class="dashboard-grid">
                         <ng-container *ngFor="let card of cards; trackBy: trackByTitle">
-                            <a
-                                app-menu-card
+                            <app-menu-card
                                 *ngIf="card.roles.includes(currentRole)"
                                 [card]="card"
                                 [routerLink]="card.route">
-                            </a>
+                            </app-menu-card>
                         </ng-container>
                     </div>
                 </div>
@@ -58,8 +57,7 @@ interface DashboardCard extends MenuCardData {
         </ng-container>
     `
 })
-export class DashboardComponent implements OnInit
-{
+export class DashboardComponent implements OnInit {
     private authService = inject(AuthService);
 
     role$: Observable<Role | null> = this.authService.user$.pipe(map(u => (u?.role ?? null) as Role | null));
@@ -80,8 +78,7 @@ export class DashboardComponent implements OnInit
         { title: 'Edificios', icon: 'home-outline', route: '/admin/catalogs/buildings', roles: ['ADMIN_HORARIOS'], description: 'Infraestructura del plantel.' }
     ];
 
-    ngOnInit() 
-    {
+    ngOnInit() {
         addIcons({ settingsOutline, peopleOutline, logOutOutline, cloudUploadOutline, bookOutline, layersOutline, businessOutline, homeOutline, calendarOutline, shieldCheckmarkOutline, personCircleOutline, documentTextOutline });
     }
 
@@ -124,10 +121,11 @@ export class DashboardComponent implements OnInit
         }
     }
 
-    trackByTitle(index: number, card: DashboardCard) { return card.title; }
+    trackByTitle(index: number, card: DashboardCard) {
+        return card.title; 
+    }
 
-    Logout() 
-    { 
+    Logout() { 
         this.authService.logout(); 
     }
 }

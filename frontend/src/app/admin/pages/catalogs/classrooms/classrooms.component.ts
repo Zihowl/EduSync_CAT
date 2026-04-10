@@ -148,8 +148,7 @@ const REMOVE_CLASSROOM = gql`
     `,
     styleUrls: ['./classrooms.component.scss']
 })
-export class ClassroomsComponent implements OnInit
-{
+export class ClassroomsComponent implements OnInit {
     private apollo = inject(Apollo);
     private queryCache = inject(RealtimeQueryCacheService);
     private realtimeSync = inject(RealtimeSyncService);

@@ -147,8 +147,7 @@ const REMOVE_SUBJECT = gql`
     `,
     styleUrls: ['./subjects.component.scss']
 })
-export class SubjectsComponent implements OnInit
-{
+export class SubjectsComponent implements OnInit {
     private apollo = inject(Apollo);
     private queryCache = inject(RealtimeQueryCacheService);
     private realtimeSync = inject(RealtimeSyncService);

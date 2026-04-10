@@ -189,7 +189,7 @@ interface UploadResponse {
                                         <td>
                                             <strong>{{ row.claveMateria }}</strong>
                                             <span>{{ row.materia }}</span>
-                                            <small *ngIf="row.grade != null">Grado {{ row.grade }}</small>
+                                            <small *ngIf="row.grade !== null">Grado {{ row.grade }}</small>
                                         </td>
                                         <td>
                                             <strong>{{ row.grupo }}</strong>
@@ -245,8 +245,7 @@ interface UploadResponse {
     `,
     styleUrls: ['./upload.component.scss']
 })
-export class UploadComponent implements OnInit
-{
+export class UploadComponent implements OnInit {
     private http = inject(HttpClient);
     private notifications = inject(NotificationService);
     private apiUrl = environment.apiUrl;
@@ -273,19 +272,16 @@ export class UploadComponent implements OnInit
     previewResult: UploadPreviewResponse | null = null;
     previewRows: UploadPreviewRow[] = [];
 
-    ngOnInit() 
-    {
+    ngOnInit() {
         addIcons({ cloudUploadOutline, documentTextOutline, warningOutline });
     }
 
-    ionViewWillLeave(): void
-    {
+    ionViewWillLeave(): void {
         this.isPreviewLoading = false;
         this.isConfirmLoading = false;
     }
 
-    OnFileSelected(event: any) 
-    {
+    OnFileSelected(event: any) {
         this.fileInputElement = event.target as HTMLInputElement;
         const nextFile = this.fileInputElement.files?.[0] ?? null;
 
@@ -306,8 +302,7 @@ export class UploadComponent implements OnInit
         void this.PreviewUpload();
     }
 
-    clearSelection(input: HTMLInputElement | null = this.fileInputElement)
-    {
+    clearSelection(input: HTMLInputElement | null = this.fileInputElement) {
         this.selectedFile = null;
         this.previewResult = null;
         this.previewRows = [];
@@ -319,28 +314,23 @@ export class UploadComponent implements OnInit
         }
     }
 
-    private isAllowedFile(file: File): boolean
-    {
+    private isAllowedFile(file: File): boolean {
         return /\.(xlsx|csv)$/i.test(file.name);
     }
 
-    hasPreview(): boolean
-    {
+    hasPreview(): boolean {
         return this.previewRows.length > 0;
     }
 
-    get validRowCount(): number
-    {
+    get validRowCount(): number {
         return this.previewRows.filter((row) => row.errors.length === 0).length;
     }
 
-    get errorRowCount(): number
-    {
+    get errorRowCount(): number {
         return this.previewRows.filter((row) => row.errors.length > 0).length;
     }
 
-    canConfirm(): boolean
-    {
+    canConfirm(): boolean {
         return !!this.selectedFile
             && this.hasPreview()
             && !!this.previewResult?.details.success
@@ -348,18 +338,15 @@ export class UploadComponent implements OnInit
             && !this.isConfirmLoading;
     }
 
-    formatClock(value: string): string
-    {
+    formatClock(value: string): string {
         return value ? value.substring(0, 5) : '';
     }
 
-    trackByRow(index: number, row: UploadPreviewRow): number
-    {
+    trackByRow(index: number, row: UploadPreviewRow): number {
         return row.rowNumber;
     }
 
-    PreviewUpload()
-    {
+    PreviewUpload() {
         if (!this.selectedFile || this.isPreviewLoading || this.isConfirmLoading) {
             return;
         }
@@ -398,27 +385,24 @@ export class UploadComponent implements OnInit
             });
     }
 
-    Upload() 
-    {
-      if (!this.canConfirm())
-      {
-        return;
-      }
+    Upload() {
+        if (!this.canConfirm()) {
+            return;
+        }
 
         this.isConfirmLoading = true;
-                const file = this.selectedFile;
-                if (!file) {
-                        this.isConfirmLoading = false;
-                        return;
-                }
+        const file = this.selectedFile;
+        if (!file) {
+            this.isConfirmLoading = false;
+            return;
+        }
 
         const formData = new FormData();
-                formData.append('file', file, file.name);
+        formData.append('file', file, file.name);
 
         this.http.post(`${this.apiUrl}/academic/upload-schedule`, formData)
             .subscribe({
-            next: (res: any) =>
-            {
+                next: (res: any) => {
                     this.isConfirmLoading = false;
                     const details = res.details ?? res;
                     const processed = Number(details?.processed ?? 0);
@@ -437,8 +421,7 @@ export class UploadComponent implements OnInit
                     }
                     this.clearSelection();
                 },
-            error: (err) =>
-            {
+                error: (err) => {
                     this.isConfirmLoading = false;
                     this.notifications.danger('Error en la carga: ' + (err.error?.message || err.message), 'Error en la carga', { autoDismissMs: 0 });
                 }

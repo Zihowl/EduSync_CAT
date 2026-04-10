@@ -5,13 +5,11 @@ import { Observable, catchError, map, of } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
 @Injectable({ providedIn: 'root' })
-export class AuthGuard implements CanActivate 
-{
+export class AuthGuard implements CanActivate {
     private auth = inject(AuthService);
     private router = inject(Router);
 
-    canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<boolean> 
-    {
+    canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<boolean> {
         return this.auth.verifySession().pipe(
             map((user) => {
                 if (user) {
@@ -28,18 +26,17 @@ export class AuthGuard implements CanActivate
         );
     }
 
-    private redirectToLogin(returnUrl: string): void 
-    {
+    private redirectToLogin(returnUrl: string): void {
         const msg = 'Inicia sesión para ver esta página';
         sessionStorage.setItem('returnUrl', returnUrl);
         this.router.navigateByUrl('/auth/login',
-        { 
-            state: 
+            { 
+                state: 
             { 
                 message: msg,
                 showOnce: true,
                 returnUrl 
             }
-        });
+            });
     }
 }

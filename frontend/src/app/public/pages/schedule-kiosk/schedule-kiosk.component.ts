@@ -188,8 +188,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
     `,
     styleUrls: ['./schedule-kiosk.component.scss']
 })
-export class ScheduleKioskComponent implements OnInit
-{
+export class ScheduleKioskComponent implements OnInit {
     private http = inject(HttpClient);
     private queryCache = inject(RealtimeQueryCacheService);
     private realtimeSync = inject(RealtimeSyncService);
@@ -208,8 +207,7 @@ export class ScheduleKioskComponent implements OnInit
 
     private apiUrl = (environment.apiUrl || '').replace(/\/+$/, '');
 
-    ngOnInit()
-    {
+    ngOnInit() {
         addIcons({
             calendarOutline, timeOutline, personOutline, bookOutline,
             businessOutline, layersOutline, schoolOutline
@@ -217,37 +215,31 @@ export class ScheduleKioskComponent implements OnInit
         this.setupRealtimeRefresh();
     }
 
-    ionViewWillEnter(): void
-    {
+    ionViewWillEnter(): void {
         this.LoadGroups();
         if (this.selectedGroupId) {
             this.LoadSchedules();
         }
     }
 
-    ionViewWillLeave(): void
-    {
+    ionViewWillLeave(): void {
         this.loading = false;
     }
 
-    getDayName(day: number): string
-    {
+    getDayName(day: number): string {
         return DAYS[day] || '';
     }
 
-    getDayShort(day: number): string
-    {
+    getDayShort(day: number): string {
         const shorts = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
         return shorts[day] || '';
     }
 
-    formatTime(time: string): string
-    {
+    formatTime(time: string): string {
         return time ? time.substring(0, 5) : '';
     }
 
-    getGroupLabel(group: ScheduleSlot['group']): string
-    {
+    getGroupLabel(group: ScheduleSlot['group']): string {
         if (!group) {
             return '';
         }
@@ -255,14 +247,12 @@ export class ScheduleKioskComponent implements OnInit
         return group.parent ? `${group.parent.name}-${group.name}` : group.name;
     }
 
-    private getDefaultDay(): number
-    {
+    private getDefaultDay(): number {
         const current = normalizeDayOfWeek(new Date().getDay());
         return current === 7 ? 1 : current;
     }
 
-    private syncCalendarState(): void
-    {
+    private syncCalendarState(): void {
         this.calendarDays = this.viewMode === 'day'
             ? [this.selectedDay || this.getDefaultDay()]
             : [...this.calendarWeekDays];
@@ -270,8 +260,7 @@ export class ScheduleKioskComponent implements OnInit
         this.calendarEvents = this.schedules.map((schedule) => this.toCalendarEvent(schedule));
     }
 
-    private toCalendarEvent(schedule: ScheduleSlot): ScheduleCalendarEvent
-    {
+    private toCalendarEvent(schedule: ScheduleSlot): ScheduleCalendarEvent {
         return {
             id: Number(schedule.id),
             dayOfWeek: schedule.dayOfWeek,
@@ -289,8 +278,7 @@ export class ScheduleKioskComponent implements OnInit
         };
     }
 
-    onViewModeChange(): void
-    {
+    onViewModeChange(): void {
         if (this.viewMode === 'week') {
             this.selectedDay = this.getDefaultDay();
         }
@@ -302,8 +290,7 @@ export class ScheduleKioskComponent implements OnInit
         }
     }
 
-    selectDay(day: number): void
-    {
+    selectDay(day: number): void {
         this.selectedDay = normalizeDayOfWeek(day);
         this.viewMode = 'day';
         this.syncCalendarState();
@@ -313,26 +300,22 @@ export class ScheduleKioskComponent implements OnInit
         }
     }
 
-    onCalendarEventSelected(event: ScheduleCalendarEvent): void
-    {
+    onCalendarEventSelected(event: ScheduleCalendarEvent): void {
         this.selectedSchedule = event.payload as ScheduleSlot;
         this.syncCalendarState();
     }
 
-    getSubjectLabel(subject: ScheduleSlot['subject']): string
-    {
+    getSubjectLabel(subject: ScheduleSlot['subject']): string {
         return subject?.grade != null ? `Grado ${subject.grade} - ${subject.name}` : subject?.name ?? '';
     }
 
-    getSchedulesForDay(day: number): ScheduleSlot[]
-    {
+    getSchedulesForDay(day: number): ScheduleSlot[] {
         return this.schedules
             .filter(s => s.dayOfWeek === day)
             .sort((a, b) => a.startTime.localeCompare(b.startTime));
     }
 
-    LoadGroups()
-    {
+    LoadGroups() {
         this.queryCache.load(
             'public-schedule-groups',
             [RealtimeScope.Schedules, RealtimeScope.Groups],
@@ -366,8 +349,7 @@ export class ScheduleKioskComponent implements OnInit
         });
     }
 
-    LoadSchedules()
-    {
+    LoadSchedules() {
         if (!this.selectedGroupId) return;
 
         this.loading = true;
@@ -402,8 +384,7 @@ export class ScheduleKioskComponent implements OnInit
         });
     }
 
-    private getFirstDayWithClasses(): number | null
-    {
+    private getFirstDayWithClasses(): number | null {
         for (const day of this.calendarWeekDays) {
             if (this.schedules.some(schedule => schedule.dayOfWeek === day)) {
                 return day;
@@ -413,8 +394,7 @@ export class ScheduleKioskComponent implements OnInit
         return null;
     }
 
-    private setupRealtimeRefresh(): void
-    {
+    private setupRealtimeRefresh(): void {
         this.realtimeSync.watchScopes([
             RealtimeScope.Schedules,
             RealtimeScope.Teachers,

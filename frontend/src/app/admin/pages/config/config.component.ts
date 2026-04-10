@@ -236,8 +236,7 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
     `,
     styleUrls: ['./config.component.scss']
 })
-export class ConfigComponent implements OnInit
-{
+export class ConfigComponent implements OnInit {
     private apollo = inject(Apollo);
     private cdr = inject(ChangeDetectorRef);
     private ngZone = inject(NgZone);
@@ -255,27 +254,22 @@ export class ConfigComponent implements OnInit
     isDomainsLoaded = false;
     isCurrentSchoolYearLoaded = false;
 
-    private runInZone(action: () => void): void
-    {
+    private runInZone(action: () => void): void {
         this.ngZone.run(action);
     }
 
-    get isDesktopLayout(): boolean
-    {
+    get isDesktopLayout(): boolean {
         return typeof window !== 'undefined' && window.matchMedia('(min-width: 1200px)').matches;
     }
 
-    formatConfiguredAt(value: string | Date | null | undefined): string
-    {
-        if (!value)
-        {
+    formatConfiguredAt(value: string | Date | null | undefined): string {
+        if (!value) {
             return 'No disponible';
         }
 
         const date = this.parseConfiguredAtValue(value);
 
-        if (Number.isNaN(date.getTime()))
-        {
+        if (Number.isNaN(date.getTime())) {
             return 'No disponible';
         }
 
@@ -300,10 +294,8 @@ export class ConfigComponent implements OnInit
         return `${lookup['day']}/${lookup['month']}/${lookup['year']} ${lookup['hour']}:${lookup['minute']}:${lookup['second']}${meridiem}`;
     }
 
-    private parseConfiguredAtValue(value: string | Date): Date
-    {
-        if (value instanceof Date)
-        {
+    private parseConfiguredAtValue(value: string | Date): Date {
+        if (value instanceof Date) {
             return value;
         }
 
@@ -311,34 +303,30 @@ export class ConfigComponent implements OnInit
         return new Date(hasTimezoneSuffix ? value : `${value}Z`);
     }
 
-    ngOnInit() 
-    {
-            addIcons({
-                trashOutline,
-                calendarOutline,
-                checkmarkOutline,
-                globeOutline,
-                alertCircleOutline,
-                informationCircleOutline
-            });
-            this.setupRealtimeRefresh();
+    ngOnInit() {
+        addIcons({
+            trashOutline,
+            calendarOutline,
+            checkmarkOutline,
+            globeOutline,
+            alertCircleOutline,
+            informationCircleOutline
+        });
+        this.setupRealtimeRefresh();
     }
 
-    ionViewWillLeave(): void
-    {
+    ionViewWillLeave(): void {
         this.isDomainsLoaded = true;
         this.isCurrentSchoolYearLoaded = true;
         this.cdr.detectChanges();
     }
 
-    ionViewWillEnter(): void
-    {
+    ionViewWillEnter(): void {
         this.LoadDomains();
         this.LoadCurrentSchoolYear();
     }
 
-    LoadDomains(forceRefresh: boolean = false) 
-    {
+    LoadDomains(forceRefresh: boolean = false) {
         const loadDomains = () => this.apollo.query<any>({ query: GET_DOMAINS, fetchPolicy: 'network-only' }).pipe(
             map((res: any) => res?.data?.GetAllowedDomains ?? [])
         );
@@ -350,10 +338,10 @@ export class ConfigComponent implements OnInit
                 loadDomains
             )
             : this.queryCache.load(
-            'admin-config-domains',
-            [RealtimeScope.AllowedDomains],
-            loadDomains
-        );
+                'admin-config-domains',
+                [RealtimeScope.AllowedDomains],
+                loadDomains
+            );
 
         request$
             .subscribe({
@@ -374,8 +362,7 @@ export class ConfigComponent implements OnInit
             });
     }
 
-    LoadCurrentSchoolYear(forceRefresh: boolean = false)
-    {
+    LoadCurrentSchoolYear(forceRefresh: boolean = false) {
         const loadCurrentSchoolYear = () => this.apollo.query<any>({ query: GET_CURRENT_SCHOOL_YEAR, fetchPolicy: 'network-only' }).pipe(
             map((res: any) => res?.data?.GetCurrentSchoolYear ?? null)
         );
@@ -387,10 +374,10 @@ export class ConfigComponent implements OnInit
                 loadCurrentSchoolYear
             )
             : this.queryCache.load(
-            'admin-config-current-school-year',
-            [RealtimeScope.CurrentSchoolYear],
-            loadCurrentSchoolYear
-        );
+                'admin-config-current-school-year',
+                [RealtimeScope.CurrentSchoolYear],
+                loadCurrentSchoolYear
+            );
 
         request$
             .subscribe({
@@ -411,14 +398,12 @@ export class ConfigComponent implements OnInit
             });
     }
 
-    AddDomain() 
-    {
-      const domain = this.newDomain.trim().toLowerCase();
+    AddDomain() {
+        const domain = this.newDomain.trim().toLowerCase();
 
-      if (!domain)
-      {
-        return;
-      }
+        if (!domain) {
+            return;
+        }
 
         const previousDomains = [...this.domains];
         const optimisticDomain = {
@@ -435,8 +420,7 @@ export class ConfigComponent implements OnInit
             mutation: ADD_DOMAIN,
             variables: { domain },
         }).subscribe({
-        next: (result: any) =>
-        {
+            next: (result: any) => {
                 const createdDomain = result?.data?.CreateAllowedDomain;
                 this.runInZone(() => {
                     this.domains = createdDomain
@@ -459,13 +443,11 @@ export class ConfigComponent implements OnInit
         });
     }
 
-    AddSchoolYear()
-    {
+    AddSchoolYear() {
         const startDate = this.newSchoolYearStart.trim();
         const endDate = this.newSchoolYearEnd.trim();
 
-        if (!startDate || !endDate)
-        {
+        if (!startDate || !endDate) {
             return;
         }
 
@@ -508,8 +490,7 @@ export class ConfigComponent implements OnInit
         });
     }
 
-    async RemoveDomain(id: number)
-    {
+    async RemoveDomain(id: number) {
         if (!(await this.notifications.confirm({
             title: 'Eliminar dominio',
             message: '¿Eliminar este dominio?',
@@ -529,10 +510,10 @@ export class ConfigComponent implements OnInit
         this.cdr.detectChanges();
 
         this.apollo.mutate(
-        {
-            mutation: REMOVE_DOMAIN,
-            variables: { id: domainId }
-        }).subscribe({
+            {
+                mutation: REMOVE_DOMAIN,
+                variables: { id: domainId }
+            }).subscribe({
             next: () => {
                 this.runInZone(() => {
                     this.cdr.detectChanges();
@@ -550,8 +531,7 @@ export class ConfigComponent implements OnInit
         });
     }
 
-    private setupRealtimeRefresh(): void
-    {
+    private setupRealtimeRefresh(): void {
         this.realtimeSync.watchScopes([RealtimeScope.AllowedDomains, RealtimeScope.Users, RealtimeScope.CurrentSchoolYear])
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe(() => {

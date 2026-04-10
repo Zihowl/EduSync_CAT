@@ -286,8 +286,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
     `,
     styleUrls: ['./schedules.component.scss']
 })
-export class SchedulesComponent implements OnInit
-{
+export class SchedulesComponent implements OnInit {
     private apollo = inject(Apollo);
     private notifications = inject(NotificationService);
     private queryCache = inject(RealtimeQueryCacheService);
@@ -329,8 +328,7 @@ export class SchedulesComponent implements OnInit
         isPublished: false
     };
 
-    ngOnInit()
-    {
+    ngOnInit() {
         addIcons({
             trashOutline, addOutline, pencilOutline, calendarOutline,
             timeOutline, personOutline, bookOutline, businessOutline,
@@ -340,18 +338,15 @@ export class SchedulesComponent implements OnInit
         this.setupRealtimeRefresh();
     }
 
-    ionViewWillEnter(): void
-    {
+    ionViewWillEnter(): void {
         this.LoadCatalogs();
     }
 
-    getDayName(day: number): string
-    {
+    getDayName(day: number): string {
         return DAYS[day] || '';
     }
 
-    getDayShortName(day: number): string
-    {
+    getDayShortName(day: number): string {
         const shorts: Record<number, string> = {
             1: 'Lun',
             2: 'Mar',
@@ -365,42 +360,35 @@ export class SchedulesComponent implements OnInit
         return shorts[day] || '';
     }
 
-    getGroupLabel(group: any): string
-    {
+    getGroupLabel(group: any): string {
         if (!group) return '';
         return group.parent ? `${group.parent.name}-${group.name}` : group.name;
     }
 
-    getSubjectLabel(subject: any): string
-    {
+    getSubjectLabel(subject: any): string {
         if (!subject) return '';
         return subject.grade != null ? `Grado ${subject.grade} - ${subject.name}` : subject.name;
     }
 
-    formatTime(time: string): string
-    {
+    formatTime(time: string): string {
         if (!time) return '';
         // Toma solo HH:mm (primeros 5 caracteres)
         return time.substring(0, 5);
     }
 
-    compareIds(o1: any, o2: any): boolean
-    {
+    compareIds(o1: any, o2: any): boolean {
         return o1 != null && o2 != null && Number(o1) === Number(o2);
     }
 
-    trackById(index: number, item: any): number
-    {
+    trackById(index: number, item: any): number {
         return item.id;
     }
 
-    isUpdating(id: any): boolean
-    {
+    isUpdating(id: any): boolean {
         return this.updatingIds.includes(Number(id));
     }
 
-    private ensureActiveFilterSelection(): void
-    {
+    private ensureActiveFilterSelection(): void {
         if (this.filterScope === 'group') {
             if (this.groups.length > 0) {
                 const hasValidGroup = this.filterGroupId != null && this.groups.some((group) => Number(group.id) === Number(this.filterGroupId));
@@ -424,14 +412,12 @@ export class SchedulesComponent implements OnInit
         }
     }
 
-    private syncCalendarState(): void
-    {
+    private syncCalendarState(): void {
         this.activeScheduleId = this.selectedSchedule ? Number(this.selectedSchedule.id) : null;
         this.calendarEvents = this.schedules.map((schedule) => this.toCalendarEvent(schedule));
     }
 
-    private toCalendarEvent(schedule: any): ScheduleCalendarEvent
-    {
+    private toCalendarEvent(schedule: any): ScheduleCalendarEvent {
         const scheduleId = Number(schedule.id);
         const selected = this.selectedIds.has(scheduleId) || this.activeScheduleId === scheduleId;
 
@@ -476,8 +462,7 @@ export class SchedulesComponent implements OnInit
         };
     }
 
-    private refreshCalendarView(): void
-    {
+    private refreshCalendarView(): void {
         if (this.selectedSchedule) {
             this.selectedSchedule = this.schedules.find((schedule) => Number(schedule.id) === Number(this.selectedSchedule.id)) ?? null;
         }
@@ -485,23 +470,20 @@ export class SchedulesComponent implements OnInit
         this.syncCalendarState();
     }
 
-    onFilterScopeChange(): void
-    {
+    onFilterScopeChange(): void {
         this.ensureActiveFilterSelection();
         this.refreshCalendarView();
         this.LoadSchedules();
     }
 
-    onCalendarEventSelected(event: ScheduleCalendarEvent): void
-    {
+    onCalendarEventSelected(event: ScheduleCalendarEvent): void {
         const payload = event.payload ?? this.schedules.find((schedule) => Number(schedule.id) === Number(event.id));
         this.selectedSchedule = payload ?? null;
         this.activeScheduleId = Number(event.id);
         this.syncCalendarState();
     }
 
-    onCalendarCellSelected(cell: ScheduleCalendarCellClick): void
-    {
+    onCalendarCellSelected(cell: ScheduleCalendarCellClick): void {
         const startTime = cell.time;
         const endTime = this.addMinutesToTime(startTime, 60);
 
@@ -515,8 +497,7 @@ export class SchedulesComponent implements OnInit
         });
     }
 
-    onCalendarActionSelected(actionClick: ScheduleCalendarActionClick): void
-    {
+    onCalendarActionSelected(actionClick: ScheduleCalendarActionClick): void {
         const schedule = actionClick.event.payload ?? this.schedules.find((item) => Number(item.id) === Number(actionClick.event.id));
         if (!schedule) {
             return;
@@ -535,8 +516,7 @@ export class SchedulesComponent implements OnInit
         }
     }
 
-    toggleSelectedId(id: number): void
-    {
+    toggleSelectedId(id: number): void {
         const scheduleId = Number(id);
         if (this.selectedIds.has(scheduleId)) {
             this.selectedIds.delete(scheduleId);
@@ -547,8 +527,7 @@ export class SchedulesComponent implements OnInit
         this.syncCalendarState();
     }
 
-    private addMinutesToTime(time: string, minutes: number): string
-    {
+    private addMinutesToTime(time: string, minutes: number): string {
         const [hourText = '0', minuteText = '0'] = time.split(':');
         const hour = Number.parseInt(hourText, 10) || 0;
         const minute = Number.parseInt(minuteText, 10) || 0;
@@ -558,13 +537,11 @@ export class SchedulesComponent implements OnInit
         return formatClockTime(normalizedTotal);
     }
 
-    getTimeAsISO(time: string): string
-    {
+    getTimeAsISO(time: string): string {
         return `2024-01-01T${time}:00`;
     }
 
-    onStartTimeChange(event: any)
-    {
+    onStartTimeChange(event: any) {
         const value = event.detail.value;
         if (value) {
             const date = new Date(value);
@@ -572,8 +549,7 @@ export class SchedulesComponent implements OnInit
         }
     }
 
-    onEndTimeChange(event: any)
-    {
+    onEndTimeChange(event: any) {
         const value = event.detail.value;
         if (value) {
             const date = new Date(value);
@@ -581,8 +557,7 @@ export class SchedulesComponent implements OnInit
         }
     }
 
-    LoadCatalogs(forceRefresh = false)
-    {
+    LoadCatalogs(forceRefresh = false) {
         const request$ = forceRefresh
             ? this.queryCache.refresh(
                 'admin-schedules-catalogs',
@@ -626,8 +601,7 @@ export class SchedulesComponent implements OnInit
         });
     }
 
-    private setupRealtimeRefresh(): void
-    {
+    private setupRealtimeRefresh(): void {
         this.realtimeSync.watchScopes([
             RealtimeScope.Schedules,
             RealtimeScope.Teachers,
@@ -641,8 +615,7 @@ export class SchedulesComponent implements OnInit
             });
     }
 
-    LoadSchedules(forceRefresh = false)
-    {
+    LoadSchedules(forceRefresh = false) {
         const filter: any = {};
         this.ensureActiveFilterSelection();
 
@@ -711,8 +684,7 @@ export class SchedulesComponent implements OnInit
         });
     }
 
-    OpenModal(item: any = null, seed: Partial<typeof this.formData> = {})
-    {
+    OpenModal(item: any = null, seed: Partial<typeof this.formData> = {}) {
         this.editingItem = item;
         if (item) {
             this.selectedSchedule = item;
@@ -747,8 +719,7 @@ export class SchedulesComponent implements OnInit
         this.isModalOpen = true;
     }
 
-    SetOpen(isOpen: boolean)
-    {
+    SetOpen(isOpen: boolean) {
         this.isModalOpen = isOpen;
 
         if (!isOpen) {
@@ -756,18 +727,15 @@ export class SchedulesComponent implements OnInit
         }
     }
 
-    CloseModal()
-    {
+    CloseModal() {
         this.SetOpen(false);
     }
 
-    hasChanges(): boolean
-    {
+    hasChanges(): boolean {
         return JSON.stringify(this.formData) !== this.originalFormData;
     }
 
-    isFormValid(): boolean
-    {
+    isFormValid(): boolean {
         return !!(
             this.formData.groupId &&
             this.formData.subjectId &&
@@ -779,8 +747,7 @@ export class SchedulesComponent implements OnInit
         );
     }
 
-    canSave(): boolean
-    {
+    canSave(): boolean {
         if (!this.isFormValid()) return false;
         if (this.editingItem) {
             return this.hasChanges();
@@ -788,8 +755,7 @@ export class SchedulesComponent implements OnInit
         return true;
     }
 
-    showToast(message: string, color: 'success' | 'warning' | 'danger' = 'success')
-    {
+    showToast(message: string, color: 'success' | 'warning' | 'danger' = 'success') {
         if (color === 'danger') {
             this.notifications.danger(message, 'Error');
             return;
@@ -803,8 +769,7 @@ export class SchedulesComponent implements OnInit
         this.notifications.success(message, 'Horario');
     }
 
-    Save()
-    {
+    Save() {
         if (!this.canSave()) return;
 
         const input: any = {
@@ -847,8 +812,7 @@ export class SchedulesComponent implements OnInit
         }
     }
 
-    async Remove(id: number)
-    {
+    async Remove(id: number) {
         if (!(await this.notifications.confirm({
             title: 'Eliminar horario',
             message: '¿Eliminar este horario?',
@@ -870,8 +834,7 @@ export class SchedulesComponent implements OnInit
         });
     }
 
-    TogglePublish(schedule: any)
-    {
+    TogglePublish(schedule: any) {
         const newValue = !schedule.isPublished;
         const scheduleId = Number(schedule.id);
 
@@ -900,8 +863,7 @@ export class SchedulesComponent implements OnInit
         });
     }
 
-    PublishSelected()
-    {
+    PublishSelected() {
         if (this.selectedIds.size === 0) return;
         const ids = Array.from(this.selectedIds).map(id => Number(id));
 

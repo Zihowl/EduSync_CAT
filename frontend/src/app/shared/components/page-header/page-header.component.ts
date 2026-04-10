@@ -15,11 +15,11 @@ export interface PageHeaderMenuItem {
 addIcons({ reorderThreeOutline, logOutOutline });
 
 @Component({
-  selector: 'app-page-header',
-  standalone: true,
-  imports: [CommonModule, IonBackButton, IonBadge, IonButton, IonButtons, IonHeader, IonIcon, IonPopover, IonToolbar],
-  templateUrl: './page-header.component.html',
-  styleUrls: ['./page-header.component.scss'],
+    selector: 'app-page-header',
+    standalone: true,
+    imports: [CommonModule, IonBackButton, IonBadge, IonButton, IonButtons, IonHeader, IonIcon, IonPopover, IonToolbar],
+    templateUrl: './page-header.component.html',
+    styleUrls: ['./page-header.component.scss'],
 })
 export class PageHeaderComponent {
   @Input() title = '';
@@ -48,16 +48,16 @@ export class PageHeaderComponent {
   isMenuOpen = false;
 
   selectMenuItem(item: PageHeaderMenuItem, event: Event): void {
-    event.stopPropagation();
-    if (item.disabled) {
-      return;
-    }
+      event.stopPropagation();
+      if (item.disabled) {
+          return;
+      }
 
-    void this.menuPopover?.dismiss();
-    this.menuItemSelected.emit(item);
+      void this.menuPopover?.dismiss();
+      this.menuItemSelected.emit(item);
   }
 
   trackByMenuItem(index: number, item: PageHeaderMenuItem): string {
-    return `${item.value}-${index}`;
+      return `${item.value}-${index}`;
   }
 }

@@ -152,8 +152,7 @@ const REMOVE_GROUP = gql`
     `,
     styleUrls: ['./groups.component.scss']
 })
-export class GroupsComponent implements OnInit
-{
+export class GroupsComponent implements OnInit {
     private apollo = inject(Apollo);
     private queryCache = inject(RealtimeQueryCacheService);
     private realtimeSync = inject(RealtimeSyncService);

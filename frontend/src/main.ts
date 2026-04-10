@@ -19,39 +19,38 @@ import { AuthService } from './app/core/services/auth.service';
 addIcons({ settingsOutline, peopleOutline, logOutOutline, cloudUploadOutline, trashOutline, personOutline, personAddOutline, shieldCheckmarkOutline, bookOutline, layersOutline, businessOutline, homeOutline, informationCircleOutline });
 
 bootstrapApplication(AppComponent,
-{
-    providers: [
-        {
-            provide: RouteReuseStrategy, useClass: IonicRouteStrategy
-        },
-        provideIonicAngular(),
-        provideRouter(routes, withPreloading(PreloadAllModules)),
-        provideHttpClient(withInterceptorsFromDi()),
-        {
-            provide: APP_INITIALIZER,
-            multi: true,
-            deps: [AuthService],
-            useFactory: (authService: AuthService) => () => {
-                void authService;
+    {
+        providers: [
+            {
+                provide: RouteReuseStrategy, useClass: IonicRouteStrategy
             },
-        },
-        {
-            provide: HTTP_INTERCEPTORS,
-            useClass: AuthInterceptor,
-            multi: true
-        },
-        provideApollo(() =>
-        {
-            const httpLink = inject(HttpLink);
-            const apiUrl = (environment.apiUrl || '').replace(/\/+$/, '');
-            const graphqlUrl = apiUrl ? `${apiUrl}/graphql` : '/graphql';
+            provideIonicAngular(),
+            provideRouter(routes, withPreloading(PreloadAllModules)),
+            provideHttpClient(withInterceptorsFromDi()),
+            {
+                provide: APP_INITIALIZER,
+                multi: true,
+                deps: [AuthService],
+                useFactory: (authService: AuthService) => () => {
+                    void authService;
+                },
+            },
+            {
+                provide: HTTP_INTERCEPTORS,
+                useClass: AuthInterceptor,
+                multi: true
+            },
+            provideApollo(() => {
+                const httpLink = inject(HttpLink);
+                const apiUrl = (environment.apiUrl || '').replace(/\/+$/, '');
+                const graphqlUrl = apiUrl ? `${apiUrl}/graphql` : '/graphql';
 
-            console.log('URL de GraphQL:', graphqlUrl);
+                console.log('URL de GraphQL:', graphqlUrl);
 
-            return {
-                link: httpLink.create({ uri: graphqlUrl }),
-                cache: new InMemoryCache(),
-            };
-        }),
-    ],
-});
+                return {
+                    link: httpLink.create({ uri: graphqlUrl }),
+                    cache: new InMemoryCache(),
+                };
+            }),
+        ],
+    });

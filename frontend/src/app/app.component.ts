@@ -9,10 +9,10 @@ import { NotificationCardAction } from './shared/components/notification-card/no
 import { NotificationService } from './shared/services/notification.service';
 
 @Component({
-  selector: 'app-root',
-  standalone: true,
-  imports: [CommonModule, IonApp, IonRouterOutlet, NotificationCardComponent],
-  template: `
+    selector: 'app-root',
+    standalone: true,
+    imports: [CommonModule, IonApp, IonRouterOutlet, NotificationCardComponent],
+    template: `
     <app-notification-card
       *ngIf="notification() as currentNotification"
       [title]="currentNotification.title"
@@ -33,43 +33,43 @@ import { NotificationService } from './shared/services/notification.service';
   `,
 })
 export class AppComponent {
-  private readonly router = inject(Router);
-  private readonly destroyRef = inject(DestroyRef);
-  private readonly notificationService = inject(NotificationService);
+    private readonly router = inject(Router);
+    private readonly destroyRef = inject(DestroyRef);
+    private readonly notificationService = inject(NotificationService);
 
-  readonly notification = this.notificationService.notification;
+    readonly notification = this.notificationService.notification;
 
-  constructor() {
-    this.router.events
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((event) => {
-        if (event instanceof NavigationStart) {
-          this.dismissTransientOverlays();
-        }
-      });
-  }
-
-  dismissNotification(): void {
-    this.notificationService.clear();
-  }
-
-  handleNotificationAction(action: NotificationCardAction): void {
-    action.onClick?.();
-  }
-
-  private dismissTransientOverlays(): void {
-    if (typeof document === 'undefined') {
-      return;
+    constructor() {
+        this.router.events
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((event) => {
+                if (event instanceof NavigationStart) {
+                    this.dismissTransientOverlays();
+                }
+            });
     }
 
-    const overlays = document.querySelectorAll('ion-popover, ion-loading');
+    dismissNotification(): void {
+        this.notificationService.clear();
+    }
 
-    overlays.forEach((overlay) => {
-      const dismissable = overlay as HTMLElement & { dismiss?: () => Promise<void> };
+    handleNotificationAction(action: NotificationCardAction): void {
+        action.onClick?.();
+    }
 
-      if (typeof dismissable.dismiss === 'function') {
-        void dismissable.dismiss();
-      }
-    });
-  }
+    private dismissTransientOverlays(): void {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const overlays = document.querySelectorAll('ion-popover, ion-loading');
+
+        overlays.forEach((overlay) => {
+            const dismissable = overlay as HTMLElement & { dismiss?: () => Promise<void> };
+
+            if (typeof dismissable.dismiss === 'function') {
+                void dismissable.dismiss();
+            }
+        });
+    }
 }

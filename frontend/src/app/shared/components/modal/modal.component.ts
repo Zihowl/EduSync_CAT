@@ -8,16 +8,15 @@ import { closeOutline } from 'ionicons/icons';
 import { inject, DestroyRef } from '@angular/core';
 
 @Component({
-  selector: 'app-modal',
-  standalone: true,
-  imports: [CommonModule, IonModal, IonButton, IonIcon],
-  templateUrl: './modal.component.html',
-  styleUrls: ['./modal.component.scss']
+    selector: 'app-modal',
+    standalone: true,
+    imports: [CommonModule, IonModal, IonButton, IonIcon],
+    templateUrl: './modal.component.html',
+    styleUrls: ['./modal.component.scss']
 })
-export class ModalComponent implements OnInit
-{
-  private router = inject(Router);
-  private destroyRef = inject(DestroyRef);
+export class ModalComponent implements OnInit {
+    private router = inject(Router);
+    private destroyRef = inject(DestroyRef);
 
   @Input() isOpen = false;
   @Output() isOpenChange = new EventEmitter<boolean>();
@@ -34,26 +33,23 @@ export class ModalComponent implements OnInit
   /** Template reference for the form body content */
   @ContentChild('modalBody', { static: false }) bodyTemplate!: TemplateRef<any>;
 
-  ngOnInit(): void
-  {
-    addIcons({ closeOutline });
+  ngOnInit(): void {
+      addIcons({ closeOutline });
 
-    this.router.events
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((event) => {
-        if (event instanceof NavigationStart && this.isOpen) {
-          this.close();
-        }
-      });
+      this.router.events
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe((event) => {
+              if (event instanceof NavigationStart && this.isOpen) {
+                  this.close();
+              }
+          });
   }
 
-  close(): void
-  {
-    this.isOpenChange.emit(false);
+  close(): void {
+      this.isOpenChange.emit(false);
   }
 
-  handleDidDismiss(): void
-  {
-    this.close();
+  handleDidDismiss(): void {
+      this.close();
   }
 }

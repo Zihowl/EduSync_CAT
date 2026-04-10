@@ -35,8 +35,7 @@ import { PageHeaderComponent } from '../../../shared/components/page-header/page
     `,
     styles: []
 })
-export class DashboardComponent
-{
+export class DashboardComponent {
     private authService = inject(AuthService);
     readonly headerMenuItems = [
         { label: 'Cerrar sesión', value: 'logout', icon: 'log-out-outline', danger: true },
@@ -48,8 +47,7 @@ export class DashboardComponent
         }
     }
 
-    Logout() 
-    {
+    Logout() {
         this.authService.logout();
     }
 }

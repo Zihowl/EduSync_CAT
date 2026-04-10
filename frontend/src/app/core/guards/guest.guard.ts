@@ -5,20 +5,20 @@ import { map, catchError, of } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class GuestGuard implements CanActivate {
-  private auth = inject(AuthService);
-  private router = inject(Router);
+    private auth = inject(AuthService);
+    private router = inject(Router);
 
-  canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot) {
-    return this.auth.verifySession().pipe(
-      map((user) => {
-        if (!user) {
-          return true;
-        }
+    canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot) {
+        return this.auth.verifySession().pipe(
+            map((user) => {
+                if (!user) {
+                    return true;
+                }
 
-        this.router.navigateByUrl('/admin');
-        return false;
-      }),
-      catchError(() => of(true))
-    );
-  }
+                this.router.navigateByUrl('/admin');
+                return false;
+            }),
+            catchError(() => of(true))
+        );
+    }
 }

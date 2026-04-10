@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, SimpleChanges, OnInit, OnChanges, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonCard, IonCardContent, IonIcon, IonButton } from '@ionic/angular/standalone';
 
@@ -7,13 +7,13 @@ import { DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS, NotificationCardAction, Noti
 export { DEFAULT_NOTIFICATION_CARD_AUTO_DISMISS_MS } from './notification-card.types';
 
 @Component({
-  selector: 'app-notification-card',
-  standalone: true,
-  imports: [CommonModule, IonCard, IonCardContent, IonIcon, IonButton],
-  templateUrl: './notification-card.component.html',
-  styleUrls: ['./notification-card.component.scss']
+    selector: 'app-notification-card',
+    standalone: true,
+    imports: [CommonModule, IonCard, IonCardContent, IonIcon, IonButton],
+    templateUrl: './notification-card.component.html',
+    styleUrls: ['./notification-card.component.scss']
 })
-export class NotificationCardComponent {
+export class NotificationCardComponent implements OnInit, OnChanges, OnDestroy {
   @Input() title = 'Error';
   @Input() message = '';
   @Input() icon: string = 'alert-circle';
@@ -28,13 +28,13 @@ export class NotificationCardComponent {
   private autoDismissTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit() {
-    this.setupAutoDismiss();
+      this.setupAutoDismiss();
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    // Auto-dismiss timer should reset when the visible content changes.
-    if (
-      changes['title'] ||
+      // Auto-dismiss timer should reset when the visible content changes.
+      if (
+          changes['title'] ||
       changes['message'] ||
       changes['icon'] ||
       changes['styleType'] ||
@@ -42,38 +42,38 @@ export class NotificationCardComponent {
       changes['countdown'] ||
       changes['showClose'] ||
       changes['actions']
-    ) {
-      this.setupAutoDismiss();
-    }
+      ) {
+          this.setupAutoDismiss();
+      }
   }
 
   ngOnDestroy() {
-    this.clearAutoDismiss();
+      this.clearAutoDismiss();
   }
 
   private setupAutoDismiss(): void {
-    this.clearAutoDismiss();
-    if (this.autoDismissMs && this.autoDismissMs > 0) {
-      this.autoDismissTimer = setTimeout(() => {
-        this.close();
-      }, this.autoDismissMs);
-    }
+      this.clearAutoDismiss();
+      if (this.autoDismissMs && this.autoDismissMs > 0) {
+          this.autoDismissTimer = setTimeout(() => {
+              this.close();
+          }, this.autoDismissMs);
+      }
   }
 
   private clearAutoDismiss(): void {
-    if (this.autoDismissTimer) {
-      clearTimeout(this.autoDismissTimer);
-      this.autoDismissTimer = null;
-    }
+      if (this.autoDismissTimer) {
+          clearTimeout(this.autoDismissTimer);
+          this.autoDismissTimer = null;
+      }
   }
 
   close(): void {
-    this.clearAutoDismiss();
-    this.closed.emit();
+      this.clearAutoDismiss();
+      this.closed.emit();
   }
 
   triggerAction(action: NotificationCardAction): void {
-    this.clearAutoDismiss();
-    this.actionSelected.emit(action);
+      this.clearAutoDismiss();
+      this.actionSelected.emit(action);
   }
 }

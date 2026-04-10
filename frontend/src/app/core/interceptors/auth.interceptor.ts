@@ -7,8 +7,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
 @Injectable()
-export class AuthInterceptor implements HttpInterceptor 
-{
+export class AuthInterceptor implements HttpInterceptor {
     private router = inject(Router);
     private authService = inject(AuthService);
 

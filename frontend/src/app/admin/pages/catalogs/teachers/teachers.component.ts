@@ -150,8 +150,7 @@ const REMOVE_TEACHER = gql`
     `,
     styleUrls: ['./teachers.component.scss']
 })
-export class TeachersComponent implements OnInit
-{
+export class TeachersComponent implements OnInit {
     private apollo = inject(Apollo);
     private queryCache = inject(RealtimeQueryCacheService);
     private realtimeSync = inject(RealtimeSyncService);

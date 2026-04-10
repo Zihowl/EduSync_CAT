@@ -137,8 +137,7 @@ const REMOVE_BUILDING = gql`
     `,
     styleUrls: ['./buildings.component.scss']
 })
-export class BuildingsComponent implements OnInit
-{
+export class BuildingsComponent implements OnInit {
     private apollo = inject(Apollo);
     private queryCache = inject(RealtimeQueryCacheService);
     private realtimeSync = inject(RealtimeSyncService);

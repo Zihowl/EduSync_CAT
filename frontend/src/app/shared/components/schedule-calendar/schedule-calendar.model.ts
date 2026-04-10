@@ -46,57 +46,57 @@ export interface ScheduleCalendarActionClick {
 }
 
 export const SCHEDULE_DAY_NAMES: Record<number, string> = {
-  1: 'Lunes',
-  2: 'Martes',
-  3: 'Miércoles',
-  4: 'Jueves',
-  5: 'Viernes',
-  6: 'Sábado',
-  7: 'Domingo',
+    1: 'Lunes',
+    2: 'Martes',
+    3: 'Miércoles',
+    4: 'Jueves',
+    5: 'Viernes',
+    6: 'Sábado',
+    7: 'Domingo',
 };
 
 export const SCHEDULE_DAY_SHORT_NAMES: Record<number, string> = {
-  1: 'Lun',
-  2: 'Mar',
-  3: 'Mié',
-  4: 'Jue',
-  5: 'Vie',
-  6: 'Sáb',
-  7: 'Dom',
+    1: 'Lun',
+    2: 'Mar',
+    3: 'Mié',
+    4: 'Jue',
+    5: 'Vie',
+    6: 'Sáb',
+    7: 'Dom',
 };
 
 export function normalizeDayOfWeek(dayOfWeek: number): number {
-  if (dayOfWeek === 0) {
-    return 7;
-  }
+    if (dayOfWeek === 0) {
+        return 7;
+    }
 
-  return dayOfWeek;
+    return dayOfWeek;
 }
 
 export function getTodayDayOfWeek(date: Date = new Date()): number {
-  return normalizeDayOfWeek(date.getDay());
+    return normalizeDayOfWeek(date.getDay());
 }
 
 export function parseClockTime(value: string | null | undefined): number {
-  if (!value) {
-    return 0;
-  }
+    if (!value) {
+        return 0;
+    }
 
-  const [rawHour = '0', rawMinute = '0'] = value.split(':');
-  const hour = Number.parseInt(rawHour, 10);
-  const minute = Number.parseInt(rawMinute, 10);
+    const [rawHour = '0', rawMinute = '0'] = value.split(':');
+    const hour = Number.parseInt(rawHour, 10);
+    const minute = Number.parseInt(rawMinute, 10);
 
-  if (Number.isNaN(hour) || Number.isNaN(minute)) {
-    return 0;
-  }
+    if (Number.isNaN(hour) || Number.isNaN(minute)) {
+        return 0;
+    }
 
-  return (hour * 60) + minute;
+    return (hour * 60) + minute;
 }
 
 export function formatClockTime(totalMinutes: number): string {
-  const normalizedMinutes = Math.max(0, Math.floor(totalMinutes));
-  const hour = Math.floor(normalizedMinutes / 60);
-  const minute = normalizedMinutes % 60;
+    const normalizedMinutes = Math.max(0, Math.floor(totalMinutes));
+    const hour = Math.floor(normalizedMinutes / 60);
+    const minute = normalizedMinutes % 60;
 
-  return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
 }

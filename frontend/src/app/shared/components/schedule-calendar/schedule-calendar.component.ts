@@ -4,17 +4,17 @@ import { addIcons } from 'ionicons';
 import { checkmarkCircleOutline, ellipseOutline, warningOutline } from 'ionicons/icons';
 import { IonBadge, IonChip, IonIcon } from '@ionic/angular/standalone';
 import {
-  formatClockTime,
-  getTodayDayOfWeek,
-  normalizeDayOfWeek,
-  parseClockTime,
-  SCHEDULE_DAY_NAMES,
-  SCHEDULE_DAY_SHORT_NAMES,
-  ScheduleCalendarAction,
-  ScheduleCalendarActionClick,
-  ScheduleCalendarCellClick,
-  ScheduleCalendarEvent,
-  ScheduleCalendarLayoutEvent,
+    formatClockTime,
+    getTodayDayOfWeek,
+    normalizeDayOfWeek,
+    parseClockTime,
+    SCHEDULE_DAY_NAMES,
+    SCHEDULE_DAY_SHORT_NAMES,
+    ScheduleCalendarAction,
+    ScheduleCalendarActionClick,
+    ScheduleCalendarCellClick,
+    ScheduleCalendarEvent,
+    ScheduleCalendarLayoutEvent,
 } from './schedule-calendar.model';
 
 interface DayCluster {
@@ -23,10 +23,10 @@ interface DayCluster {
 }
 
 @Component({
-  selector: 'app-schedule-calendar',
-  standalone: true,
-  imports: [CommonModule, IonBadge, IonChip, IonIcon],
-  template: `
+    selector: 'app-schedule-calendar',
+    standalone: true,
+    imports: [CommonModule, IonBadge, IonChip, IonIcon],
+    template: `
     <div class="schedule-calendar" [style.--schedule-day-count]="visibleDays.length">
       <div class="schedule-calendar__viewport">
         <div class="schedule-calendar__header">
@@ -151,7 +151,7 @@ interface DayCluster {
       </div>
     </div>
   `,
-  styleUrls: ['./schedule-calendar.component.scss'],
+    styleUrls: ['./schedule-calendar.component.scss'],
 })
 export class ScheduleCalendarComponent implements OnChanges {
   @Input() events: ScheduleCalendarEvent[] = [];
@@ -178,243 +178,243 @@ export class ScheduleCalendarComponent implements OnChanges {
   currentTimeTop = -1;
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['events'] || changes['visibleDays'] || changes['startMinute'] || changes['endMinute'] || changes['minuteHeight'] || changes['slotMinutes']) {
-      this.rebuildCalendar();
-    }
+      if (changes['events'] || changes['visibleDays'] || changes['startMinute'] || changes['endMinute'] || changes['minuteHeight'] || changes['slotMinutes']) {
+          this.rebuildCalendar();
+      }
   }
 
   rebuildCalendar(): void {
-    this.calendarHeight = Math.max(1, (this.endMinute - this.startMinute) * this.minuteHeight);
-    this.slots = this.buildSlots();
-    this.hourMarkers = this.buildHourMarkers();
-    this.layoutsByDay = this.buildLayouts();
+      this.calendarHeight = Math.max(1, (this.endMinute - this.startMinute) * this.minuteHeight);
+      this.slots = this.buildSlots();
+      this.hourMarkers = this.buildHourMarkers();
+      this.layoutsByDay = this.buildLayouts();
 
-    const now = new Date();
-    const currentDay = getTodayDayOfWeek(now);
-    const currentMinute = (now.getHours() * 60) + now.getMinutes();
-    this.currentTimeTop = (currentDay && currentMinute >= this.startMinute && currentMinute <= this.endMinute)
-      ? (currentMinute - this.startMinute) * this.minuteHeight
-      : -1;
+      const now = new Date();
+      const currentDay = getTodayDayOfWeek(now);
+      const currentMinute = (now.getHours() * 60) + now.getMinutes();
+      this.currentTimeTop = (currentDay && currentMinute >= this.startMinute && currentMinute <= this.endMinute)
+          ? (currentMinute - this.startMinute) * this.minuteHeight
+          : -1;
   }
 
   trackByDay(index: number, day: number): number {
-    return day;
+      return day;
   }
 
   trackByHour(index: number, hour: number): number {
-    return hour;
+      return hour;
   }
 
   trackByCell(index: number, cell: { minuteOfDay: number }): number {
-    return cell.minuteOfDay;
+      return cell.minuteOfDay;
   }
 
   trackByLayoutEvent(index: number, event: ScheduleCalendarLayoutEvent): number {
-    return event.id;
+      return event.id;
   }
 
   trackByAction(index: number, action: { id: string }): string {
-    return action.id;
+      return action.id;
   }
 
   formatHour(hour: number): string {
-    return `${hour.toString().padStart(2, '0')}:00`;
+      return `${hour.toString().padStart(2, '0')}:00`;
   }
 
   formatShortClock(value: string): string {
-    return value ? value.substring(0, 5) : '--:--';
+      return value ? value.substring(0, 5) : '--:--';
   }
 
   getDayLabel(day: number): string {
-    return SCHEDULE_DAY_NAMES[normalizeDayOfWeek(day)] ?? '';
+      return SCHEDULE_DAY_NAMES[normalizeDayOfWeek(day)] ?? '';
   }
 
   getDayShortLabel(day: number): string {
-    return SCHEDULE_DAY_SHORT_NAMES[normalizeDayOfWeek(day)] ?? '';
+      return SCHEDULE_DAY_SHORT_NAMES[normalizeDayOfWeek(day)] ?? '';
   }
 
   getEventsForDay(day: number): ScheduleCalendarEvent[] {
-    return this.events.filter((event) => normalizeDayOfWeek(event.dayOfWeek) === normalizeDayOfWeek(day));
+      return this.events.filter((event) => normalizeDayOfWeek(event.dayOfWeek) === normalizeDayOfWeek(day));
   }
 
   getLayoutsForDay(day: number): ScheduleCalendarLayoutEvent[] {
-    return this.layoutsByDay.get(normalizeDayOfWeek(day)) ?? [];
+      return this.layoutsByDay.get(normalizeDayOfWeek(day)) ?? [];
   }
 
   emitEventClick(event: ScheduleCalendarLayoutEvent, domEvent: MouseEvent): void {
-    if ((domEvent.target as HTMLElement)?.closest('.schedule-calendar__action, .schedule-calendar__selection')) {
-      return;
-    }
+      if ((domEvent.target as HTMLElement)?.closest('.schedule-calendar__action, .schedule-calendar__selection')) {
+          return;
+      }
 
-    this.eventSelected.emit(event);
+      this.eventSelected.emit(event);
   }
 
   emitCellClick(dayOfWeek: number, minuteOfDay: number): void {
-    this.cellSelected.emit({
-      dayOfWeek: normalizeDayOfWeek(dayOfWeek),
-      minuteOfDay,
-      time: formatClockTime(minuteOfDay),
-    });
+      this.cellSelected.emit({
+          dayOfWeek: normalizeDayOfWeek(dayOfWeek),
+          minuteOfDay,
+          time: formatClockTime(minuteOfDay),
+      });
   }
 
   emitActionClick(event: ScheduleCalendarLayoutEvent, action: ScheduleCalendarAction, domEvent: MouseEvent): void {
-    domEvent.stopPropagation();
-    this.actionSelected.emit({ event, action });
+      domEvent.stopPropagation();
+      this.actionSelected.emit({ event, action });
   }
 
   toggleSelection(event: ScheduleCalendarLayoutEvent, domEvent: MouseEvent): void {
-    domEvent.stopPropagation();
-    this.selectionToggled.emit(event);
+      domEvent.stopPropagation();
+      this.selectionToggled.emit(event);
   }
 
   emitDayHeaderClick(dayOfWeek: number): void {
-    this.dayHeaderSelected.emit(normalizeDayOfWeek(dayOfWeek));
+      this.dayHeaderSelected.emit(normalizeDayOfWeek(dayOfWeek));
   }
 
   private buildSlots(): Array<{ minuteOfDay: number; top: number; height: number }> {
-    const slots: Array<{ minuteOfDay: number; top: number; height: number }> = [];
-    const safeSlotMinutes = Math.max(5, this.slotMinutes);
+      const slots: Array<{ minuteOfDay: number; top: number; height: number }> = [];
+      const safeSlotMinutes = Math.max(5, this.slotMinutes);
 
-    for (let minuteOfDay = this.startMinute; minuteOfDay < this.endMinute; minuteOfDay += safeSlotMinutes) {
-      slots.push({
-        minuteOfDay,
-        top: (minuteOfDay - this.startMinute) * this.minuteHeight,
-        height: safeSlotMinutes * this.minuteHeight,
-      });
-    }
+      for (let minuteOfDay = this.startMinute; minuteOfDay < this.endMinute; minuteOfDay += safeSlotMinutes) {
+          slots.push({
+              minuteOfDay,
+              top: (minuteOfDay - this.startMinute) * this.minuteHeight,
+              height: safeSlotMinutes * this.minuteHeight,
+          });
+      }
 
-    return slots;
+      return slots;
   }
 
   private buildHourMarkers(): number[] {
-    const markers: number[] = [];
-    for (let minuteOfDay = this.startMinute; minuteOfDay <= this.endMinute; minuteOfDay += 60) {
-      markers.push(Math.floor(minuteOfDay / 60));
-    }
-    return markers;
+      const markers: number[] = [];
+      for (let minuteOfDay = this.startMinute; minuteOfDay <= this.endMinute; minuteOfDay += 60) {
+          markers.push(Math.floor(minuteOfDay / 60));
+      }
+      return markers;
   }
 
   private buildLayouts(): Map<number, ScheduleCalendarLayoutEvent[]> {
-    const layouts = new Map<number, ScheduleCalendarLayoutEvent[]>();
+      const layouts = new Map<number, ScheduleCalendarLayoutEvent[]>();
 
-    for (const day of this.visibleDays.map((value) => normalizeDayOfWeek(value))) {
-      const dayEvents = this.events
-        .filter((event) => normalizeDayOfWeek(event.dayOfWeek) === day)
-        .slice()
-        .sort((left, right) => {
-          const startDiff = parseClockTime(left.startTime) - parseClockTime(right.startTime);
-          if (startDiff !== 0) {
-            return startDiff;
-          }
+      for (const day of this.visibleDays.map((value) => normalizeDayOfWeek(value))) {
+          const dayEvents = this.events
+              .filter((event) => normalizeDayOfWeek(event.dayOfWeek) === day)
+              .slice()
+              .sort((left, right) => {
+                  const startDiff = parseClockTime(left.startTime) - parseClockTime(right.startTime);
+                  if (startDiff !== 0) {
+                      return startDiff;
+                  }
 
-          return parseClockTime(left.endTime) - parseClockTime(right.endTime);
-        });
+                  return parseClockTime(left.endTime) - parseClockTime(right.endTime);
+              });
 
-      const layoutsForDay = this.layoutDayEvents(dayEvents, day);
-      layouts.set(day, layoutsForDay);
-    }
+          const layoutsForDay = this.layoutDayEvents(dayEvents, day);
+          layouts.set(day, layoutsForDay);
+      }
 
-    return layouts;
+      return layouts;
   }
 
   private layoutDayEvents(events: ScheduleCalendarEvent[], day: number): ScheduleCalendarLayoutEvent[] {
-    const layouts: ScheduleCalendarLayoutEvent[] = [];
-    const clusters = this.splitIntoClusters(events);
+      const layouts: ScheduleCalendarLayoutEvent[] = [];
+      const clusters = this.splitIntoClusters(events);
 
-    for (const cluster of clusters) {
-      const laneAssignments = this.assignLanes(cluster.events);
-      const laneCount = Math.max(1, laneAssignments.maxLaneCount);
+      for (const cluster of clusters) {
+          const laneAssignments = this.assignLanes(cluster.events);
+          const laneCount = Math.max(1, laneAssignments.maxLaneCount);
 
-      for (const assignment of laneAssignments.items) {
-        const width = 100 / laneCount;
-        layouts.push({
-          ...assignment.event,
-          top: Math.max(0, (assignment.startMinute - this.startMinute) * this.minuteHeight),
-          height: Math.max(28, Math.max(assignment.durationMinutes, 1) * this.minuteHeight),
-          left: assignment.lane * width,
-          width,
-          lane: assignment.lane,
-          laneCount,
-          isToday: normalizeDayOfWeek(day) === this.todayDayOfWeek,
-        });
+          for (const assignment of laneAssignments.items) {
+              const width = 100 / laneCount;
+              layouts.push({
+                  ...assignment.event,
+                  top: Math.max(0, (assignment.startMinute - this.startMinute) * this.minuteHeight),
+                  height: Math.max(28, Math.max(assignment.durationMinutes, 1) * this.minuteHeight),
+                  left: assignment.lane * width,
+                  width,
+                  lane: assignment.lane,
+                  laneCount,
+                  isToday: normalizeDayOfWeek(day) === this.todayDayOfWeek,
+              });
+          }
       }
-    }
 
-    return layouts;
+      return layouts;
   }
 
   private splitIntoClusters(events: ScheduleCalendarEvent[]): DayCluster[] {
-    const clusters: DayCluster[] = [];
-    let currentClusterEvents: ScheduleCalendarEvent[] = [];
-    let currentClusterEnd = -1;
+      const clusters: DayCluster[] = [];
+      let currentClusterEvents: ScheduleCalendarEvent[] = [];
+      let currentClusterEnd = -1;
 
-    for (const event of events) {
-      const startMinute = parseClockTime(event.startTime);
-      const endMinute = parseClockTime(event.endTime);
+      for (const event of events) {
+          const startMinute = parseClockTime(event.startTime);
+          const endMinute = parseClockTime(event.endTime);
 
-      if (currentClusterEvents.length === 0 || startMinute >= currentClusterEnd) {
-        if (currentClusterEvents.length > 0) {
-          clusters.push({ events: currentClusterEvents, maxEnd: currentClusterEnd });
-        }
+          if (currentClusterEvents.length === 0 || startMinute >= currentClusterEnd) {
+              if (currentClusterEvents.length > 0) {
+                  clusters.push({ events: currentClusterEvents, maxEnd: currentClusterEnd });
+              }
 
-        currentClusterEvents = [event];
-        currentClusterEnd = endMinute;
-        continue;
+              currentClusterEvents = [event];
+              currentClusterEnd = endMinute;
+              continue;
+          }
+
+          currentClusterEvents.push(event);
+          currentClusterEnd = Math.max(currentClusterEnd, endMinute);
       }
 
-      currentClusterEvents.push(event);
-      currentClusterEnd = Math.max(currentClusterEnd, endMinute);
-    }
+      if (currentClusterEvents.length > 0) {
+          clusters.push({ events: currentClusterEvents, maxEnd: currentClusterEnd });
+      }
 
-    if (currentClusterEvents.length > 0) {
-      clusters.push({ events: currentClusterEvents, maxEnd: currentClusterEnd });
-    }
-
-    return clusters;
+      return clusters;
   }
 
   private assignLanes(events: ScheduleCalendarEvent[]): {
     items: Array<{ event: ScheduleCalendarEvent; lane: number; startMinute: number; endMinute: number; durationMinutes: number }>;
     maxLaneCount: number;
   } {
-    const activeLanes: Array<{ lane: number; endMinute: number }> = [];
-    const freeLanes: number[] = [];
-    const items: Array<{ event: ScheduleCalendarEvent; lane: number; startMinute: number; endMinute: number; durationMinutes: number }> = [];
-    let nextLane = 0;
-    let maxLaneCount = 0;
+      const activeLanes: Array<{ lane: number; endMinute: number }> = [];
+      const freeLanes: number[] = [];
+      const items: Array<{ event: ScheduleCalendarEvent; lane: number; startMinute: number; endMinute: number; durationMinutes: number }> = [];
+      let nextLane = 0;
+      let maxLaneCount = 0;
 
-    for (const event of events) {
-      const startMinute = parseClockTime(event.startTime);
-      const endMinute = parseClockTime(event.endTime);
+      for (const event of events) {
+          const startMinute = parseClockTime(event.startTime);
+          const endMinute = parseClockTime(event.endTime);
 
-      for (let index = activeLanes.length - 1; index >= 0; index -= 1) {
-        if (activeLanes[index].endMinute <= startMinute) {
-          freeLanes.push(activeLanes[index].lane);
-          activeLanes.splice(index, 1);
-        }
+          for (let index = activeLanes.length - 1; index >= 0; index -= 1) {
+              if (activeLanes[index].endMinute <= startMinute) {
+                  freeLanes.push(activeLanes[index].lane);
+                  activeLanes.splice(index, 1);
+              }
+          }
+
+          freeLanes.sort((left, right) => left - right);
+
+          const lane = freeLanes.length > 0 ? freeLanes.shift()! : nextLane++;
+          activeLanes.push({ lane, endMinute });
+          maxLaneCount = Math.max(maxLaneCount, activeLanes.length);
+
+          items.push({
+              event,
+              lane,
+              startMinute,
+              endMinute,
+              durationMinutes: Math.max(1, endMinute - startMinute),
+          });
       }
 
-      freeLanes.sort((left, right) => left - right);
-
-      const lane = freeLanes.length > 0 ? freeLanes.shift()! : nextLane++;
-      activeLanes.push({ lane, endMinute });
-      maxLaneCount = Math.max(maxLaneCount, activeLanes.length);
-
-      items.push({
-        event,
-        lane,
-        startMinute,
-        endMinute,
-        durationMinutes: Math.max(1, endMinute - startMinute),
-      });
-    }
-
-    return { items, maxLaneCount };
+      return { items, maxLaneCount };
   }
 }
 
 addIcons({
-  checkmarkCircleOutline,
-  ellipseOutline,
-  warningOutline,
+    checkmarkCircleOutline,
+    ellipseOutline,
+    warningOutline,
 });
