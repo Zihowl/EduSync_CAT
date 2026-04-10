@@ -154,6 +154,7 @@ const GET_ALLOWED_DOMAINS = gql`
 
                                 <div *ngIf="canManageAccess(u)" class="user-actions">
                                     <ion-button
+                                        class="user-action-button"
                                         size="small"
                                         fill="outline"
                                         [color]="u.isActive ? 'warning' : 'success'"
@@ -164,6 +165,7 @@ const GET_ALLOWED_DOMAINS = gql`
                                     </ion-button>
 
                                     <ion-button
+                                        class="user-action-button"
                                         size="small"
                                         fill="outline"
                                         color="medium"

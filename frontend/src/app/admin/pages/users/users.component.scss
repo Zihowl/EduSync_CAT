@@ -43,26 +43,18 @@
 
 .user-item {
     --padding-start: 0.8rem;
-    --padding-end: 0.6rem;
+    --padding-end: 1.15rem;
     --min-height: 2.7rem;
 }
 
 .user-item::part(native) {
-    align-items: flex-start;
-}
-
-.user-body {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.75rem;
-    width: 100%;
-    min-width: 0;
+    align-items: center;
 }
 
 .user-role-icon {
-    margin-inline-end: 1.0rem;
-    font-size: 2.0rem;
+    margin-inline-end: 0.75rem;
     flex-shrink: 0;
+    font-size: 1.12rem;
 }
 
 .user-role-icon--super {
@@ -71,6 +63,16 @@
 
 .user-role-icon--admin {
     color: var(--ion-color-success);
+}
+
+.user-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(13.5rem, 15rem);
+    gap: 0.9rem;
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    align-items: center;
 }
 
 .user-info {
@@ -133,68 +135,89 @@
 }
 
 .user-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
     align-items: stretch;
-    min-width: 9.5rem;
-    margin-left: 0.6rem;
+    min-width: 0;
+    width: 100%;
+    margin-left: 0;
+    padding-inline-end: 0.15rem;
+    justify-self: stretch;
+    align-self: center;
 }
 
 .user-actions ion-button {
-    min-height: 2rem;
-    --background: rgba(255, 255, 255, 0.05);
-    --background-hover: rgba(255, 255, 255, 0.1);
-    --background-activated: rgba(255, 255, 255, 0.14);
+    min-height: 2.1rem;
+    --background: rgba(15, 23, 42, 0.3);
+    --background-hover: rgba(15, 23, 42, 0.42);
+    --background-activated: rgba(15, 23, 42, 0.54);
     --border-style: solid;
     --border-width: 1px;
-    --border-color: rgba(255, 255, 255, 0.16);
-    --border-radius: 10px;
-    --box-shadow: none;
+    --border-color: rgba(148, 163, 184, 0.22);
+    --border-radius: 0.9rem;
+    --box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
     --color: rgba(248, 250, 252, 0.94);
-    --padding-start: 0.65rem;
-    --padding-end: 0.65rem;
-    --padding-top: 0.45rem;
-    --padding-bottom: 0.45rem;
-    font-size: 0.75rem;
+    --padding-start: 0.7rem;
+    --padding-end: 0.7rem;
+    --padding-top: 0.5rem;
+    --padding-bottom: 0.5rem;
+    align-self: stretch;
+    min-width: 0;
+    width: 100%;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    text-transform: none;
+    white-space: nowrap;
+}
+
+.user-actions ion-button::part(native) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    width: 100%;
+    line-height: 1.1;
 }
 
 .user-actions ion-button[color='success'] {
-    --background: rgba(var(--ion-color-success-rgb), 0.12);
-    --background-hover: rgba(var(--ion-color-success-rgb), 0.18);
-    --background-activated: rgba(var(--ion-color-success-rgb), 0.24);
-    --border-color: rgba(var(--ion-color-success-rgb), 0.28);
+    --background: rgba(var(--ion-color-success-rgb), 0.14);
+    --background-hover: rgba(var(--ion-color-success-rgb), 0.2);
+    --background-activated: rgba(var(--ion-color-success-rgb), 0.26);
+    --border-color: rgba(var(--ion-color-success-rgb), 0.3);
     --color: rgba(236, 253, 245, 0.96);
 }
 
 .user-actions ion-button[color='warning'] {
-    --background: rgba(var(--ion-color-warning-rgb), 0.12);
-    --background-hover: rgba(var(--ion-color-warning-rgb), 0.18);
-    --background-activated: rgba(var(--ion-color-warning-rgb), 0.24);
-    --border-color: rgba(var(--ion-color-warning-rgb), 0.28);
+    --background: rgba(var(--ion-color-warning-rgb), 0.14);
+    --background-hover: rgba(var(--ion-color-warning-rgb), 0.2);
+    --background-activated: rgba(var(--ion-color-warning-rgb), 0.26);
+    --border-color: rgba(var(--ion-color-warning-rgb), 0.3);
     --color: rgba(255, 251, 235, 0.96);
 }
 
 .user-actions ion-button[color='medium'] {
-    --background: rgba(var(--ion-color-medium-rgb), 0.11);
-    --background-hover: rgba(var(--ion-color-medium-rgb), 0.16);
-    --background-activated: rgba(var(--ion-color-medium-rgb), 0.22);
-    --border-color: rgba(var(--ion-color-medium-rgb), 0.22);
+    --background: rgba(var(--ion-color-medium-rgb), 0.13);
+    --background-hover: rgba(var(--ion-color-medium-rgb), 0.18);
+    --background-activated: rgba(var(--ion-color-medium-rgb), 0.24);
+    --border-color: rgba(var(--ion-color-medium-rgb), 0.26);
     --color: rgba(226, 232, 240, 0.92);
 }
 
 .user-actions ion-button ion-icon {
-    font-size: 0.8rem;
+    font-size: 0.74rem;
+    margin: 0;
 }
 
 @media (max-width: 768px) {
     .user-role-icon {
-        margin-inline-end: 0.8rem;
-        font-size: 1.7rem;
+        margin-inline-end: 0.65rem;
+        font-size: 1rem;
     }
 
     .user-body {
-        gap: 0.6rem;
+        gap: 0.7rem;
     }
 
     .user-info {
@@ -217,36 +240,30 @@
         font-size: 0.64rem;
     }
 
-    .user-actions {
-        min-width: 8.5rem;
-        margin-left: 0.5rem;
-    }
-
     .user-actions ion-button {
-        font-size: 0.72rem;
+        font-size: 0.7rem;
     }
 
     .user-actions ion-button ion-icon {
-        font-size: 0.76rem;
+        font-size: 0.72rem;
     }
 }
 
 @media (max-width: 640px) {
     .user-item {
         --padding-start: 0.7rem;
-        --padding-end: 0.5rem;
+        --padding-end: 1.1rem;
         --min-height: 0;
     }
 
     .user-role-icon {
-        margin-inline-end: 0.6rem;
-        margin-top: 0.1rem;
-        font-size: 1.55rem;
+        margin-inline-end: 0.58rem;
+        font-size: 0.96rem;
     }
 
     .user-body {
         grid-template-columns: minmax(0, 1fr);
-        gap: 0.5rem;
+        gap: 0.55rem;
     }
 
     .user-info {
@@ -273,15 +290,21 @@
         width: 100%;
         min-width: 0;
         margin-left: 0;
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.35rem;
+        justify-self: stretch;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.3rem;
+        padding-inline-end: 0.25rem;
     }
 
     .user-actions ion-button {
         width: 100%;
-        --padding-start: 0.6rem;
-        --padding-end: 0.6rem;
+        --padding-start: 0.72rem;
+        --padding-end: 0.72rem;
+    }
+
+    :host ::ng-deep app-data-list .data-list__scroll {
+        padding-inline-end: 0.5rem;
+        padding-bottom: 4.75rem;
     }
 }
 
@@ -291,8 +314,8 @@
     }
 
     .user-role-icon {
-        margin-inline-end: 0.5rem;
-        font-size: 1.4rem;
+        margin-inline-end: 0.52rem;
+        font-size: 0.92rem;
     }
 
     .user-info h2 {
@@ -308,13 +331,14 @@
     }
 
     .user-actions ion-button {
-        font-size: 0.7rem;
-        --padding-start: 0.5rem;
-        --padding-end: 0.5rem;
+        font-size: 0.68rem;
+        --padding-start: 0.68rem;
+        --padding-end: 0.68rem;
+        --padding-top: 0.5rem;
+        --padding-bottom: 0.5rem;
     }
 
     .user-actions ion-button ion-icon {
-        font-size: 0.72rem;
+        font-size: 0.7rem;
     }
 }
-
