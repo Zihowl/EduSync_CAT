@@ -138,38 +138,41 @@ const GET_ALLOWED_DOMAINS = gql`
                                 [name]="u.role === 'SUPER_ADMIN' ? 'shield-checkmark-outline' : 'person-outline'"
                                 [attr.aria-label]="u.role === 'SUPER_ADMIN' ? 'Súper administrador' : 'Administrador de horarios'">
                             </ion-icon>
-                            <ion-label class="user-info">
-                                <h2>{{ u.fullName || 'Sin Nombre' }}</h2>
-                                <p>{{ u.email }}</p>
-                                <div class="user-badges">
-                                    <ion-badge [color]="u.isActive ? 'success' : 'medium'">
-                                        {{ u.isActive ? 'Activo' : 'Inhabilitado' }}
-                                    </ion-badge>
-                                    <ion-badge *ngIf="u.isTempPassword" color="warning">
-                                        Temporal
-                                    </ion-badge>
+                            <div class="user-body">
+                                <div class="user-info">
+                                    <h2>{{ u.fullName || 'Sin Nombre' }}</h2>
+                                    <p>{{ u.email }}</p>
+                                    <div class="user-badges">
+                                        <ion-badge [color]="u.isActive ? 'success' : 'medium'">
+                                            {{ u.isActive ? 'Activo' : 'Inhabilitado' }}
+                                        </ion-badge>
+                                        <ion-badge *ngIf="u.isTempPassword" color="warning">
+                                            Temporal
+                                        </ion-badge>
+                                    </div>
                                 </div>
-                            </ion-label>
-                            <div *ngIf="canManageAccess(u)" slot="end" class="user-actions">
-                                <ion-button
-                                    size="small"
-                                    fill="outline"
-                                    [color]="u.isActive ? 'warning' : 'success'"
-                                    (click)="toggleAdminAccess(u)"
-                                    [disabled]="isActionLoading">
-                                    <ion-icon [name]="u.isActive ? 'lock-closed-outline' : 'lock-open-outline'" slot="start"></ion-icon>
-                                    {{ u.isActive ? 'Inhabilitar' : 'Reactivar' }}
-                                </ion-button>
 
-                                <ion-button
-                                    size="small"
-                                    fill="outline"
-                                    color="medium"
-                                    (click)="forceResetAdminPassword(u)"
-                                    [disabled]="isActionLoading">
-                                    <ion-icon name="refresh-outline" slot="start"></ion-icon>
-                                    Restablecer
-                                </ion-button>
+                                <div *ngIf="canManageAccess(u)" class="user-actions">
+                                    <ion-button
+                                        size="small"
+                                        fill="outline"
+                                        [color]="u.isActive ? 'warning' : 'success'"
+                                        (click)="toggleAdminAccess(u)"
+                                        [disabled]="isActionLoading">
+                                        <ion-icon [name]="u.isActive ? 'lock-closed-outline' : 'lock-open-outline'" slot="start"></ion-icon>
+                                        {{ u.isActive ? 'Inhabilitar' : 'Reactivar' }}
+                                    </ion-button>
+
+                                    <ion-button
+                                        size="small"
+                                        fill="outline"
+                                        color="medium"
+                                        (click)="forceResetAdminPassword(u)"
+                                        [disabled]="isActionLoading">
+                                        <ion-icon name="refresh-outline" slot="start"></ion-icon>
+                                        Restablecer
+                                    </ion-button>
+                                </div>
                             </div>
                         </ion-item>
                     </ng-template>
