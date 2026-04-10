@@ -86,6 +86,7 @@
     flex-direction: column;
     gap: 0.35rem;
     min-width: 0;
+    padding-bottom: 0.2rem;
 }
 
 .user-info h2 {
@@ -108,6 +109,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.3rem;
+    margin-bottom: 0.1rem;
 }
 
 .user-badges ion-badge {
@@ -240,6 +242,7 @@
 
     .user-info {
         gap: 0.3rem;
+        padding-bottom: 10rem;
     }
 
     .user-info h2 {
@@ -252,6 +255,7 @@
 
     .user-badges {
         gap: 0.25rem;
+        margin-bottom: 0.08rem;
     }
 
     .user-badges ion-badge {
@@ -289,6 +293,7 @@
 
     .user-info {
         gap: 0.25rem;
+        padding-bottom: 0.16rem;
     }
 
     .user-info h2 {
@@ -301,6 +306,7 @@
 
     .user-badges {
         gap: 0.22rem;
+        margin-bottom: 0.06rem;
     }
 
     .user-badges ion-badge {
