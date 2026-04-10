@@ -130,7 +130,7 @@ const GET_ALLOWED_DOMAINS = gql`
                     emptySubtitle="Usa el botón + para crear el primer administrador.">
                     <ng-template #itemTemplate let-u>
                         <ion-item class="user-item" lines="none">
-                            <div class="user-body">
+                            <div class="user-body" [class.user-body--solo]="!canManageAccess(u)">
                                 <div class="user-info">
                                     <div class="user-title-row">
                                         <ion-icon
