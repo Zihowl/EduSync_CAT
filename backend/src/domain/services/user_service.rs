@@ -68,7 +68,7 @@ impl UserService {
             .create_admin(&email, full_name, &hash, false)
             .await?;
 
-        self.print_temp_password_simulation(&email, &temp_password, "forzar cambio en primer login");
+        self.print_temp_password_delivery(&email, &temp_password);
         self.send_temp_password_email(
             &email,
             full_name,
@@ -105,7 +105,7 @@ impl UserService {
             .as_deref()
             .unwrap_or(updated_user.email.as_str());
 
-        self.print_temp_password_simulation(&updated_user.email, &temp_password, "restablecimiento forzado");
+        self.print_temp_password_delivery(&updated_user.email, &temp_password);
         self.send_temp_password_email(
             &updated_user.email,
             recipient_name,
@@ -128,12 +128,11 @@ impl UserService {
         Ok((updated_user, temp_password))
     }
 
-    fn print_temp_password_simulation(&self, email: &str, temp_password: &str, reason: &str) {
-        println!(
-            "SIMULACIÓN EMAIL -> to={} temp_password={} ({reason})",
-            email,
-            temp_password
-        );
+    fn print_temp_password_delivery(&self, email: &str, temp_password: &str) {
+        println!("=============================================");
+        println!("Correo enviado a: {email}");
+        println!("Contraseña temporal: {temp_password}");
+        println!("=============================================");
     }
 
     async fn send_temp_password_email(

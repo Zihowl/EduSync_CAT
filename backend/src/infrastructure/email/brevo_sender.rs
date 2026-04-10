@@ -26,6 +26,10 @@ impl BrevoEmailSender {
             sender_name: sender_name.trim().to_string(),
         }
     }
+
+    fn is_test_recipient(email: &str) -> bool {
+        email.trim().to_ascii_lowercase().ends_with(".test")
+    }
 }
 
 #[derive(Serialize)]
@@ -60,6 +64,14 @@ impl EmailSender for BrevoEmailSender {
             text_content,
             html_content,
         } = message;
+
+        if Self::is_test_recipient(&to_email) {
+            tracing::info!(
+                target_email = %to_email,
+                "Destino .test detectado; se omite el envío real con Brevo"
+            );
+            return Ok(());
+        }
 
         if self.api_key.is_empty() {
             return Err(DomainError::Internal(
@@ -117,5 +129,18 @@ impl EmailSender for BrevoEmailSender {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::BrevoEmailSender;
+
+    #[test]
+    fn test_is_test_recipient_matches_test_tld() {
+        assert!(BrevoEmailSender::is_test_recipient("admin@example.test"));
+        assert!(BrevoEmailSender::is_test_recipient("ADMIN@EXAMPLE.TEST"));
+        assert!(!BrevoEmailSender::is_test_recipient("admin@example.com"));
+        assert!(!BrevoEmailSender::is_test_recipient("admin@example.test.mx"));
     }
 }
