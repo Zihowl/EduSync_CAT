@@ -3,7 +3,7 @@ use std::sync::Arc;
 use async_graphql::{Context, Object};
 
 use crate::{
-    adapters::auth::middleware::require_super_admin,
+    adapters::auth::middleware::{require_admin, require_super_admin},
     adapters::graphql::{
         schema::to_gql_error,
         types::{allowed_domain_type::AllowedDomainType, school_year_type::SchoolYearType},
@@ -21,7 +21,7 @@ impl ConfigQuery {
         &self,
         ctx: &Context<'_>,
     ) -> async_graphql::Result<Vec<AllowedDomainType>> {
-        let _ = require_super_admin(ctx)?;
+        let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<ConfigService>>()?;
         svc.get_allowed_domains()
             .await
@@ -308,32 +308,59 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn config_queries_require_super_admin() {
+    async fn allowed_domains_query_requires_admin() {
         let schema = build_schema();
         let admin = auth_user("ADMIN_HORARIOS");
         let super_admin = auth_user("SUPER_ADMIN");
 
-        for query in [
-            "{ GetAllowedDomains { id domain hasActiveUsers } }",
-            "{ GetCurrentSchoolYear { id startDate endDate createdAt } }",
-        ] {
-            let response = schema.execute(Request::new(query)).await;
-            assert_no_authorization_error(&response);
+        let query = "{ GetAllowedDomains { id domain hasActiveUsers } }";
 
-            let response = schema
-                .execute(Request::new(query).data(admin.clone()))
-                .await;
-            assert_access_denied_error(&response);
+        let response = schema.execute(Request::new(query)).await;
+        assert_no_authorization_error(&response);
 
-            let response = schema
-                .execute(Request::new(query).data(super_admin.clone()))
-                .await;
-            assert!(
-                response.errors.is_empty(),
-                "unexpected errors: {:?}",
-                response.errors
-            );
-        }
+        let response = schema
+            .execute(Request::new(query).data(admin.clone()))
+            .await;
+        assert!(
+            response.errors.is_empty(),
+            "unexpected errors: {:?}",
+            response.errors
+        );
+
+        let response = schema
+            .execute(Request::new(query).data(super_admin.clone()))
+            .await;
+        assert!(
+            response.errors.is_empty(),
+            "unexpected errors: {:?}",
+            response.errors
+        );
+    }
+
+    #[tokio::test]
+    async fn school_year_query_stays_super_admin_only() {
+        let schema = build_schema();
+        let admin = auth_user("ADMIN_HORARIOS");
+        let super_admin = auth_user("SUPER_ADMIN");
+
+        let query = "{ GetCurrentSchoolYear { id startDate endDate createdAt } }";
+
+        let response = schema.execute(Request::new(query)).await;
+        assert_no_authorization_error(&response);
+
+        let response = schema
+            .execute(Request::new(query).data(admin.clone()))
+            .await;
+        assert_access_denied_error(&response);
+
+        let response = schema
+            .execute(Request::new(query).data(super_admin.clone()))
+            .await;
+        assert!(
+            response.errors.is_empty(),
+            "unexpected errors: {:?}",
+            response.errors
+        );
     }
 
     #[tokio::test]

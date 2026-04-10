@@ -6,7 +6,7 @@ import { map } from 'rxjs';
 import {
     IonContent, IonList, IonItem, IonButtons, IonLabel, IonAvatar,
     IonIcon, IonFab, IonFabButton,
-    IonInput, IonButton
+    IonInput, IonButton, IonNote
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { personOutline, trashOutline, addOutline, pencilOutline, mailOutline, cardOutline } from 'ionicons/icons';
@@ -58,13 +58,21 @@ const REMOVE_TEACHER = gql`
     }
 `;
 
+const GET_ALLOWED_DOMAINS = gql`
+    query GetAllowedDomains {
+        GetAllowedDomains {
+            domain
+        }
+    }
+`;
+
 @Component({
     selector: 'app-teachers',
     standalone: true,
     imports: [
         CommonModule, FormsModule, IonContent, IonList, IonItem,
         IonLabel, IonAvatar, IonButtons, IonIcon, IonFab,
-        IonFabButton, IonInput, IonButton, PageHeaderComponent, DataListComponent, ModalComponent, CatalogToolbarComponent
+        IonFabButton, IonInput, IonButton, IonNote, PageHeaderComponent, DataListComponent, ModalComponent, CatalogToolbarComponent
     ],
     template: `
         <app-page-header title="Docentes" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
@@ -120,8 +128,9 @@ const REMOVE_TEACHER = gql`
                     [(isOpen)]="isModalOpen"
                     [title]="(editingItem ? 'Editar' : 'Nuevo') + ' Docente'"
                     subtitle="Completa los datos principales del docente."
+                    helperText="El correo institucional debe usar un dominio permitido en Configuración."
                     [saveLabel]="editingItem ? 'Actualizar' : 'Guardar'"
-                    [saveDisabled]="!formData.name || !formData.employeeNumber"
+                    [saveDisabled]="!formData.name.trim() || !formData.employeeNumber.trim() || isLoading || (formData.email.trim().length > 0 && (!isEmailFormatValid() || !isAllowedDomainsLoaded || !isDomainAllowed()))"
                     (save)="Save()">
                     <ng-template #modalBody>
                         <ion-list>
@@ -142,6 +151,20 @@ const REMOVE_TEACHER = gql`
                                 <ion-input type="email" [(ngModel)]="formData.email" placeholder="ejemplo@correo.com"></ion-input>
                                 <ion-icon name="mail-outline" slot="start"></ion-icon>
                             </ion-item>
+
+                            <ion-note
+                                *ngIf="formData.email.trim().length > 0 && !isEmailFormatValid()"
+                                color="danger"
+                                class="ion-padding-start ion-margin-top">
+                                <small>Correo electrónico inválido</small>
+                            </ion-note>
+
+                            <ion-note
+                                *ngIf="formData.email.trim().length > 0 && isEmailFormatValid() && isAllowedDomainsLoaded && getEmailDomain()"
+                                [color]="isDomainAllowed() ? 'success' : 'danger'"
+                                class="ion-padding-start ion-margin-top">
+                                <small>{{ isDomainAllowed() ? 'Dominio permitido' : 'Dominio NO permitido — registra el dominio en Configuración' }}</small>
+                            </ion-note>
                         </ion-list>
                     </ng-template>
                 </app-modal>
@@ -170,8 +193,11 @@ export class TeachersComponent implements OnInit {
         { value: 'employeeNumber', label: 'Número de empleado' },
         { value: 'email', label: 'Correo' },
     ];
+    allowedDomains: string[] = [];
+    isAllowedDomainsLoaded = false;
     isTeachersLoaded = false;
     isModalOpen = false;
+    isLoading = false;
     editingItem: any = null;
     formData = {
         name: '',
@@ -186,11 +212,77 @@ export class TeachersComponent implements OnInit {
 
     ionViewWillEnter(): void {
         this.LoadTeachers();
+        this.LoadAllowedDomains();
     }
 
     ionViewWillLeave(): void {
         this.isTeachersLoaded = true;
+        this.isAllowedDomainsLoaded = true;
         this.cdr.detectChanges();
+    }
+
+    LoadAllowedDomains(forceRefresh = false) {
+        const loadAllowedDomains = () => this.apollo.query<any>({ query: GET_ALLOWED_DOMAINS, fetchPolicy: 'network-only' }).pipe(
+            map((res: any) => (res?.data?.GetAllowedDomains ?? []).map((d: any) => d.domain.toLowerCase()))
+        );
+
+        const request$ = forceRefresh
+            ? this.queryCache.refresh(
+                'admin-teachers-allowed-domains',
+                [RealtimeScope.AllowedDomains],
+                loadAllowedDomains
+            )
+            : this.queryCache.load(
+                'admin-teachers-allowed-domains',
+                [RealtimeScope.AllowedDomains],
+                loadAllowedDomains
+            );
+
+        request$
+            .subscribe({
+                next: (domains: string[]) => {
+                    this.allowedDomains = domains;
+                    this.isAllowedDomainsLoaded = true;
+                    this.cdr.detectChanges();
+                },
+                error: (err) => {
+                    console.error('Error de red al obtener dominios permitidos (docentes):', err);
+                    this.isAllowedDomainsLoaded = true;
+                    this.cdr.detectChanges();
+                }
+            });
+    }
+
+    getEmailDomain(): string | null {
+        const email = this.formData.email.trim();
+        if (!email || !email.includes('@')) {
+            return null;
+        }
+
+        return email.split('@')[1].toLowerCase();
+    }
+
+    isDomainAllowed(): boolean {
+        const domain = this.getEmailDomain();
+        if (!domain) {
+            return true;
+        }
+
+        if (!this.isAllowedDomainsLoaded) {
+            return true;
+        }
+
+        return this.allowedDomains.includes(domain);
+    }
+
+    isEmailFormatValid(): boolean {
+        const email = this.formData.email.trim();
+        if (!email) {
+            return true;
+        }
+
+        const emailRegex = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/;
+        return emailRegex.test(email);
     }
 
     LoadTeachers(forceRefresh = false) {
@@ -259,9 +351,17 @@ export class TeachersComponent implements OnInit {
     }
 
     private setupRealtimeRefresh(): void {
-        this.realtimeSync.watchScopes([RealtimeScope.Teachers])
+        this.realtimeSync.watchScopes([RealtimeScope.Teachers, RealtimeScope.AllowedDomains])
             .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe(() => this.LoadTeachers());
+            .subscribe((event) => {
+                if (event.scopes.includes(RealtimeScope.Teachers)) {
+                    this.LoadTeachers(true);
+                }
+
+                if (event.scopes.includes(RealtimeScope.AllowedDomains)) {
+                    this.LoadAllowedDomains(true);
+                }
+            });
     }
 
     GetInitials(name: string): string {
@@ -288,24 +388,33 @@ export class TeachersComponent implements OnInit {
     }
 
     Save() {
-        if (!this.formData.name || !this.formData.employeeNumber) return;
+        const name = this.formData.name.trim();
+        const employeeNumber = this.formData.employeeNumber.trim();
+        const email = this.formData.email.trim();
 
-        // Validar formato de email si se proporciona
-        if (this.formData.email) {
-            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-            if (!emailRegex.test(this.formData.email)) {
+        if (!name || !employeeNumber) return;
+
+        if (email) {
+            const emailRegex = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/;
+            if (!emailRegex.test(email)) {
                 this.notifications.warning('Por favor, ingresa un correo electrónico válido (ej. usuario@dominio.com)', 'Correo inválido');
+                return;
+            }
+
+            if (!this.isAllowedDomainsLoaded || !this.isDomainAllowed()) {
+                this.notifications.warning('El dominio del correo no está permitido. Regístralo en Configuración antes de guardar.', 'Dominio no permitido');
                 return;
             }
         }
 
         const teacherInput = {
-            name: this.formData.name,
-            employeeNumber: this.formData.employeeNumber,
-            email: this.formData.email || null
+            name,
+            employeeNumber,
+            email: email || null
         };
 
         if (this.editingItem) {
+            this.isLoading = true;
             this.apollo.mutate({
                 mutation: UPDATE_TEACHER,
                 variables: { 
@@ -316,25 +425,30 @@ export class TeachersComponent implements OnInit {
                 }
             }).subscribe({
                 next: () => { 
+                    this.isLoading = false;
                     this.isModalOpen = false;
                     this.editingItem = null;
                     this.LoadTeachers(true);
                 },
                 error: (err) => {
+                    this.isLoading = false;
                     console.error('Error al actualizar docente:', err);
                     this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo guardar el docente.'));
                 }
             });
         } else {
+            this.isLoading = true;
             this.apollo.mutate({
                 mutation: CREATE_TEACHER,
                 variables: { input: teacherInput },
             }).subscribe({
                 next: () => { 
+                    this.isLoading = false;
                     this.isModalOpen = false; 
                     this.LoadTeachers(true);
                 },
                 error: (err) => {
+                    this.isLoading = false;
                     console.error('Error al crear docente:', err);
                     this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo guardar el docente.'));
                 }

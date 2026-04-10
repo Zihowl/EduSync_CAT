@@ -131,7 +131,10 @@ async fn main() -> anyhow::Result<()> {
         user_repo.clone(),
         school_year_repo.clone(),
     ));
-    let teacher_service = Arc::new(TeacherService::new(teacher_repo.clone()));
+    let teacher_service = Arc::new(TeacherService::new(
+        teacher_repo.clone(),
+        allowed_domain_repo.clone(),
+    ));
     let subject_service = Arc::new(SubjectService::new(subject_repo.clone()));
     let building_service = Arc::new(BuildingService::new(building_repo.clone()));
     let classroom_service = Arc::new(ClassroomService::new(classroom_repo.clone()));
