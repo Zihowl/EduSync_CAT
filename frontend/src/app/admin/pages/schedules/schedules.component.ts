@@ -134,13 +134,13 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                                     <ion-segment-button value="teacher">Maestro</ion-segment-button>
                                 </ion-segment>
 
-                                <ion-select *ngIf="filterScope === 'group'" [(ngModel)]="filterGroupId" (ionChange)="LoadSchedules()" placeholder="Selecciona un grupo" interface="popover" class="schedule-filter">
+                                <ion-select *ngIf="filterScope === 'group'" [(ngModel)]="filterGroupId" (ionChange)="LoadSchedules()" placeholder="Selecciona un grupo" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter">
                                     <ion-select-option *ngFor="let g of groups" [value]="g.id">
                                         {{ getGroupLabel(g) }}
                                     </ion-select-option>
                                 </ion-select>
 
-                                <ion-select *ngIf="filterScope === 'teacher'" [(ngModel)]="filterTeacherId" (ionChange)="LoadSchedules()" placeholder="Selecciona un maestro" interface="popover" class="schedule-filter">
+                                <ion-select *ngIf="filterScope === 'teacher'" [(ngModel)]="filterTeacherId" (ionChange)="LoadSchedules()" placeholder="Selecciona un maestro" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter">
                                     <ion-select-option *ngFor="let teacher of teachers" [value]="teacher.id">
                                         {{ teacher.name }}
                                     </ion-select-option>
@@ -187,7 +187,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                         <ion-list>
                             <ion-item fill="outline" class="schedule-form-item">
                                 <ion-label position="stacked">Grupo *</ion-label>
-                                <ion-select [(ngModel)]="formData.groupId" interface="popover" placeholder="Seleccionar grupo" [compareWith]="compareIds">
+                                <ion-select [(ngModel)]="formData.groupId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar grupo" [compareWith]="compareIds">
                                     <ion-select-option *ngFor="let g of groups" [value]="g.id">
                                         {{ getGroupLabel(g) }}
                                     </ion-select-option>
@@ -203,7 +203,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
 
                             <ion-item fill="outline" class="schedule-form-item">
                                 <ion-label position="stacked">Materia *</ion-label>
-                                <ion-select [(ngModel)]="formData.subjectId" interface="popover" placeholder="Seleccionar materia" [compareWith]="compareIds">
+                                <ion-select [(ngModel)]="formData.subjectId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar materia" [compareWith]="compareIds">
                                     <ion-select-option *ngFor="let s of subjects" [value]="s.id">{{ getSubjectLabel(s) }}</ion-select-option>
                                 </ion-select>
                                 <ion-icon name="book-outline" slot="start"></ion-icon>
@@ -211,7 +211,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
 
                             <ion-item fill="outline" class="schedule-form-item">
                                 <ion-label position="stacked">Docente (opcional)</ion-label>
-                                <ion-select [(ngModel)]="formData.teacherId" interface="popover" placeholder="Seleccionar docente" [compareWith]="compareIds">
+                                <ion-select [(ngModel)]="formData.teacherId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar docente" [compareWith]="compareIds">
                                     <ion-select-option [value]="null">Sin docente</ion-select-option>
                                     <ion-select-option *ngFor="let t of teachers" [value]="t.id">{{ t.name }}</ion-select-option>
                                 </ion-select>
@@ -220,7 +220,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
 
                             <ion-item fill="outline" class="schedule-form-item">
                                 <ion-label position="stacked">Aula *</ion-label>
-                                <ion-select [(ngModel)]="formData.classroomId" interface="popover" placeholder="Seleccionar aula" [compareWith]="compareIds">
+                                <ion-select [(ngModel)]="formData.classroomId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar aula" [compareWith]="compareIds">
                                     <ion-select-option *ngFor="let c of classrooms" [value]="c.id">{{ c.name }}</ion-select-option>
                                 </ion-select>
                                 <ion-icon name="business-outline" slot="start"></ion-icon>
@@ -228,7 +228,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
 
                             <ion-item fill="outline" class="schedule-form-item">
                                 <ion-label position="stacked">Día de la semana *</ion-label>
-                                <ion-select [(ngModel)]="formData.dayOfWeek" interface="popover">
+                                <ion-select [(ngModel)]="formData.dayOfWeek" interface="popover" [interfaceOptions]="{ animated: false }">
                                     <ion-select-option *ngFor="let d of [1,2,3,4,5,6,7]" [value]="d">{{ getDayName(d) }}</ion-select-option>
                                 </ion-select>
                                 <ion-icon name="calendar-outline" slot="start"></ion-icon>
@@ -237,7 +237,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                             <ion-item fill="outline" class="schedule-form-item">
                                 <ion-label position="stacked">Hora de inicio *</ion-label>
                                 <ion-datetime-button datetime="startTimePicker"></ion-datetime-button>
-                                <ion-popover [keepContentsMounted]="true">
+                                <ion-popover [keepContentsMounted]="true" [animated]="false">
                                     <ng-template>
                                         <ion-datetime
                                             id="startTimePicker"
@@ -255,7 +255,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                             <ion-item fill="outline" class="schedule-form-item">
                                 <ion-label position="stacked">Hora de fin *</ion-label>
                                 <ion-datetime-button datetime="endTimePicker"></ion-datetime-button>
-                                <ion-popover [keepContentsMounted]="true">
+                                <ion-popover [keepContentsMounted]="true" [animated]="false">
                                     <ng-template>
                                         <ion-datetime
                                             id="endTimePicker"

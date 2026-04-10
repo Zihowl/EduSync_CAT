@@ -134,7 +134,7 @@ const REMOVE_CLASSROOM = gql`
 
                             <ion-item fill="outline">
                                 <ion-label position="stacked">Edificio al que pertenece</ion-label>
-                                <ion-select interface="popover" [(ngModel)]="formData.buildingId" placeholder="Seleccionar edificio">
+                                <ion-select interface="popover" [interfaceOptions]="{ animated: false }" [(ngModel)]="formData.buildingId" placeholder="Seleccionar edificio">
                                     <ion-select-option *ngFor="let b of buildings" [value]="b.id">
                                         {{ b.name }}
                                     </ion-select-option>

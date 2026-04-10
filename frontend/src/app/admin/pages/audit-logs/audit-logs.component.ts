@@ -145,17 +145,17 @@ const GET_AUDIT_LOGS = gql`
                                 (ionInput)="OnSearchChange($event)">
                             </ion-searchbar>
 
-                            <ion-select [(ngModel)]="actionFilter" interface="popover" placeholder="Acción" (ionChange)="OnFilterChange()">
+                            <ion-select [(ngModel)]="actionFilter" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Acción" (ionChange)="OnFilterChange()">
                                 <ion-select-option value="">Todas las acciones</ion-select-option>
                                 <ion-select-option *ngFor="let option of actionOptions" [value]="option.value">{{ option.label }}</ion-select-option>
                             </ion-select>
 
-                            <ion-select [(ngModel)]="resourceFilter" interface="popover" placeholder="Recurso" (ionChange)="OnFilterChange()">
+                            <ion-select [(ngModel)]="resourceFilter" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Recurso" (ionChange)="OnFilterChange()">
                                 <ion-select-option value="">Todos los recursos</ion-select-option>
                                 <ion-select-option *ngFor="let option of resourceOptions" [value]="option.value">{{ option.label }}</ion-select-option>
                             </ion-select>
 
-                            <ion-select [(ngModel)]="actorRoleFilter" interface="popover" placeholder="Rol" (ionChange)="OnFilterChange()">
+                            <ion-select [(ngModel)]="actorRoleFilter" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Rol" (ionChange)="OnFilterChange()">
                                 <ion-select-option value="">Todos los roles</ion-select-option>
                                 <ion-select-option *ngFor="let option of actorRoleOptions" [value]="option.value">{{ option.label }}</ion-select-option>
                             </ion-select>
@@ -178,7 +178,7 @@ const GET_AUDIT_LOGS = gql`
                                 (ionChange)="OnFilterChange()">
                             </ion-input>
 
-                            <ion-select [(ngModel)]="pageSize" interface="popover" placeholder="Filas por página" (ionChange)="OnPageSizeChange()">
+                            <ion-select [(ngModel)]="pageSize" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Filas por página" (ionChange)="OnPageSizeChange()">
                                 <ion-select-option *ngFor="let option of pageSizeOptions" [value]="option">{{ option }} por página</ion-select-option>
                             </ion-select>
 

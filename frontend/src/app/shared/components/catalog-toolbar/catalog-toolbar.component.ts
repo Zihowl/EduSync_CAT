@@ -31,6 +31,7 @@ export class CatalogToolbarComponent {
     @Input() clearLabel = 'Restablecer';
     @Input() filters: CatalogToolbarFilterConfig[] = [];
     @Input() sortOptions: CatalogToolbarSortOption[] = [];
+    @Input() selectInterfaceOptions: Record<string, unknown> = { animated: false };
 
     @Output() stateChange = new EventEmitter<CatalogToolbarState>();
 

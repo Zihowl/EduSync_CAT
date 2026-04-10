@@ -80,6 +80,7 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                                 (ionChange)="LoadSchedules()"
                                 placeholder="Selecciona un grupo..."
                                 interface="popover"
+                                [interfaceOptions]="{ animated: false }"
                                 class="kiosk-select">
                                 <ion-select-option *ngFor="let g of groups" [value]="g.id">
                                     {{ g.parent ? g.parent.name + '-' : '' }}{{ g.name }}

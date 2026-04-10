@@ -17,6 +17,7 @@
                     [value]="getFilterValue(filter)"
                     [placeholder]="filter.placeholder || filter.label"
                     interface="popover"
+                    [interfaceOptions]="selectInterfaceOptions"
                     (ionChange)="onFilterChange(filter.key, $event)">
                     <ion-select-option *ngFor="let option of filter.options; trackBy: trackByOptionValue" [value]="option.value">
                         {{ option.label }}
@@ -29,6 +30,7 @@
                     [value]="state.sortValue || sortOptions[0].value"
                     [placeholder]="sortPlaceholder"
                     interface="popover"
+                    [interfaceOptions]="selectInterfaceOptions"
                     (ionChange)="onSortChange($event)">
                     <ion-select-option *ngFor="let option of sortOptions; trackBy: trackByOptionValue" [value]="option.value">
                         {{ option.label }}
