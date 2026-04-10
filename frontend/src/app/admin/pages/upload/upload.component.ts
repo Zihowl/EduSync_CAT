@@ -550,128 +550,180 @@ export class UploadComponent implements OnInit {
             return;
         }
 
-        const missingSubjects = [...this.missingSubjects].sort((left, right) => left.rowNumbers[0] - right.rowNumbers[0]);
-        const missingTeachers = [...this.missingTeachers].sort((left, right) => left.rowNumbers[0] - right.rowNumbers[0]);
-        const missingBuildings = [...this.missingBuildings].sort((left, right) => left.rowNumbers[0] - right.rowNumbers[0]);
-        const missingClassrooms = [...this.missingClassrooms].sort((left, right) => left.rowNumbers[0] - right.rowNumbers[0]);
-
         this.isCreatingMissingCatalogs = true;
 
         try {
-            const state = await this.loadCurrentCatalogState();
-            const createdCounts = {
+            const overallCreatedCounts = {
                 subjects: 0,
                 teachers: 0,
                 buildings: 0,
                 classrooms: 0,
             };
-            const failures: string[] = [];
+            const overallFailures: string[] = [];
+            let progressMade = false;
+            const maxIterations = 4;
 
-            for (const item of missingBuildings) {
-                const buildingKey = this.buildCatalogKey(item.row.edificio);
-                if (state.buildings.has(buildingKey)) {
-                    continue;
+            for (let iteration = 0; iteration < maxIterations; iteration++) {
+                this.refreshMissingCatalogItems();
+
+                const missingSubjects = [...this.missingSubjects].sort((left, right) => left.rowNumbers[0] - right.rowNumbers[0]);
+                const missingTeachers = [...this.missingTeachers].sort((left, right) => left.rowNumbers[0] - right.rowNumbers[0]);
+                const missingBuildings = [...this.missingBuildings].sort((left, right) => left.rowNumbers[0] - right.rowNumbers[0]);
+                const missingClassrooms = [...this.missingClassrooms].sort((left, right) => left.rowNumbers[0] - right.rowNumbers[0]);
+
+                if (
+                    missingSubjects.length === 0
+                    && missingTeachers.length === 0
+                    && missingBuildings.length === 0
+                    && missingClassrooms.length === 0
+                ) {
+                    break;
                 }
 
-                try {
-                    const buildingId = await this.createBuilding(item.row.edificio);
-                    state.buildings.set(buildingKey, buildingId);
-                    createdCounts.buildings += 1;
-                } catch (error) {
-                    if (this.isDuplicateCatalogError(error)) {
-                        const resolvedBuildingId = await this.findBuildingIdByName(item.row.edificio);
-                        if (resolvedBuildingId !== null) {
-                            state.buildings.set(buildingKey, resolvedBuildingId);
+                const state = await this.loadCurrentCatalogState();
+                const createdCounts = {
+                    subjects: 0,
+                    teachers: 0,
+                    buildings: 0,
+                    classrooms: 0,
+                };
+                const failures: string[] = [];
+
+                for (const item of missingBuildings) {
+                    const buildingKey = this.buildCatalogKey(item.row.edificio);
+                    if (state.buildings.has(buildingKey)) {
+                        continue;
+                    }
+
+                    try {
+                        const buildingId = await this.createBuilding(item.row.edificio);
+                        state.buildings.set(buildingKey, buildingId);
+                        createdCounts.buildings += 1;
+                    } catch (error) {
+                        if (this.isDuplicateCatalogError(error)) {
+                            const resolvedBuildingId = await this.findBuildingIdByName(item.row.edificio);
+                            if (resolvedBuildingId !== null) {
+                                state.buildings.set(buildingKey, resolvedBuildingId);
+                            } else {
+                                failures.push(`No se pudo resolver el edificio ${item.row.edificio} después de detectar un duplicado.`);
+                            }
                         } else {
-                            failures.push(`No se pudo resolver el edificio ${item.row.edificio} después de detectar un duplicado.`);
+                            failures.push(getGraphQLErrorMessage(error, `No se pudo crear el edificio ${item.row.edificio}.`));
                         }
-                    } else {
-                        failures.push(getGraphQLErrorMessage(error, `No se pudo crear el edificio ${item.row.edificio}.`));
                     }
                 }
-            }
 
-            for (const item of missingSubjects) {
-                const subjectKey = this.buildCatalogKey(item.row.claveMateria);
-                if (state.subjects.has(subjectKey)) {
-                    continue;
-                }
+                for (const item of missingSubjects) {
+                    const subjectKey = this.buildCatalogKey(item.row.claveMateria);
+                    if (state.subjects.has(subjectKey)) {
+                        continue;
+                    }
 
-                try {
-                    await this.createSubject(item.row);
-                    state.subjects.set(subjectKey, 1);
-                    createdCounts.subjects += 1;
-                } catch (error) {
-                    if (!this.isDuplicateCatalogError(error)) {
-                        failures.push(getGraphQLErrorMessage(error, `No se pudo crear la materia ${item.row.claveMateria}.`));
+                    try {
+                        await this.createSubject(item.row);
+                        state.subjects.set(subjectKey, 1);
+                        createdCounts.subjects += 1;
+                    } catch (error) {
+                        if (!this.isDuplicateCatalogError(error)) {
+                            failures.push(getGraphQLErrorMessage(error, `No se pudo crear la materia ${item.row.claveMateria}.`));
+                        }
                     }
                 }
-            }
 
-            for (const item of missingTeachers) {
-                const teacherKey = this.buildCatalogKey(item.row.noEmpleado);
-                if (state.teachers.has(teacherKey)) {
-                    continue;
-                }
+                for (const item of missingTeachers) {
+                    const teacherKey = this.buildCatalogKey(item.row.noEmpleado);
+                    if (state.teachers.has(teacherKey)) {
+                        continue;
+                    }
 
-                try {
-                    await this.createTeacher(item.row);
-                    state.teachers.set(teacherKey, 1);
-                    createdCounts.teachers += 1;
-                } catch (error) {
-                    if (!this.isDuplicateCatalogError(error)) {
-                        failures.push(getGraphQLErrorMessage(error, `No se pudo crear el docente ${item.row.noEmpleado}.`));
+                    try {
+                        await this.createTeacher(item.row);
+                        state.teachers.set(teacherKey, 1);
+                        createdCounts.teachers += 1;
+                    } catch (error) {
+                        if (!this.isDuplicateCatalogError(error)) {
+                            failures.push(getGraphQLErrorMessage(error, `No se pudo crear el docente ${item.row.noEmpleado}.`));
+                        }
                     }
                 }
-            }
 
-            for (const item of missingClassrooms) {
-                const buildingKey = this.buildCatalogKey(item.row.edificio);
-                const classroomKey = this.buildClassroomKey(item.row.edificio, item.row.aula);
-                const buildingId = state.buildings.get(buildingKey);
+                for (const item of missingClassrooms) {
+                    const buildingKey = this.buildCatalogKey(item.row.edificio);
+                    const classroomKey = this.buildClassroomKey(item.row.edificio, item.row.aula);
+                    const buildingId = state.buildings.get(buildingKey);
 
-                if (!buildingId) {
-                    failures.push(`No se pudo resolver el edificio ${item.row.edificio} para crear el aula ${item.row.aula}.`);
-                    continue;
-                }
+                    if (!buildingId) {
+                        failures.push(`No se pudo resolver el edificio ${item.row.edificio} para crear el aula ${item.row.aula}.`);
+                        continue;
+                    }
 
-                if (state.classrooms.has(classroomKey)) {
-                    continue;
-                }
+                    if (state.classrooms.has(classroomKey)) {
+                        continue;
+                    }
 
-                try {
-                    await this.createClassroom(item.row, buildingId);
-                    state.classrooms.set(classroomKey, 1);
-                    createdCounts.classrooms += 1;
-                } catch (error) {
-                    if (!this.isDuplicateCatalogError(error)) {
-                        failures.push(getGraphQLErrorMessage(error, `No se pudo crear el aula ${item.row.aula} en ${item.row.edificio}.`));
+                    try {
+                        await this.createClassroom(item.row, buildingId);
+                        state.classrooms.set(classroomKey, 1);
+                        createdCounts.classrooms += 1;
+                    } catch (error) {
+                        if (!this.isDuplicateCatalogError(error)) {
+                            failures.push(getGraphQLErrorMessage(error, `No se pudo crear el aula ${item.row.aula} en ${item.row.edificio}.`));
+                        }
                     }
                 }
+
+                const iterationCreated = createdCounts.subjects > 0
+                    || createdCounts.teachers > 0
+                    || createdCounts.buildings > 0
+                    || createdCounts.classrooms > 0;
+
+                overallCreatedCounts.subjects += createdCounts.subjects;
+                overallCreatedCounts.teachers += createdCounts.teachers;
+                overallCreatedCounts.buildings += createdCounts.buildings;
+                overallCreatedCounts.classrooms += createdCounts.classrooms;
+                overallFailures.push(...failures);
+                progressMade = progressMade || iterationCreated;
+
+                const previewRefreshed = await this.PreviewUpload(false);
+                if (!previewRefreshed) {
+                    return;
+                }
+
+                if (!this.hasMissingCatalogItems()) {
+                    break;
+                }
+
+                if (!iterationCreated && failures.length === 0) {
+                    break;
+                }
             }
 
-            const previewRefreshed = await this.PreviewUpload(false);
-            if (!previewRefreshed) {
-                return;
-            }
+            this.refreshMissingCatalogItems();
 
-            const createdSummary = this.buildCreatedSummary(createdCounts);
-            const hasCreatedItems = createdCounts.subjects > 0
-                || createdCounts.teachers > 0
-                || createdCounts.buildings > 0
-                || createdCounts.classrooms > 0;
-            const creationSummary = hasCreatedItems
-                ? `Se actualizó ${createdSummary}`
-                : 'No se pudieron crear los catálogos faltantes';
-            if (failures.length > 0) {
+            const createdSummary = this.buildCreatedSummary(overallCreatedCounts);
+            const hasCreatedItems = overallCreatedCounts.subjects > 0
+                || overallCreatedCounts.teachers > 0
+                || overallCreatedCounts.buildings > 0
+                || overallCreatedCounts.classrooms > 0;
+
+            if (overallFailures.length > 0) {
+                const creationSummary = hasCreatedItems
+                    ? `Se actualizó ${createdSummary}`
+                    : 'No se pudieron crear los catálogos faltantes';
                 this.notifications.warning(
-                    `${creationSummary}, pero quedaron ${failures.length} incidencia(s) al crear catálogos. ${failures.slice(0, 3).join(' ')}`,
+                    `${creationSummary}, pero quedaron ${overallFailures.length} incidencia(s) al crear catálogos. ${overallFailures.slice(0, 3).join(' ')}`,
                     'Catálogos parcialmente actualizados',
                     { autoDismissMs: 0 }
                 );
             } else if (hasCreatedItems) {
-                const remainingErrors = this.previewResult?.details.errors.length ?? 0;
-                if (remainingErrors > 0) {
+                const remainingErrors = this.previewResult?.details.errors?.length ?? 0;
+                if (this.hasMissingCatalogItems()) {
+                    this.notifications.warning(
+                        `Se actualizó ${createdSummary}, pero todavía faltan ${this.buildMissingCatalogSummary()}.`,
+                        'Catálogos parcialmente actualizados',
+                        { autoDismissMs: 0 }
+                    );
+                } else if (remainingErrors > 0) {
                     this.notifications.success(
                         `Se actualizó ${createdSummary}. Aún quedan ${remainingErrors} error(es) en el archivo por corregir.`,
                         'Catálogos actualizados',
@@ -683,7 +735,7 @@ export class UploadComponent implements OnInit {
                         'Catálogos actualizados'
                     );
                 }
-            } else {
+            } else if (!progressMade) {
                 this.notifications.info(
                     'Los catálogos que faltaban ya existían. Se reanalizó el archivo con la información actualizada.',
                     'Sin cambios'
