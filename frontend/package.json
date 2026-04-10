@@ -1,7 +1,7 @@
 {
   "name": "frontend",
   "version": "0.0.1",
-  "license": "GPL-3.0-or-later",
+  "license": "AGPL-3.0-or-later",
   "author": "Ionic Framework",
   "homepage": "https://ionicframework.com/",
   "scripts": {
