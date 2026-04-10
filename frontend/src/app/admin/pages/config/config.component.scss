@@ -69,12 +69,11 @@
 .config-wrapper {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   width: 100%;
-  flex: 1 1 auto;
-  min-height: 0;
   box-sizing: border-box;
+  padding: 0.5rem 0;
 }
 
 .config-container {
@@ -82,8 +81,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--cfg-gap);
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 0 1 auto;
 }
 
 .config-section {
@@ -438,6 +436,12 @@ ion-card-content {
 
 /* ── ≥ 1200px: two-column grid ─────────────────────────────────────── */
 @media (min-width: 1200px) {
+  .config-wrapper {
+    justify-content: center;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
   .config-content {
     --overflow: hidden;
   }
@@ -455,6 +459,8 @@ ion-card-content {
     max-width: none;
     gap: 1.2rem;
     align-items: stretch;
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   .config-section:last-child {
