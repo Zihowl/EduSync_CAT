@@ -130,17 +130,18 @@ const GET_ALLOWED_DOMAINS = gql`
                     emptySubtitle="Usa el botón + para crear el primer administrador.">
                     <ng-template #itemTemplate let-u>
                         <ion-item class="user-item" lines="none">
-                            <ion-icon
-                                slot="start"
-                                class="user-role-icon"
-                                [class.user-role-icon--super]="u.role === 'SUPER_ADMIN'"
-                                [class.user-role-icon--admin]="u.role !== 'SUPER_ADMIN'"
-                                [name]="u.role === 'SUPER_ADMIN' ? 'shield-checkmark-outline' : 'person-outline'"
-                                [attr.aria-label]="u.role === 'SUPER_ADMIN' ? 'Súper administrador' : 'Administrador de horarios'">
-                            </ion-icon>
                             <div class="user-body">
                                 <div class="user-info">
-                                    <h2>{{ u.fullName || 'Sin Nombre' }}</h2>
+                                    <div class="user-title-row">
+                                        <ion-icon
+                                            class="user-role-icon"
+                                            [class.user-role-icon--super]="u.role === 'SUPER_ADMIN'"
+                                            [class.user-role-icon--admin]="u.role !== 'SUPER_ADMIN'"
+                                            [name]="u.role === 'SUPER_ADMIN' ? 'shield-checkmark-outline' : 'person-outline'"
+                                            [attr.aria-label]="u.role === 'SUPER_ADMIN' ? 'Súper administrador' : 'Administrador de horarios'">
+                                        </ion-icon>
+                                        <h2>{{ u.fullName || 'Sin Nombre' }}</h2>
+                                    </div>
                                     <p>{{ u.email }}</p>
                                     <div class="user-badges">
                                         <ion-badge [color]="u.isActive ? 'success' : 'medium'">

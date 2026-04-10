@@ -52,9 +52,15 @@
 }
 
 .user-role-icon {
-    margin-inline-end: 0.75rem;
     flex-shrink: 0;
-    font-size: 1.12rem;
+    font-size: 1.28rem;
+}
+
+.user-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
 }
 
 .user-role-icon--super {
@@ -206,14 +212,26 @@
 }
 
 .user-actions ion-button ion-icon {
-    font-size: 0.74rem;
+    font-size: 0.85rem;
     margin: 0;
+}
+
+:host ::ng-deep app-data-list .data-list__scroll {
+    padding-top: 1rem;
+}
+
+:host ::ng-deep app-data-list .data-list__list {
+    gap: 1.15rem;
+    padding-bottom: 1.15rem;
 }
 
 @media (max-width: 768px) {
     .user-role-icon {
-        margin-inline-end: 0.65rem;
-        font-size: 1rem;
+        font-size: 1.12rem;
+    }
+
+    .user-title-row {
+        gap: 0.35rem;
     }
 
     .user-body {
@@ -245,7 +263,7 @@
     }
 
     .user-actions ion-button ion-icon {
-        font-size: 0.72rem;
+        font-size: 0.8rem;
     }
 }
 
@@ -257,8 +275,11 @@
     }
 
     .user-role-icon {
-        margin-inline-end: 0.58rem;
-        font-size: 0.96rem;
+        font-size: 1.02rem;
+    }
+
+    .user-title-row {
+        gap: 0.32rem;
     }
 
     .user-body {
@@ -303,8 +324,13 @@
     }
 
     :host ::ng-deep app-data-list .data-list__scroll {
+        padding-top: 0.8rem;
         padding-inline-end: 0.5rem;
         padding-bottom: 4.75rem;
+    }
+
+    :host ::ng-deep app-data-list .data-list__list {
+        gap: 0.8rem;
     }
 }
 
@@ -314,8 +340,11 @@
     }
 
     .user-role-icon {
-        margin-inline-end: 0.52rem;
-        font-size: 0.92rem;
+        font-size: 0.98rem;
+    }
+
+    .user-title-row {
+        gap: 0.3rem;
     }
 
     .user-info h2 {
@@ -339,6 +368,6 @@
     }
 
     .user-actions ion-button ion-icon {
-        font-size: 0.7rem;
+        font-size: 0.74rem;
     }
 }
