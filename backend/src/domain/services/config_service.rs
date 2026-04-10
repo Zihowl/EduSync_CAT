@@ -1,30 +1,37 @@
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use chrono::NaiveDate;
 use regex::Regex;
 
 use crate::domain::{
     errors::DomainError,
-    models::{allowed_domain::AllowedDomain, school_year::SchoolYear},
+    models::{
+        allowed_domain::{AllowedDomain, AllowedDomainWithUsage},
+        school_year::SchoolYear,
+    },
     ports::{
         allowed_domain_repository::AllowedDomainRepository,
         school_year_repository::SchoolYearRepository,
+        user_repository::UserRepository,
     },
 };
 
 #[derive(Clone)]
 pub struct ConfigService {
     domain_repo: Arc<dyn AllowedDomainRepository>,
+    user_repo: Arc<dyn UserRepository>,
     school_year_repo: Arc<dyn SchoolYearRepository>,
 }
 
 impl ConfigService {
     pub fn new(
         domain_repo: Arc<dyn AllowedDomainRepository>,
+        user_repo: Arc<dyn UserRepository>,
         school_year_repo: Arc<dyn SchoolYearRepository>,
     ) -> Self {
         Self {
             domain_repo,
+            user_repo,
             school_year_repo,
         }
     }
@@ -40,11 +47,44 @@ impl ConfigService {
         self.domain_repo.create(&domain).await
     }
 
-    pub async fn get_allowed_domains(&self) -> Result<Vec<AllowedDomain>, DomainError> {
-        self.domain_repo.find_all().await
+    pub async fn get_allowed_domains(&self) -> Result<Vec<AllowedDomainWithUsage>, DomainError> {
+        let domains = self.domain_repo.find_all().await?;
+        let active_domains = self.active_user_domains().await?;
+
+        Ok(domains
+            .into_iter()
+            .map(|domain| {
+                let normalized_domain = domain.domain.to_ascii_lowercase();
+                let has_active_users = active_domains.contains(&normalized_domain);
+                AllowedDomainWithUsage {
+                    id: domain.id,
+                    domain: domain.domain,
+                    has_active_users,
+                }
+            })
+            .collect())
     }
 
     pub async fn remove_domain(&self, id: i32) -> Result<bool, DomainError> {
+        let domain = self
+            .domain_repo
+            .find_all()
+            .await?
+            .into_iter()
+            .find(|entry| entry.id == id)
+            .ok_or_else(|| DomainError::NotFound("Dominio no encontrado".to_string()))?;
+
+        if self
+            .user_repo
+            .has_active_user_with_domain(&domain.domain)
+            .await?
+        {
+            return Err(DomainError::Conflict(
+                "No se puede eliminar el dominio porque existen usuarios activos asociados"
+                    .to_string(),
+            ));
+        }
+
         self.domain_repo.delete(id).await
     }
 
@@ -102,5 +142,18 @@ impl ConfigService {
             ));
         }
         Ok(())
+    }
+
+    async fn active_user_domains(&self) -> Result<HashSet<String>, DomainError> {
+        let users = self.user_repo.find_all().await?;
+        Ok(users
+            .into_iter()
+            .filter(|user| user.is_active)
+            .filter_map(|user| {
+                user.email
+                    .split_once('@')
+                    .map(|(_, domain)| domain.to_ascii_lowercase())
+            })
+            .collect())
     }
 }

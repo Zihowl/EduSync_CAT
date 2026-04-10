@@ -19,6 +19,7 @@ const GET_DOMAINS = gql`
         GetAllowedDomains {
             id
             domain
+            hasActiveUsers
         }
     }
 `;
@@ -28,6 +29,7 @@ const ADD_DOMAIN = gql`
         CreateAllowedDomain(domain: $domain) {
             id
             domain
+            hasActiveUsers
         }
     }
 `;
@@ -214,9 +216,11 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
                                     <ion-button 
                                         type="button"
                                         fill="clear" 
-                                        color="danger" 
+                                        [color]="d.hasActiveUsers ? 'medium' : 'danger'" 
                                         slot="end" 
                                         (click)="RemoveDomain(d.id)"
+                                        [disabled]="d.hasActiveUsers"
+                                        [title]="d.hasActiveUsers ? 'No se puede eliminar mientras existan usuarios activos asociados' : 'Eliminar dominio'"
                                         class="delete-btn">
                                         <ion-icon name="trash-outline"></ion-icon>
                                     </ion-button>
@@ -536,7 +540,7 @@ export class ConfigComponent implements OnInit
 
     private setupRealtimeRefresh(): void
     {
-        this.realtimeSync.watchScopes([RealtimeScope.AllowedDomains, RealtimeScope.CurrentSchoolYear])
+        this.realtimeSync.watchScopes([RealtimeScope.AllowedDomains, RealtimeScope.Users, RealtimeScope.CurrentSchoolYear])
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe(() => {
                 this.LoadDomains(true);

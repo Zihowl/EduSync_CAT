@@ -93,6 +93,28 @@ impl UserRepository for PgUserRepository {
         Ok(row.map(Into::into))
     }
 
+    async fn has_active_user_with_domain(&self, domain: &str) -> Result<bool, DomainError> {
+        let domain = domain.trim().to_ascii_lowercase();
+        if domain.is_empty() {
+            return Ok(false);
+        }
+
+        let exists = sqlx::query_scalar::<_, bool>(
+            "SELECT EXISTS (
+                SELECT 1
+                FROM users
+                WHERE is_active = TRUE
+                  AND split_part(lower(email), '@', 2) = $1
+            )",
+        )
+        .bind(domain)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+
+        Ok(exists)
+    }
+
     async fn create_admin(
         &self,
         email: &str,

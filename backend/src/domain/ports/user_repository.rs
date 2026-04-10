@@ -10,6 +10,24 @@ pub trait UserRepository: Send + Sync {
     #[allow(dead_code)]
     async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, DomainError>;
     async fn find_by_email(&self, email: &str) -> Result<Option<User>, DomainError>;
+    async fn has_active_user_with_domain(&self, domain: &str) -> Result<bool, DomainError> {
+        let target_domain = domain.trim().to_ascii_lowercase();
+        if target_domain.is_empty() {
+            return Ok(false);
+        }
+
+        let users = self.find_all().await?;
+        Ok(users.into_iter().any(|user| {
+            if !user.is_active {
+                return false;
+            }
+
+            user.email
+                .split_once('@')
+                .map(|(_, user_domain)| user_domain.eq_ignore_ascii_case(&target_domain))
+                .unwrap_or(false)
+        }))
+    }
     async fn create_admin(
         &self,
         email: &str,

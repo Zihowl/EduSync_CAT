@@ -133,10 +133,11 @@ mod tests {
         adapters::graphql::queries::config_query::ConfigQuery,
         domain::{
             errors::DomainError,
-            models::{allowed_domain::AllowedDomain, school_year::SchoolYear},
+            models::{allowed_domain::AllowedDomain, school_year::SchoolYear, user::{User, UserRole}},
             ports::{
                 allowed_domain_repository::AllowedDomainRepository,
                 school_year_repository::SchoolYearRepository,
+                user_repository::UserRepository,
             },
             services::config_service::ConfigService,
         },
@@ -222,10 +223,121 @@ mod tests {
         }
     }
 
+    struct MockUserRepository {
+        users: Mutex<Vec<User>>,
+    }
+
+    impl MockUserRepository {
+        fn new(users: Vec<User>) -> Self {
+            Self {
+                users: Mutex::new(users),
+            }
+        }
+    }
+
+    #[async_trait]
+    impl UserRepository for MockUserRepository {
+        async fn find_all(&self) -> Result<Vec<User>, DomainError> {
+            Ok(self.users.lock().unwrap().clone())
+        }
+
+        async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, DomainError> {
+            Ok(self
+                .users
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|user| user.id == id)
+                .cloned())
+        }
+
+        async fn find_by_email(&self, email: &str) -> Result<Option<User>, DomainError> {
+            Ok(self
+                .users
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|user| user.email == email)
+                .cloned())
+        }
+
+        async fn create_admin(
+            &self,
+            _email: &str,
+            _full_name: &str,
+            _password_hash: &str,
+            _is_super_admin: bool,
+        ) -> Result<User, DomainError> {
+            Err(DomainError::Internal("create_admin not implemented".into()))
+        }
+
+        async fn increment_failed_login_attempts(&self, _user_id: Uuid) -> Result<(), DomainError> {
+            Err(DomainError::Internal(
+                "increment_failed_login_attempts not implemented".into(),
+            ))
+        }
+
+        async fn reset_failed_login_attempts(&self, _user_id: Uuid) -> Result<(), DomainError> {
+            Err(DomainError::Internal(
+                "reset_failed_login_attempts not implemented".into(),
+            ))
+        }
+
+        async fn set_lockout_until(
+            &self,
+            _user_id: Uuid,
+            _until: Option<chrono::DateTime<Utc>>,
+        ) -> Result<(), DomainError> {
+            Err(DomainError::Internal("set_lockout_until not implemented".into()))
+        }
+
+        async fn set_is_active(&self, _user_id: Uuid, _is_active: bool) -> Result<User, DomainError> {
+            Err(DomainError::Internal("set_is_active not implemented".into()))
+        }
+
+        async fn update_credentials(
+            &self,
+            _user_id: Uuid,
+            _email: &str,
+            _password_hash: &str,
+            _is_temp_password: bool,
+        ) -> Result<User, DomainError> {
+            Err(DomainError::Internal(
+                "update_credentials not implemented".into(),
+            ))
+        }
+    }
+
+    fn sample_user(email: &str, is_active: bool) -> User {
+        User {
+            id: Uuid::new_v4(),
+            email: email.to_string(),
+            full_name: Some("Admin".to_string()),
+            password_hash: "hash".to_string(),
+            role: UserRole::AdminHorarios,
+            is_active,
+            is_temp_password: false,
+            failed_login_attempts: 0,
+            lockout_until: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
     fn build_schema() -> Schema<ConfigQuery, ConfigMutation, EmptySubscription> {
-        let domain_repo = Arc::new(MockAllowedDomainRepository::new(Vec::new()));
+        let domain_repo = Arc::new(MockAllowedDomainRepository::new(vec![
+            AllowedDomain {
+                id: 1,
+                domain: "example.com".to_string(),
+            },
+            AllowedDomain {
+                id: 2,
+                domain: "school.edu".to_string(),
+            },
+        ]));
+        let user_repo = Arc::new(MockUserRepository::new(vec![sample_user("active.teacher@school.edu", true)]));
         let school_year_repo = Arc::new(MockSchoolYearRepository::new(None));
-        let service = Arc::new(ConfigService::new(domain_repo, school_year_repo));
+        let service = Arc::new(ConfigService::new(domain_repo, user_repo, school_year_repo));
 
         Schema::build(
             ConfigQuery::default(),
@@ -273,7 +385,7 @@ mod tests {
         let super_admin = auth_user("SUPER_ADMIN");
 
         let mutation_cases = [
-            "mutation { CreateAllowedDomain(domain: \"school.edu\") { id domain } }",
+            "mutation { CreateAllowedDomain(domain: \"fresh-domain.edu\") { id domain hasActiveUsers } }",
             "mutation { RemoveAllowedDomain(id: 1) }",
             "mutation { SetCurrentSchoolYear(startDate: \"2026-08-01\", endDate: \"2027-07-31\") { id startDate endDate createdAt } }",
         ];
@@ -296,5 +408,24 @@ mod tests {
                 response.errors
             );
         }
+    }
+
+    #[tokio::test]
+    async fn remove_allowed_domain_is_blocked_when_active_users_exist() {
+        let schema = build_schema();
+        let super_admin = auth_user("SUPER_ADMIN");
+
+        let response = schema
+            .execute(Request::new("mutation { RemoveAllowedDomain(id: 2) }").data(super_admin))
+            .await;
+
+        assert!(
+            response
+                .errors
+                .iter()
+                .any(|error| error.message == "No se puede eliminar el dominio porque existen usuarios activos asociados"),
+            "unexpected errors: {:?}",
+            response.errors
+        );
     }
 }

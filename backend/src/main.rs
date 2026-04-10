@@ -128,6 +128,7 @@ async fn main() -> anyhow::Result<()> {
     ));
     let config_service = Arc::new(ConfigService::new(
         allowed_domain_repo.clone(),
+        user_repo.clone(),
         school_year_repo.clone(),
     ));
     let teacher_service = Arc::new(TeacherService::new(teacher_repo.clone()));
