@@ -319,6 +319,13 @@ export class ConfigComponent implements OnInit
             this.setupRealtimeRefresh();
     }
 
+    ionViewWillLeave(): void
+    {
+        this.isDomainsLoaded = true;
+        this.isCurrentSchoolYearLoaded = true;
+        this.cdr.detectChanges();
+    }
+
     ionViewWillEnter(): void
     {
         this.LoadDomains();

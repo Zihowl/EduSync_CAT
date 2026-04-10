@@ -200,6 +200,11 @@ export class ClassroomsComponent implements OnInit
         this.LoadClassrooms();
     }
 
+    ionViewWillLeave(): void {
+        this.isClassroomsLoaded = true;
+        this.cdr.detectChanges();
+    }
+
     LoadBuildings(forceRefresh = false) {
         const request$ = forceRefresh
             ? this.queryCache.refresh(

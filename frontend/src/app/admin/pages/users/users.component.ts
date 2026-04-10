@@ -268,6 +268,13 @@ export class UsersComponent implements OnInit
         this.LoadAllowedDomains();
     }
 
+    ionViewWillLeave(): void
+    {
+        this.isUsersLoaded = true;
+        this.isAllowedDomainsLoaded = true;
+        this.cdr.detectChanges();
+    }
+
     LoadAllowedDomains(forceRefresh: boolean = false)
     {
         const loadAllowedDomains = () => this.apollo.query<any>({ query: GET_ALLOWED_DOMAINS, fetchPolicy: 'network-only' }).pipe(

@@ -189,6 +189,11 @@ export class TeachersComponent implements OnInit
         this.LoadTeachers();
     }
 
+    ionViewWillLeave(): void {
+        this.isTeachersLoaded = true;
+        this.cdr.detectChanges();
+    }
+
     LoadTeachers(forceRefresh = false) {
         if (forceRefresh) {
             this.isTeachersLoaded = false;

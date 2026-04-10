@@ -278,6 +278,12 @@ export class UploadComponent implements OnInit
         addIcons({ cloudUploadOutline, documentTextOutline, warningOutline });
     }
 
+    ionViewWillLeave(): void
+    {
+        this.isPreviewLoading = false;
+        this.isConfirmLoading = false;
+    }
+
     OnFileSelected(event: any) 
     {
         this.fileInputElement = event.target as HTMLInputElement;

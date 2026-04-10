@@ -1,5 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, DestroyRef, inject } from '@angular/core';
+import { NavigationStart, Router } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
 
 import { NotificationCardComponent } from './shared/components/notification-card/notification-card.component';
@@ -31,9 +33,21 @@ import { NotificationService } from './shared/services/notification.service';
   `,
 })
 export class AppComponent {
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly notificationService = inject(NotificationService);
 
   readonly notification = this.notificationService.notification;
+
+  constructor() {
+    this.router.events
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((event) => {
+        if (event instanceof NavigationStart) {
+          this.dismissTransientOverlays();
+        }
+      });
+  }
 
   dismissNotification(): void {
     this.notificationService.clear();
@@ -41,5 +55,21 @@ export class AppComponent {
 
   handleNotificationAction(action: NotificationCardAction): void {
     action.onClick?.();
+  }
+
+  private dismissTransientOverlays(): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const overlays = document.querySelectorAll('ion-popover, ion-loading');
+
+    overlays.forEach((overlay) => {
+      const dismissable = overlay as HTMLElement & { dismiss?: () => Promise<void> };
+
+      if (typeof dismissable.dismiss === 'function') {
+        void dismissable.dismiss();
+      }
+    });
   }
 }

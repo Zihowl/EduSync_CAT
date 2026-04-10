@@ -224,6 +224,11 @@ export class ScheduleKioskComponent implements OnInit
         }
     }
 
+    ionViewWillLeave(): void
+    {
+        this.loading = false;
+    }
+
     getDayName(day: number): string
     {
         return DAYS[day] || '';

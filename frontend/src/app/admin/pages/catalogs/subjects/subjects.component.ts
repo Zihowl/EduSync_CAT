@@ -200,6 +200,11 @@ export class SubjectsComponent implements OnInit
         this.LoadSubjects();
     }
 
+    ionViewWillLeave(): void {
+        this.isSubjectsLoaded = true;
+        this.cdr.detectChanges();
+    }
+
     LoadSubjects(forceRefresh = false) {
         if (forceRefresh) {
             this.isSubjectsLoaded = false;

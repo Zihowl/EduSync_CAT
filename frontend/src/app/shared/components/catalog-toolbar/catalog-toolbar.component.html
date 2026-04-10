@@ -10,39 +10,41 @@
                 (ionInput)="onSearchInput($event)">
             </ion-searchbar>
 
-            <ion-select
-                *ngFor="let filter of filters; trackBy: trackByFilterKey"
-                class="catalog-toolbar__select"
-                [value]="getFilterValue(filter)"
-                [placeholder]="filter.placeholder || filter.label"
-                interface="popover"
-                (ionChange)="onFilterChange(filter.key, $event)">
-                <ion-select-option *ngFor="let option of filter.options; trackBy: trackByOptionValue" [value]="option.value">
-                    {{ option.label }}
-                </ion-select-option>
-            </ion-select>
+            <div class="catalog-toolbar__controls">
+                <ion-select
+                    *ngFor="let filter of filters; trackBy: trackByFilterKey"
+                    class="catalog-toolbar__select"
+                    [value]="getFilterValue(filter)"
+                    [placeholder]="filter.placeholder || filter.label"
+                    interface="popover"
+                    (ionChange)="onFilterChange(filter.key, $event)">
+                    <ion-select-option *ngFor="let option of filter.options; trackBy: trackByOptionValue" [value]="option.value">
+                        {{ option.label }}
+                    </ion-select-option>
+                </ion-select>
 
-            <ion-select
-                *ngIf="sortOptions.length > 0"
-                class="catalog-toolbar__select catalog-toolbar__sort"
-                [value]="state.sortValue || sortOptions[0].value"
-                [placeholder]="sortPlaceholder"
-                interface="popover"
-                (ionChange)="onSortChange($event)">
-                <ion-select-option *ngFor="let option of sortOptions; trackBy: trackByOptionValue" [value]="option.value">
-                    {{ option.label }}
-                </ion-select-option>
-            </ion-select>
+                <ion-select
+                    *ngIf="sortOptions.length > 0"
+                    class="catalog-toolbar__select catalog-toolbar__sort"
+                    [value]="state.sortValue || sortOptions[0].value"
+                    [placeholder]="sortPlaceholder"
+                    interface="popover"
+                    (ionChange)="onSortChange($event)">
+                    <ion-select-option *ngFor="let option of sortOptions; trackBy: trackByOptionValue" [value]="option.value">
+                        {{ option.label }}
+                    </ion-select-option>
+                </ion-select>
 
-            <ion-button
-                fill="outline"
-                color="medium"
-                class="catalog-toolbar__clear"
-                [disabled]="!hasActiveState"
-                (click)="clearState()">
-                <ion-icon name="refresh-outline" slot="start"></ion-icon>
-                {{ clearLabel }}
-            </ion-button>
+                <ion-button
+                    fill="outline"
+                    color="medium"
+                    class="catalog-toolbar__clear"
+                    [disabled]="!hasActiveState"
+                    (click)="clearState()">
+                    <ion-icon name="refresh-outline" slot="start"></ion-icon>
+                    {{ clearLabel }}
+                </ion-button>
+            </div>
         </div>
     </ion-card-content>
 </ion-card>

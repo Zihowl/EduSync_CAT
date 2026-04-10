@@ -264,6 +264,11 @@ export class GroupsComponent implements OnInit
         this.LoadGroups();
     }
 
+    ionViewWillLeave(): void {
+        this.isGroupsLoaded = true;
+        this.cdr.detectChanges();
+    }
+
     LoadGroups(forceRefresh = false) {
         if (forceRefresh) {
             this.isGroupsLoaded = false;

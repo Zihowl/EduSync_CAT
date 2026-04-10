@@ -174,6 +174,11 @@ export class BuildingsComponent implements OnInit
         this.LoadBuildings();
     }
 
+    ionViewWillLeave(): void {
+        this.isBuildingsLoaded = true;
+        this.cdr.detectChanges();
+    }
+
     LoadBuildings(forceRefresh = false) {
         const request$ = forceRefresh
             ? this.queryCache.refresh(

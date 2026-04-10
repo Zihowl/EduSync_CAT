@@ -313,6 +313,11 @@ export class AuditLogsComponent implements OnInit {
         this.LoadAuditLogs();
     }
 
+    ionViewWillLeave(): void {
+        this.isLoaded = true;
+        this.cdr.detectChanges();
+    }
+
     LoadAuditLogs(forceRefresh = false): void {
         if (forceRefresh) {
             this.isLoaded = false;
