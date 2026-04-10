@@ -271,14 +271,14 @@ export class AuditLogsComponent implements OnInit {
         { value: 'create_schedule_slot', label: 'Alta de horario' },
         { value: 'update_schedule_slot', label: 'Edición de horario' },
         { value: 'remove_schedule_slot', label: 'Eliminación de horario' },
-        { value: 'set_schedules_published', label: 'Publicación masiva de horarios' },
+        { value: 'set_schedules_published', label: 'Publicación de horarios' },
     ];
     readonly resourceOptions = [
         { value: 'user', label: 'Usuarios' },
         { value: 'allowed_domain', label: 'Dominios permitidos' },
         { value: 'school_year', label: 'Ciclo escolar' },
         { value: 'schedule_slot', label: 'Horario' },
-        { value: 'schedule_batch', label: 'Publicación masiva' },
+        { value: 'schedule_batch', label: 'Publicación' },
     ];
     readonly actorRoleOptions = [
         { value: 'SUPER_ADMIN', label: 'Súper Administrador' },

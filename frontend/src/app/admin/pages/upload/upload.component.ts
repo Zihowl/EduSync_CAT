@@ -1,8 +1,12 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { Apollo, gql } from 'apollo-angular';
+import { firstValueFrom } from 'rxjs';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { NotificationService } from '../../../shared/services/notification.service';
+import { getGraphQLErrorMessage } from '../../../shared/utils/graphql-error';
+import { normalizeCatalogText } from '../../../shared/utils/catalog-query';
 import {
     IonContent,
     IonCard,
@@ -54,6 +58,104 @@ interface UploadResponse {
     };
 }
 
+type MissingCatalogType = 'subject' | 'teacher' | 'building' | 'classroom';
+
+interface MissingCatalogItem {
+    type: MissingCatalogType;
+    key: string;
+    row: UploadPreviewRow;
+    rowNumbers: number[];
+}
+
+interface ExistingCatalogState {
+    subjects: Map<string, number>;
+    teachers: Map<string, number>;
+    buildings: Map<string, number>;
+    classrooms: Map<string, number>;
+}
+
+const GET_SUBJECTS = gql`
+    query GetSubjects {
+        GetSubjects {
+            id
+            code
+            name
+            grade
+        }
+    }
+`;
+
+const GET_TEACHERS = gql`
+    query GetTeachers {
+        GetTeachers {
+            id
+            employeeNumber
+            name
+            email
+        }
+    }
+`;
+
+const GET_BUILDINGS = gql`
+    query GetBuildings {
+        GetBuildings {
+            id
+            name
+        }
+    }
+`;
+
+const GET_CLASSROOMS = gql`
+    query GetClassrooms {
+        GetClassrooms {
+            id
+            name
+            building {
+                id
+                name
+            }
+        }
+    }
+`;
+
+const CREATE_SUBJECT = gql`
+    mutation CreateSubject($input: CreateSubjectInput!) {
+        CreateSubject(input: $input) {
+            id
+            code
+            name
+        }
+    }
+`;
+
+const CREATE_TEACHER = gql`
+    mutation CreateTeacher($input: CreateTeacherInput!) {
+        CreateTeacher(input: $input) {
+            id
+            employeeNumber
+            name
+        }
+    }
+`;
+
+const CREATE_BUILDING = gql`
+    mutation CreateBuilding($input: CreateBuildingInput!) {
+        CreateBuilding(input: $input) {
+            id
+            name
+        }
+    }
+`;
+
+const CREATE_CLASSROOM = gql`
+    mutation CreateClassroom($input: CreateClassroomInput!) {
+        CreateClassroom(input: $input) {
+            id
+            name
+        }
+    }
+`;
+
 @Component({
     selector: 'app-upload',
     standalone: true,
@@ -71,7 +173,7 @@ interface UploadResponse {
         PageHeaderComponent
     ],
     template: `
-        <app-page-header title="Carga de Horarios" subtitle="Analiza el archivo antes de confirmar" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
+        <app-page-header title="Carga de Horarios" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content class="ion-padding upload-content">
             <div class="app-page-shell app-page-shell--wide upload-shell">
@@ -84,7 +186,7 @@ interface UploadResponse {
                                 </div>
 
                                 <div>
-                                    <p class="upload-kicker">Importación masiva</p>
+                                    <p class="upload-kicker">Importación</p>
                                     <h2>Verifica el archivo antes de confirmar</h2>
                                     <p class="upload-description">
                                         Primero analizamos cada fila, mostramos los errores y solo entonces habilitamos la carga final.
@@ -133,9 +235,6 @@ interface UploadResponse {
                                     <span>{{ selectedFile.size | number }} bytes</span>
                                 </div>
 
-                                <div class="upload-note">
-                                    Archivo de prueba: <strong>test-data/horarios_prueba.csv</strong>
-                                </div>
                             </div>
                         </div>
                     </ion-card-content>
@@ -156,6 +255,35 @@ interface UploadResponse {
                                 <ion-chip color="primary">{{ previewRows.length }} detectadas</ion-chip>
                                 <ion-chip color="success">{{ validRowCount }} listas</ion-chip>
                                 <ion-chip color="danger">{{ errorRowCount }} con errores</ion-chip>
+                            </div>
+                        </div>
+
+                        <div *ngIf="hasMissingCatalogItems()" class="upload-missing-card">
+                            <div class="upload-missing-card__header">
+                                <div>
+                                    <p class="upload-kicker">Catálogos faltantes</p>
+                                    <h3 class="upload-missing-card__title">Crear elementos desde el archivo</h3>
+                                    <p class="upload-missing-card__description">
+                                        Genera materias, docentes, edificios y aulas que aún no existan. Los grupos y subgrupos ya se crean automáticamente al confirmar la carga.
+                                    </p>
+                                </div>
+
+                                <ion-button
+                                    class="upload-missing-card__action"
+                                    color="warning"
+                                    expand="block"
+                                    (click)="CreateMissingCatalogItems()"
+                                    [disabled]="isPreviewLoading || isConfirmLoading || isCreatingMissingCatalogs">
+                                    <ion-spinner *ngIf="isCreatingMissingCatalogs" name="crescent" slot="start"></ion-spinner>
+                                    {{ isCreatingMissingCatalogs ? 'Creando...' : 'Crear faltantes' }}
+                                </ion-button>
+                            </div>
+
+                            <div class="upload-missing-card__chips">
+                                <ion-chip *ngIf="missingSubjects.length" color="warning">{{ missingSubjects.length }} materias</ion-chip>
+                                <ion-chip *ngIf="missingTeachers.length" color="warning">{{ missingTeachers.length }} docentes</ion-chip>
+                                <ion-chip *ngIf="missingBuildings.length" color="warning">{{ missingBuildings.length }} edificios</ion-chip>
+                                <ion-chip *ngIf="missingClassrooms.length" color="warning">{{ missingClassrooms.length }} aulas</ion-chip>
                             </div>
                         </div>
 
@@ -246,6 +374,7 @@ interface UploadResponse {
     styleUrls: ['./upload.component.scss']
 })
 export class UploadComponent implements OnInit {
+    private apollo = inject(Apollo);
     private http = inject(HttpClient);
     private notifications = inject(NotificationService);
     private apiUrl = environment.apiUrl;
@@ -269,8 +398,13 @@ export class UploadComponent implements OnInit {
     selectedFile: File | null = null;
     isPreviewLoading = false;
     isConfirmLoading = false;
+    isCreatingMissingCatalogs = false;
     previewResult: UploadPreviewResponse | null = null;
     previewRows: UploadPreviewRow[] = [];
+    missingSubjects: MissingCatalogItem[] = [];
+    missingTeachers: MissingCatalogItem[] = [];
+    missingBuildings: MissingCatalogItem[] = [];
+    missingClassrooms: MissingCatalogItem[] = [];
 
     ngOnInit() {
         addIcons({ cloudUploadOutline, documentTextOutline, warningOutline });
@@ -299,6 +433,7 @@ export class UploadComponent implements OnInit {
         this.selectedFile = nextFile;
         this.previewResult = null;
         this.previewRows = [];
+        this.refreshMissingCatalogItems();
         void this.PreviewUpload();
     }
 
@@ -306,6 +441,7 @@ export class UploadComponent implements OnInit {
         this.selectedFile = null;
         this.previewResult = null;
         this.previewRows = [];
+        this.refreshMissingCatalogItems();
         this.isPreviewLoading = false;
         this.isConfirmLoading = false;
 
@@ -338,6 +474,13 @@ export class UploadComponent implements OnInit {
             && !this.isConfirmLoading;
     }
 
+    hasMissingCatalogItems(): boolean {
+        return this.missingSubjects.length > 0
+            || this.missingTeachers.length > 0
+            || this.missingBuildings.length > 0
+            || this.missingClassrooms.length > 0;
+    }
+
     formatClock(value: string): string {
         return value ? value.substring(0, 5) : '';
     }
@@ -346,43 +489,470 @@ export class UploadComponent implements OnInit {
         return row.rowNumber;
     }
 
-    PreviewUpload() {
+    async PreviewUpload(announceResult = true): Promise<boolean> {
         if (!this.selectedFile || this.isPreviewLoading || this.isConfirmLoading) {
-            return;
+            return false;
         }
 
         this.isPreviewLoading = true;
         this.previewResult = null;
         this.previewRows = [];
+        this.refreshMissingCatalogItems();
 
         const formData = new FormData();
         formData.append('file', this.selectedFile);
 
-        this.http.post<UploadPreviewResponse>(`${this.apiUrl}/academic/upload-schedule/preview`, formData)
-            .subscribe({
-                next: (res) => {
-                    this.isPreviewLoading = false;
-                    this.previewResult = res;
-                    this.previewRows = res.details.rows ?? [];
+        try {
+            const res = await firstValueFrom(this.http.post<UploadPreviewResponse>(`${this.apiUrl}/academic/upload-schedule/preview`, formData));
 
-                    if (res.details.errors.length > 0) {
-                        this.notifications.warning(
-                            `Se detectaron ${res.details.errors.length} error(es) en ${this.previewRows.length} filas.`,
-                            'Revisión necesaria',
-                            { autoDismissMs: 0 }
-                        );
-                    } else {
-                        this.notifications.success(
-                            `Se analizaron ${res.details.processed} registros correctamente.`,
-                            'Archivo listo'
-                        );
-                    }
-                },
-                error: (err) => {
-                    this.isPreviewLoading = false;
-                    this.notifications.danger('Error en la previsualización: ' + (err.error?.message || err.message), 'Error en la previsualización', { autoDismissMs: 0 });
+            this.previewResult = res;
+            this.previewRows = res.details.rows ?? [];
+            this.refreshMissingCatalogItems();
+
+            if (announceResult) {
+                if (res.details.errors.length > 0) {
+                    this.notifications.warning(
+                        `Se detectaron ${res.details.errors.length} error(es) en ${this.previewRows.length} filas.`,
+                        'Revisión necesaria',
+                        { autoDismissMs: 0 }
+                    );
+                } else {
+                    this.notifications.success(
+                        `Se analizaron ${res.details.processed} registros correctamente.`,
+                        'Archivo listo'
+                    );
                 }
-            });
+            }
+
+            return true;
+        } catch (err: any) {
+            this.notifications.danger('Error en la previsualización: ' + (err?.error?.message || err?.message), 'Error en la previsualización', { autoDismissMs: 0 });
+            return false;
+        } finally {
+            this.isPreviewLoading = false;
+        }
+    }
+
+    async CreateMissingCatalogItems(): Promise<void> {
+        if (!this.hasMissingCatalogItems() || this.isPreviewLoading || this.isConfirmLoading || this.isCreatingMissingCatalogs) {
+            return;
+        }
+
+        const confirmed = await this.notifications.confirm({
+            title: 'Crear catálogos faltantes',
+            message: `Se crearán ${this.buildMissingCatalogSummary()} a partir del archivo. Los grupos y subgrupos ya se generan automáticamente al confirmar la carga.`,
+            confirmText: 'Crear',
+            cancelText: 'Cancelar',
+            confirmColor: 'warning',
+        });
+
+        if (!confirmed) {
+            return;
+        }
+
+        const missingSubjects = [...this.missingSubjects].sort((left, right) => left.rowNumbers[0] - right.rowNumbers[0]);
+        const missingTeachers = [...this.missingTeachers].sort((left, right) => left.rowNumbers[0] - right.rowNumbers[0]);
+        const missingBuildings = [...this.missingBuildings].sort((left, right) => left.rowNumbers[0] - right.rowNumbers[0]);
+        const missingClassrooms = [...this.missingClassrooms].sort((left, right) => left.rowNumbers[0] - right.rowNumbers[0]);
+
+        this.isCreatingMissingCatalogs = true;
+
+        try {
+            const state = await this.loadCurrentCatalogState();
+            const createdCounts = {
+                subjects: 0,
+                teachers: 0,
+                buildings: 0,
+                classrooms: 0,
+            };
+            const failures: string[] = [];
+
+            for (const item of missingBuildings) {
+                const buildingKey = this.buildCatalogKey(item.row.edificio);
+                if (state.buildings.has(buildingKey)) {
+                    continue;
+                }
+
+                try {
+                    const buildingId = await this.createBuilding(item.row.edificio);
+                    state.buildings.set(buildingKey, buildingId);
+                    createdCounts.buildings += 1;
+                } catch (error) {
+                    if (this.isDuplicateCatalogError(error)) {
+                        const resolvedBuildingId = await this.findBuildingIdByName(item.row.edificio);
+                        if (resolvedBuildingId !== null) {
+                            state.buildings.set(buildingKey, resolvedBuildingId);
+                        } else {
+                            failures.push(`No se pudo resolver el edificio ${item.row.edificio} después de detectar un duplicado.`);
+                        }
+                    } else {
+                        failures.push(getGraphQLErrorMessage(error, `No se pudo crear el edificio ${item.row.edificio}.`));
+                    }
+                }
+            }
+
+            for (const item of missingSubjects) {
+                const subjectKey = this.buildCatalogKey(item.row.claveMateria);
+                if (state.subjects.has(subjectKey)) {
+                    continue;
+                }
+
+                try {
+                    await this.createSubject(item.row);
+                    state.subjects.set(subjectKey, 1);
+                    createdCounts.subjects += 1;
+                } catch (error) {
+                    if (!this.isDuplicateCatalogError(error)) {
+                        failures.push(getGraphQLErrorMessage(error, `No se pudo crear la materia ${item.row.claveMateria}.`));
+                    }
+                }
+            }
+
+            for (const item of missingTeachers) {
+                const teacherKey = this.buildCatalogKey(item.row.noEmpleado);
+                if (state.teachers.has(teacherKey)) {
+                    continue;
+                }
+
+                try {
+                    await this.createTeacher(item.row);
+                    state.teachers.set(teacherKey, 1);
+                    createdCounts.teachers += 1;
+                } catch (error) {
+                    if (!this.isDuplicateCatalogError(error)) {
+                        failures.push(getGraphQLErrorMessage(error, `No se pudo crear el docente ${item.row.noEmpleado}.`));
+                    }
+                }
+            }
+
+            for (const item of missingClassrooms) {
+                const buildingKey = this.buildCatalogKey(item.row.edificio);
+                const classroomKey = this.buildClassroomKey(item.row.edificio, item.row.aula);
+                const buildingId = state.buildings.get(buildingKey);
+
+                if (!buildingId) {
+                    failures.push(`No se pudo resolver el edificio ${item.row.edificio} para crear el aula ${item.row.aula}.`);
+                    continue;
+                }
+
+                if (state.classrooms.has(classroomKey)) {
+                    continue;
+                }
+
+                try {
+                    await this.createClassroom(item.row, buildingId);
+                    state.classrooms.set(classroomKey, 1);
+                    createdCounts.classrooms += 1;
+                } catch (error) {
+                    if (!this.isDuplicateCatalogError(error)) {
+                        failures.push(getGraphQLErrorMessage(error, `No se pudo crear el aula ${item.row.aula} en ${item.row.edificio}.`));
+                    }
+                }
+            }
+
+            const previewRefreshed = await this.PreviewUpload(false);
+            if (!previewRefreshed) {
+                return;
+            }
+
+            const createdSummary = this.buildCreatedSummary(createdCounts);
+            const hasCreatedItems = createdCounts.subjects > 0
+                || createdCounts.teachers > 0
+                || createdCounts.buildings > 0
+                || createdCounts.classrooms > 0;
+            const creationSummary = hasCreatedItems
+                ? `Se actualizó ${createdSummary}`
+                : 'No se pudieron crear los catálogos faltantes';
+            if (failures.length > 0) {
+                this.notifications.warning(
+                    `${creationSummary}, pero quedaron ${failures.length} incidencia(s) al crear catálogos. ${failures.slice(0, 3).join(' ')}`,
+                    'Catálogos parcialmente actualizados',
+                    { autoDismissMs: 0 }
+                );
+            } else if (hasCreatedItems) {
+                const remainingErrors = this.previewResult?.details.errors.length ?? 0;
+                if (remainingErrors > 0) {
+                    this.notifications.success(
+                        `Se actualizó ${createdSummary}. Aún quedan ${remainingErrors} error(es) en el archivo por corregir.`,
+                        'Catálogos actualizados',
+                        { autoDismissMs: 0 }
+                    );
+                } else {
+                    this.notifications.success(
+                        `Se actualizó ${createdSummary} y el archivo quedó listo para confirmar.`,
+                        'Catálogos actualizados'
+                    );
+                }
+            } else {
+                this.notifications.info(
+                    'Los catálogos que faltaban ya existían. Se reanalizó el archivo con la información actualizada.',
+                    'Sin cambios'
+                );
+            }
+        } catch (error) {
+            this.notifications.danger(
+                getGraphQLErrorMessage(error, 'No se pudieron crear los catálogos faltantes.'),
+                'Error en catálogos',
+                { autoDismissMs: 0 }
+            );
+        } finally {
+            this.isCreatingMissingCatalogs = false;
+        }
+    }
+
+    private refreshMissingCatalogItems(): void {
+        const missingItems = this.extractMissingCatalogItems(this.previewRows);
+        this.missingSubjects = missingItems.subjects;
+        this.missingTeachers = missingItems.teachers;
+        this.missingBuildings = missingItems.buildings;
+        this.missingClassrooms = missingItems.classrooms;
+    }
+
+    private extractMissingCatalogItems(rows: UploadPreviewRow[]): {
+        subjects: MissingCatalogItem[];
+        teachers: MissingCatalogItem[];
+        buildings: MissingCatalogItem[];
+        classrooms: MissingCatalogItem[];
+    } {
+        const subjects = new Map<string, MissingCatalogItem>();
+        const teachers = new Map<string, MissingCatalogItem>();
+        const buildings = new Map<string, MissingCatalogItem>();
+        const classrooms = new Map<string, MissingCatalogItem>();
+
+        for (const row of rows) {
+            for (const error of row.errors) {
+                const subjectMatch = error.match(/^Materia no encontrada:\s*(.+)$/i);
+                if (subjectMatch) {
+                    this.registerMissingCatalogItem(subjects, {
+                        type: 'subject',
+                        key: this.buildCatalogKey(subjectMatch[1]),
+                        row,
+                        rowNumbers: [row.rowNumber],
+                    });
+                    continue;
+                }
+
+                const teacherMatch = error.match(/^Docente no encontrado:\s*(.+)$/i);
+                if (teacherMatch) {
+                    this.registerMissingCatalogItem(teachers, {
+                        type: 'teacher',
+                        key: this.buildCatalogKey(teacherMatch[1]),
+                        row,
+                        rowNumbers: [row.rowNumber],
+                    });
+                    continue;
+                }
+
+                const buildingMatch = error.match(/^Edificio no encontrado:\s*(.+)$/i);
+                if (buildingMatch) {
+                    this.registerMissingCatalogItem(buildings, {
+                        type: 'building',
+                        key: this.buildCatalogKey(buildingMatch[1]),
+                        row,
+                        rowNumbers: [row.rowNumber],
+                    });
+                    continue;
+                }
+
+                const classroomMatch = error.match(/^(?:Sal[oó]n|Aula) no encontrado:\s*(.+?)\s+en\s+(.+)$/i);
+                if (classroomMatch) {
+                    this.registerMissingCatalogItem(classrooms, {
+                        type: 'classroom',
+                        key: this.buildClassroomKey(classroomMatch[2], classroomMatch[1]),
+                        row,
+                        rowNumbers: [row.rowNumber],
+                    });
+                }
+            }
+        }
+
+        return {
+            subjects: [...subjects.values()],
+            teachers: [...teachers.values()],
+            buildings: [...buildings.values()],
+            classrooms: [...classrooms.values()],
+        };
+    }
+
+    private registerMissingCatalogItem(collection: Map<string, MissingCatalogItem>, item: MissingCatalogItem): void {
+        const existing = collection.get(item.key);
+        if (existing) {
+            existing.rowNumbers.push(...item.rowNumbers);
+            return;
+        }
+
+        collection.set(item.key, item);
+    }
+
+    private async loadCurrentCatalogState(): Promise<ExistingCatalogState> {
+        const [subjectsResponse, teachersResponse, buildingsResponse, classroomsResponse] = await Promise.all([
+            firstValueFrom(this.apollo.query<any>({ query: GET_SUBJECTS, fetchPolicy: 'network-only' })),
+            firstValueFrom(this.apollo.query<any>({ query: GET_TEACHERS, fetchPolicy: 'network-only' })),
+            firstValueFrom(this.apollo.query<any>({ query: GET_BUILDINGS, fetchPolicy: 'network-only' })),
+            firstValueFrom(this.apollo.query<any>({ query: GET_CLASSROOMS, fetchPolicy: 'network-only' })),
+        ]);
+
+        return {
+            subjects: new Map((subjectsResponse?.data?.GetSubjects ?? []).map((subject: any) => [this.buildCatalogKey(subject.code), Number(subject.id)])),
+            teachers: new Map((teachersResponse?.data?.GetTeachers ?? []).map((teacher: any) => [this.buildCatalogKey(teacher.employeeNumber), Number(teacher.id)])),
+            buildings: new Map((buildingsResponse?.data?.GetBuildings ?? []).map((building: any) => [this.buildCatalogKey(building.name), Number(building.id)])),
+            classrooms: new Map((classroomsResponse?.data?.GetClassrooms ?? []).map((classroom: any) => [this.buildClassroomKey(classroom.building?.name, classroom.name), Number(classroom.id)])),
+        };
+    }
+
+    private async createSubject(row: UploadPreviewRow): Promise<void> {
+        await firstValueFrom(this.apollo.mutate({
+            mutation: CREATE_SUBJECT,
+            variables: {
+                input: {
+                    code: row.claveMateria,
+                    name: row.materia,
+                    grade: row.grade ?? null,
+                    division: null,
+                },
+            },
+        }));
+    }
+
+    private async createTeacher(row: UploadPreviewRow): Promise<void> {
+        await firstValueFrom(this.apollo.mutate({
+            mutation: CREATE_TEACHER,
+            variables: {
+                input: {
+                    employeeNumber: row.noEmpleado,
+                    name: row.docente,
+                    email: null,
+                },
+            },
+        }));
+    }
+
+    private async createBuilding(name: string): Promise<number> {
+        const response = await firstValueFrom(this.apollo.mutate<any>({
+            mutation: CREATE_BUILDING,
+            variables: {
+                input: {
+                    name,
+                    description: null,
+                },
+            },
+        }));
+
+        const createdId = Number(response?.data?.CreateBuilding?.id ?? 0);
+        if (createdId > 0) {
+            return createdId;
+        }
+
+        const resolvedId = await this.findBuildingIdByName(name);
+        if (resolvedId !== null) {
+            return resolvedId;
+        }
+
+        throw new Error('No se pudo obtener el identificador del edificio creado.');
+    }
+
+    private async findBuildingIdByName(name: string): Promise<number | null> {
+        const response = await firstValueFrom(this.apollo.query<any>({
+            query: GET_BUILDINGS,
+            fetchPolicy: 'network-only',
+        }));
+
+        const building = (response?.data?.GetBuildings ?? []).find((item: any) => this.buildCatalogKey(item.name) === this.buildCatalogKey(name));
+        if (!building) {
+            return null;
+        }
+
+        const buildingId = Number(building.id);
+        return Number.isFinite(buildingId) && buildingId > 0 ? buildingId : null;
+    }
+
+    private async createClassroom(row: UploadPreviewRow, buildingId: number): Promise<void> {
+        await firstValueFrom(this.apollo.mutate({
+            mutation: CREATE_CLASSROOM,
+            variables: {
+                input: {
+                    name: row.aula,
+                    buildingId,
+                },
+            },
+        }));
+    }
+
+    private buildMissingCatalogSummary(): string {
+        const parts: string[] = [];
+
+        if (this.missingSubjects.length > 0) {
+            parts.push(this.buildCountLabel(this.missingSubjects.length, 'materia'));
+        }
+
+        if (this.missingTeachers.length > 0) {
+            parts.push(this.buildCountLabel(this.missingTeachers.length, 'docente'));
+        }
+
+        if (this.missingBuildings.length > 0) {
+            parts.push(this.buildCountLabel(this.missingBuildings.length, 'edificio'));
+        }
+
+        if (this.missingClassrooms.length > 0) {
+            parts.push(this.buildCountLabel(this.missingClassrooms.length, 'aula'));
+        }
+
+        return this.joinNaturalList(parts);
+    }
+
+    private buildCreatedSummary(counts: { subjects: number; teachers: number; buildings: number; classrooms: number; }): string {
+        const parts: string[] = [];
+
+        if (counts.subjects > 0) {
+            parts.push(this.buildCountLabel(counts.subjects, 'materia'));
+        }
+
+        if (counts.teachers > 0) {
+            parts.push(this.buildCountLabel(counts.teachers, 'docente'));
+        }
+
+        if (counts.buildings > 0) {
+            parts.push(this.buildCountLabel(counts.buildings, 'edificio'));
+        }
+
+        if (counts.classrooms > 0) {
+            parts.push(this.buildCountLabel(counts.classrooms, 'aula'));
+        }
+
+        return this.joinNaturalList(parts);
+    }
+
+    private buildCountLabel(count: number, singular: string): string {
+        return `${count} ${count === 1 ? singular : `${singular}s`}`;
+    }
+
+    private joinNaturalList(parts: string[]): string {
+        if (parts.length === 0) {
+            return 'ningún elemento';
+        }
+
+        if (parts.length === 1) {
+            return parts[0];
+        }
+
+        if (parts.length === 2) {
+            return `${parts[0]} y ${parts[1]}`;
+        }
+
+        return `${parts.slice(0, -1).join(', ')} y ${parts[parts.length - 1]}`;
+    }
+
+    private buildCatalogKey(value: string): string {
+        return normalizeCatalogText(value);
+    }
+
+    private buildClassroomKey(buildingName: string | null | undefined, classroomName: string): string {
+        return `${this.buildCatalogKey(buildingName ?? '')}::${this.buildCatalogKey(classroomName)}`;
+    }
+
+    private isDuplicateCatalogError(error: unknown): boolean {
+        const message = getGraphQLErrorMessage(error, '').toLowerCase();
+        return message.includes('ya existe');
     }
 
     Upload() {

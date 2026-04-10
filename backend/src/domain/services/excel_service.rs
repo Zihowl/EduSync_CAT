@@ -34,6 +34,7 @@ pub struct ExcelImportResult {
 }
 
 #[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SchedulePreviewRow {
     pub row_number: usize,
     pub clave_materia: String,
