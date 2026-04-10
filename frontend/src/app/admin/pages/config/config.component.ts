@@ -83,7 +83,7 @@ const SET_CURRENT_SCHOOL_YEAR = gql`
     template: `
         <app-page-header title="Configuración Global" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
-        <ion-content class="ion-padding config-content">
+        <ion-content class="config-content" [scrollY]="!isDesktopLayout">
             <div class="config-wrapper app-page-shell">
                 <div class="config-container">
                     <!-- SECCIÓN CICLO ESCOLAR -->
@@ -258,6 +258,11 @@ export class ConfigComponent implements OnInit
     private runInZone(action: () => void): void
     {
         this.ngZone.run(action);
+    }
+
+    get isDesktopLayout(): boolean
+    {
+        return typeof window !== 'undefined' && window.matchMedia('(min-width: 1200px)').matches;
     }
 
     formatConfiguredAt(value: string | Date | null | undefined): string

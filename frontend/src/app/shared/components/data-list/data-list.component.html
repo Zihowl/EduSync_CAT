@@ -16,13 +16,15 @@
         <!-- Has items -->
         <ion-card *ngIf="items.length > 0" [class]="cardClass">
             <p *ngIf="title" class="data-list__title">{{ resolvedTitle }}</p>
-            <ion-list class="data-list__list" lines="none">
-                <ng-container *ngFor="let item of items; let i = index; trackBy: trackByFn || defaultTrackBy">
-                    <ng-container
-                        *ngTemplateOutlet="itemTemplate; context: { $implicit: item, index: i }">
+            <div class="data-list__scroll">
+                <ion-list class="data-list__list" lines="none">
+                    <ng-container *ngFor="let item of items; let i = index; trackBy: trackByFn || defaultTrackBy">
+                        <ng-container
+                            *ngTemplateOutlet="itemTemplate; context: { $implicit: item, index: i }">
+                        </ng-container>
                     </ng-container>
-                </ng-container>
-            </ion-list>
+                </ion-list>
+            </div>
         </ion-card>
 
         <!-- Empty state -->
@@ -48,13 +50,15 @@
 
     <ng-container *ngIf="loaded">
         <p *ngIf="title" class="data-list__title">{{ resolvedTitle }}</p>
-        <ion-list class="data-list__list" lines="none">
-            <ng-container *ngFor="let item of items; let i = index; trackBy: trackByFn || defaultTrackBy">
-                <ng-container
-                    *ngTemplateOutlet="itemTemplate; context: { $implicit: item, index: i }">
+        <div class="data-list__scroll">
+            <ion-list class="data-list__list" lines="none">
+                <ng-container *ngFor="let item of items; let i = index; trackBy: trackByFn || defaultTrackBy">
+                    <ng-container
+                        *ngTemplateOutlet="itemTemplate; context: { $implicit: item, index: i }">
+                    </ng-container>
                 </ng-container>
-            </ng-container>
-        </ion-list>
+            </ion-list>
+        </div>
 
         <div *ngIf="items.length === 0" class="data-list__empty">
             <ion-icon [name]="emptyIcon"></ion-icon>

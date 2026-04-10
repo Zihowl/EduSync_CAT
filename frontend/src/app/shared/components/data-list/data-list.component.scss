@@ -33,6 +33,7 @@
 
   display: block;
   width: 100%;
+  min-height: 0;
 }
 
 /* ── Card surface (match parent's ion-card exactly) ────────────────── */
@@ -64,6 +65,21 @@ ion-card {
 ion-card-content {
   padding: var(--dl-card-padding);
   background: transparent;
+}
+
+/* ── Scrollable domains surface ───────────────────────────────────── */
+ion-card.domains-list-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+ion-card.domains-list-card .data-list__scroll {
+  max-height: min(34rem, calc(100dvh - 18rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ── Section title (uppercase label) ───────────────────────────────── */
@@ -187,6 +203,10 @@ ion-card-content {
 @media (max-width: 600px) {
   :host {
     --dl-card-padding: 0.95rem 0.9rem 1rem;
+  }
+
+  ion-card.domains-list-card .data-list__scroll {
+    max-height: min(28rem, calc(100dvh - 14rem));
   }
 
   .data-list__title {
