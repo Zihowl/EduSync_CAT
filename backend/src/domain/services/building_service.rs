@@ -29,7 +29,11 @@ impl BuildingService {
         self.repo.find_by_name(name).await
     }
 
-    pub async fn create(&self, name: &str, description: Option<&str>) -> Result<Building, DomainError> {
+    pub async fn create(
+        &self,
+        name: &str,
+        description: Option<&str>,
+    ) -> Result<Building, DomainError> {
         let name = normalize_required_text("Nombre del edificio", name)?;
         let description = normalize_optional_text(description);
 
@@ -39,7 +43,12 @@ impl BuildingService {
         self.repo.create(&name, description.as_deref()).await
     }
 
-    pub async fn update(&self, id: i32, name: Option<&str>, description: Option<Option<&str>>) -> Result<Building, DomainError> {
+    pub async fn update(
+        &self,
+        id: i32,
+        name: Option<&str>,
+        description: Option<Option<&str>>,
+    ) -> Result<Building, DomainError> {
         let mut current = self
             .repo
             .find_by_id(id)
@@ -63,7 +72,11 @@ impl BuildingService {
         }
 
         self.repo
-            .update(id, Some(&current.name), Some(current.description.as_deref()))
+            .update(
+                id,
+                Some(&current.name),
+                Some(current.description.as_deref()),
+            )
             .await
     }
 

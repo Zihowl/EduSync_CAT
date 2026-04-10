@@ -6,8 +6,7 @@ use crate::{
     adapters::{
         auth::middleware::require_admin,
         graphql::{
-            inputs::schedule_input::ScheduleFilterInput,
-            schema::to_gql_error,
+            inputs::schedule_input::ScheduleFilterInput, schema::to_gql_error,
             types::schedule_slot_type::ScheduleSlotType,
         },
     },
@@ -53,7 +52,11 @@ impl ScheduleQuery {
     }
 
     #[graphql(name = "GetSchedule")]
-    async fn get_schedule(&self, ctx: &Context<'_>, id: i32) -> async_graphql::Result<Option<ScheduleSlotType>> {
+    async fn get_schedule(
+        &self,
+        ctx: &Context<'_>,
+        id: i32,
+    ) -> async_graphql::Result<Option<ScheduleSlotType>> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<ScheduleService>>()?;
         svc.find_one(id)

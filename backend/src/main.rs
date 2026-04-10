@@ -7,8 +7,14 @@ use std::{net::SocketAddr, sync::Arc};
 
 use adapters::{
     auth::middleware::read_active_auth_user_from_headers,
-    graphql::{realtime::RealtimeBroadcaster, schema::{build_schema, AppSchema}},
-    rest::{public_schedules, upload_handler::{preview_schedule_upload, upload_schedule}},
+    graphql::{
+        realtime::RealtimeBroadcaster,
+        schema::{build_schema, AppSchema},
+    },
+    rest::{
+        public_schedules,
+        upload_handler::{preview_schedule_upload, upload_schedule},
+    },
 };
 use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
@@ -21,47 +27,33 @@ use axum::{
     Extension, Router,
 };
 use config::AppConfig;
-use rand::prelude::{IndexedRandom, SliceRandom};
-use rand::RngExt;
 use domain::{
     ports::{
         allowed_domain_repository::AllowedDomainRepository,
-        audit_log_repository::AuditLogRepository,
-        building_repository::BuildingRepository,
-        classroom_repository::ClassroomRepository,
-        group_repository::GroupRepository,
+        audit_log_repository::AuditLogRepository, building_repository::BuildingRepository,
+        classroom_repository::ClassroomRepository, group_repository::GroupRepository,
         schedule_slot_repository::ScheduleSlotRepository,
-        school_year_repository::SchoolYearRepository,
-        subject_repository::SubjectRepository,
-        teacher_repository::TeacherRepository,
-        user_repository::UserRepository,
+        school_year_repository::SchoolYearRepository, subject_repository::SubjectRepository,
+        teacher_repository::TeacherRepository, user_repository::UserRepository,
     },
     services::{
-        auth_service::AuthService,
-        building_service::BuildingService,
-        classroom_service::ClassroomService,
-        config_service::ConfigService,
-        excel_service::ExcelService,
-        group_service::GroupService,
-        schedule_service::ScheduleService,
-        subject_service::SubjectService,
-        teacher_service::TeacherService,
-        user_service::UserService,
+        auth_service::AuthService, building_service::BuildingService,
+        classroom_service::ClassroomService, config_service::ConfigService,
+        excel_service::ExcelService, group_service::GroupService,
+        schedule_service::ScheduleService, subject_service::SubjectService,
+        teacher_service::TeacherService, user_service::UserService,
     },
 };
-use infrastructure::persistence::{
-    pg_allowed_domain_repo::PgAllowedDomainRepository,
-    pg_audit_log_repo::PgAuditLogRepository,
-    pg_building_repo::PgBuildingRepository,
-    pg_classroom_repo::PgClassroomRepository,
-    pg_group_repo::PgGroupRepository,
-    pg_schedule_slot_repo::PgScheduleSlotRepository,
-    pg_school_year_repo::PgSchoolYearRepository,
-    pg_subject_repo::PgSubjectRepository,
-    pg_teacher_repo::PgTeacherRepository,
-    pg_user_repo::PgUserRepository,
-};
 use infrastructure::email::brevo_sender::BrevoEmailSender;
+use infrastructure::persistence::{
+    pg_allowed_domain_repo::PgAllowedDomainRepository, pg_audit_log_repo::PgAuditLogRepository,
+    pg_building_repo::PgBuildingRepository, pg_classroom_repo::PgClassroomRepository,
+    pg_group_repo::PgGroupRepository, pg_schedule_slot_repo::PgScheduleSlotRepository,
+    pg_school_year_repo::PgSchoolYearRepository, pg_subject_repo::PgSubjectRepository,
+    pg_teacher_repo::PgTeacherRepository, pg_user_repo::PgUserRepository,
+};
+use rand::prelude::{IndexedRandom, SliceRandom};
+use rand::RngExt;
 use sqlx::PgPool;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -83,7 +75,9 @@ pub struct AppState {
 async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
     tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
+        )
         .init();
 
     let config = Arc::new(AppConfig::from_env());
@@ -94,14 +88,19 @@ async fn main() -> anyhow::Result<()> {
     let user_repo: Arc<dyn UserRepository> = Arc::new(PgUserRepository::new(pool.clone()));
     let allowed_domain_repo: Arc<dyn AllowedDomainRepository> =
         Arc::new(PgAllowedDomainRepository::new(pool.clone()));
-    let audit_log_repo: Arc<dyn AuditLogRepository> = Arc::new(PgAuditLogRepository::new(pool.clone()));
-    let school_year_repo: Arc<dyn SchoolYearRepository> = Arc::new(PgSchoolYearRepository::new(pool.clone()));
+    let audit_log_repo: Arc<dyn AuditLogRepository> =
+        Arc::new(PgAuditLogRepository::new(pool.clone()));
+    let school_year_repo: Arc<dyn SchoolYearRepository> =
+        Arc::new(PgSchoolYearRepository::new(pool.clone()));
     let teacher_repo: Arc<dyn TeacherRepository> = Arc::new(PgTeacherRepository::new(pool.clone()));
     let subject_repo: Arc<dyn SubjectRepository> = Arc::new(PgSubjectRepository::new(pool.clone()));
-    let building_repo: Arc<dyn BuildingRepository> = Arc::new(PgBuildingRepository::new(pool.clone()));
-    let classroom_repo: Arc<dyn ClassroomRepository> = Arc::new(PgClassroomRepository::new(pool.clone()));
+    let building_repo: Arc<dyn BuildingRepository> =
+        Arc::new(PgBuildingRepository::new(pool.clone()));
+    let classroom_repo: Arc<dyn ClassroomRepository> =
+        Arc::new(PgClassroomRepository::new(pool.clone()));
     let group_repo: Arc<dyn GroupRepository> = Arc::new(PgGroupRepository::new(pool.clone()));
-    let schedule_repo: Arc<dyn ScheduleSlotRepository> = Arc::new(PgScheduleSlotRepository::new(pool.clone()));
+    let schedule_repo: Arc<dyn ScheduleSlotRepository> =
+        Arc::new(PgScheduleSlotRepository::new(pool.clone()));
 
     genesis_protocol(user_repo.clone()).await?;
 
@@ -127,7 +126,10 @@ async fn main() -> anyhow::Result<()> {
         config.jwt_secret.clone(),
         config.jwt_expires_in_secs,
     ));
-    let config_service = Arc::new(ConfigService::new(allowed_domain_repo.clone(), school_year_repo.clone()));
+    let config_service = Arc::new(ConfigService::new(
+        allowed_domain_repo.clone(),
+        school_year_repo.clone(),
+    ));
     let teacher_service = Arc::new(TeacherService::new(teacher_repo.clone()));
     let subject_service = Arc::new(SubjectService::new(subject_repo.clone()));
     let building_service = Arc::new(BuildingService::new(building_repo.clone()));
@@ -189,7 +191,10 @@ async fn main() -> anyhow::Result<()> {
             get_service(GraphQLSubscription::new(state.schema.clone())),
         )
         .route("/academic/upload-schedule", post(upload_schedule))
-        .route("/academic/upload-schedule/preview", post(preview_schedule_upload))
+        .route(
+            "/academic/upload-schedule/preview",
+            post(preview_schedule_upload),
+        )
         .route("/public/schedules", get(public_schedules))
         .layer(Extension(config.clone()))
         .layer(cors)
@@ -210,7 +215,9 @@ async fn graphql_handler(
     req: GraphQLRequest,
 ) -> GraphQLResponse {
     let mut request = req.into_inner();
-    if let Some(auth_user) = read_active_auth_user_from_headers(&headers, &state.config, state.user_repo.clone()).await {
+    if let Some(auth_user) =
+        read_active_auth_user_from_headers(&headers, &state.config, state.user_repo.clone()).await
+    {
         request = request.data(auth_user);
     }
 
@@ -309,7 +316,11 @@ fn hash_password(password: &str) -> anyhow::Result<String> {
     Argon2::default()
         .hash_password(password.as_bytes(), &salt)
         .map(|h| h.to_string())
-        .map_err(|e| anyhow::Error::msg(format!("Error al generar el hash de la contraseña de Génesis: {e}")))
+        .map_err(|e| {
+            anyhow::Error::msg(format!(
+                "Error al generar el hash de la contraseña de Génesis: {e}"
+            ))
+        })
 }
 
 fn build_cors_layer(cors_origin: &str) -> anyhow::Result<CorsLayer> {
@@ -346,14 +357,19 @@ fn spawn_audit_retention_task(audit_repo: Arc<dyn AuditLogRepository>) {
             tracing::warn!(error = %err, months = RETENTION_MONTHS, "AUDITORÍA: limpieza inicial de retención fallida");
         }
 
-        let mut interval = tokio::time::interval(std::time::Duration::from_secs(RETENTION_INTERVAL_SECS));
+        let mut interval =
+            tokio::time::interval(std::time::Duration::from_secs(RETENTION_INTERVAL_SECS));
 
         loop {
             interval.tick().await;
 
             match audit_repo.delete_older_than_months(RETENTION_MONTHS).await {
                 Ok(removed) => {
-                    tracing::info!(removed, months = RETENTION_MONTHS, "AUDITORÍA: limpieza de retención completada");
+                    tracing::info!(
+                        removed,
+                        months = RETENTION_MONTHS,
+                        "AUDITORÍA: limpieza de retención completada"
+                    );
                 }
                 Err(err) => {
                     tracing::warn!(error = %err, months = RETENTION_MONTHS, "AUDITORÍA: limpieza de retención fallida");

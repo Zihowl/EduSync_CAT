@@ -21,10 +21,15 @@ pub struct TeacherMutation;
 #[Object]
 impl TeacherMutation {
     #[graphql(name = "CreateTeacher")]
-    async fn create_teacher(&self, ctx: &Context<'_>, input: CreateTeacherInput) -> async_graphql::Result<TeacherType> {
+    async fn create_teacher(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateTeacherInput,
+    ) -> async_graphql::Result<TeacherType> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<TeacherService>>()?;
-        let result = svc.create(&input.employee_number, &input.name, input.email.as_deref())
+        let result = svc
+            .create(&input.employee_number, &input.name, input.email.as_deref())
             .await
             .map(Into::into)
             .map_err(to_gql_error);
@@ -35,18 +40,23 @@ impl TeacherMutation {
     }
 
     #[graphql(name = "UpdateTeacher")]
-    async fn update_teacher(&self, ctx: &Context<'_>, input: UpdateTeacherInput) -> async_graphql::Result<TeacherType> {
+    async fn update_teacher(
+        &self,
+        ctx: &Context<'_>,
+        input: UpdateTeacherInput,
+    ) -> async_graphql::Result<TeacherType> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<TeacherService>>()?;
-        let result = svc.update(
-            input.id,
-            input.employee_number.as_deref(),
-            input.name.as_deref(),
-            Some(input.email.as_deref()),
-        )
-        .await
-        .map(Into::into)
-        .map_err(to_gql_error);
+        let result = svc
+            .update(
+                input.id,
+                input.employee_number.as_deref(),
+                input.name.as_deref(),
+                Some(input.email.as_deref()),
+            )
+            .await
+            .map(Into::into)
+            .map_err(to_gql_error);
         if result.is_ok() {
             publish_realtime_event(ctx, &[RealtimeScope::Teachers, RealtimeScope::Schedules]);
         }

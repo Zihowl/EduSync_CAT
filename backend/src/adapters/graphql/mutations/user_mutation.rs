@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use async_graphql::{Context, ID, Object};
+use async_graphql::{Context, Object, ID};
 use serde_json::json;
 use uuid::Uuid;
 
@@ -24,7 +24,11 @@ pub struct UserMutation;
 #[Object]
 impl UserMutation {
     #[graphql(name = "CreateAdmin")]
-    async fn create_admin(&self, ctx: &Context<'_>, input: CreateAdminInput) -> async_graphql::Result<UserType> {
+    async fn create_admin(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateAdminInput,
+    ) -> async_graphql::Result<UserType> {
         let auth_user = require_super_admin(ctx)?;
         let svc = ctx.data::<Arc<UserService>>()?;
         let result: async_graphql::Result<UserType> = svc
@@ -47,7 +51,8 @@ impl UserMutation {
                         "role": "ADMIN_HORARIOS",
                         "is_temp_password": true
                     }),
-                ).await;
+                )
+                .await;
             }
 
             publish_realtime_event(ctx, &[RealtimeScope::Users]);
@@ -57,7 +62,11 @@ impl UserMutation {
     }
 
     #[graphql(name = "DisableAdminAccess")]
-    async fn disable_admin_access(&self, ctx: &Context<'_>, user_id: ID) -> async_graphql::Result<UserType> {
+    async fn disable_admin_access(
+        &self,
+        ctx: &Context<'_>,
+        user_id: ID,
+    ) -> async_graphql::Result<UserType> {
         let auth_user = require_super_admin(ctx)?;
         let svc = ctx.data::<Arc<UserService>>()?;
         let target_user_id = Uuid::parse_str(user_id.as_str())
@@ -81,7 +90,8 @@ impl UserMutation {
                         "email": user.email,
                         "is_active": false
                     }),
-                ).await;
+                )
+                .await;
             }
 
             publish_realtime_event(ctx, &[RealtimeScope::Users]);
@@ -91,7 +101,11 @@ impl UserMutation {
     }
 
     #[graphql(name = "ReactivateAdminAccess")]
-    async fn reactivate_admin_access(&self, ctx: &Context<'_>, user_id: ID) -> async_graphql::Result<UserType> {
+    async fn reactivate_admin_access(
+        &self,
+        ctx: &Context<'_>,
+        user_id: ID,
+    ) -> async_graphql::Result<UserType> {
         let auth_user = require_super_admin(ctx)?;
         let svc = ctx.data::<Arc<UserService>>()?;
         let target_user_id = Uuid::parse_str(user_id.as_str())
@@ -115,7 +129,8 @@ impl UserMutation {
                         "email": user.email,
                         "is_active": true
                     }),
-                ).await;
+                )
+                .await;
             }
 
             publish_realtime_event(ctx, &[RealtimeScope::Users]);
@@ -125,7 +140,11 @@ impl UserMutation {
     }
 
     #[graphql(name = "ForceResetAdminPassword")]
-    async fn force_reset_admin_password(&self, ctx: &Context<'_>, user_id: ID) -> async_graphql::Result<UserType> {
+    async fn force_reset_admin_password(
+        &self,
+        ctx: &Context<'_>,
+        user_id: ID,
+    ) -> async_graphql::Result<UserType> {
         let auth_user = require_super_admin(ctx)?;
         let svc = ctx.data::<Arc<UserService>>()?;
         let target_user_id = Uuid::parse_str(user_id.as_str())
@@ -150,7 +169,8 @@ impl UserMutation {
                         "is_temp_password": true,
                         "reset_requested": true
                     }),
-                ).await;
+                )
+                .await;
             }
 
             publish_realtime_event(ctx, &[RealtimeScope::Users]);

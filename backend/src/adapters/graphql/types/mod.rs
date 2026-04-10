@@ -1,6 +1,6 @@
 pub mod allowed_domain_type;
-pub mod auth_types;
 pub mod audit_log_type;
+pub mod auth_types;
 pub mod building_type;
 pub mod classroom_type;
 pub mod group_type;

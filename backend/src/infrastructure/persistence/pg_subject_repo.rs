@@ -2,9 +2,7 @@ use async_trait::async_trait;
 use sqlx::{FromRow, PgPool};
 
 use crate::domain::{
-    errors::DomainError,
-    models::subject::Subject,
-    ports::subject_repository::SubjectRepository,
+    errors::DomainError, models::subject::Subject, ports::subject_repository::SubjectRepository,
 };
 
 #[derive(Clone)]
@@ -46,28 +44,34 @@ fn map_sqlx(e: sqlx::Error) -> DomainError {
 #[async_trait]
 impl SubjectRepository for PgSubjectRepository {
     async fn find_all(&self) -> Result<Vec<Subject>, DomainError> {
-        let rows = sqlx::query_as::<_, SubjectRow>("SELECT id, code, name, grade, division FROM subjects ORDER BY id DESC")
-            .fetch_all(&self.pool)
-            .await
-            .map_err(map_sqlx)?;
+        let rows = sqlx::query_as::<_, SubjectRow>(
+            "SELECT id, code, name, grade, division FROM subjects ORDER BY id DESC",
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
     async fn find_by_id(&self, id: i32) -> Result<Option<Subject>, DomainError> {
-        let row = sqlx::query_as::<_, SubjectRow>("SELECT id, code, name, grade, division FROM subjects WHERE id = $1")
-            .bind(id)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(map_sqlx)?;
+        let row = sqlx::query_as::<_, SubjectRow>(
+            "SELECT id, code, name, grade, division FROM subjects WHERE id = $1",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
         Ok(row.map(Into::into))
     }
 
     async fn find_by_code(&self, code: &str) -> Result<Option<Subject>, DomainError> {
-        let row = sqlx::query_as::<_, SubjectRow>("SELECT id, code, name, grade, division FROM subjects WHERE code = $1")
-            .bind(code)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(map_sqlx)?;
+        let row = sqlx::query_as::<_, SubjectRow>(
+            "SELECT id, code, name, grade, division FROM subjects WHERE code = $1",
+        )
+        .bind(code)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
         Ok(row.map(Into::into))
     }
 

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use async_graphql::{ComplexObject, Context, ID, SimpleObject};
+use async_graphql::{ComplexObject, Context, SimpleObject, ID};
 
 use crate::domain::models::group::Group;
 use crate::domain::services::group_service::GroupService;

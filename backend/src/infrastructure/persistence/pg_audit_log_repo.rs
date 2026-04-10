@@ -51,10 +51,15 @@ impl From<AuditLogRow> for AuditLog {
 }
 
 fn map_sqlx(e: sqlx::Error) -> DomainError {
-    DomainError::Internal(format!("Error de base de datos en registros de auditoría: {e}"))
+    DomainError::Internal(format!(
+        "Error de base de datos en registros de auditoría: {e}"
+    ))
 }
 
-fn apply_filters<'a>(mut builder: QueryBuilder<'a, Postgres>, filter: &'a AuditLogFilter) -> QueryBuilder<'a, Postgres> {
+fn apply_filters<'a>(
+    mut builder: QueryBuilder<'a, Postgres>,
+    filter: &'a AuditLogFilter,
+) -> QueryBuilder<'a, Postgres> {
     builder.push(" WHERE 1 = 1");
 
     if let Some(action) = filter.action.as_deref() {
@@ -62,7 +67,9 @@ fn apply_filters<'a>(mut builder: QueryBuilder<'a, Postgres>, filter: &'a AuditL
     }
 
     if let Some(resource_type) = filter.resource_type.as_deref() {
-        builder.push(" AND resource_type = ").push_bind(resource_type);
+        builder
+            .push(" AND resource_type = ")
+            .push_bind(resource_type);
     }
 
     if let Some(resource_id) = filter.resource_id.as_deref() {
@@ -79,7 +86,9 @@ fn apply_filters<'a>(mut builder: QueryBuilder<'a, Postgres>, filter: &'a AuditL
     }
 
     if let Some(from_date) = filter.from_date {
-        builder.push(" AND created_at::date >= ").push_bind(from_date);
+        builder
+            .push(" AND created_at::date >= ")
+            .push_bind(from_date);
     }
 
     if let Some(to_date) = filter.to_date {
@@ -88,7 +97,8 @@ fn apply_filters<'a>(mut builder: QueryBuilder<'a, Postgres>, filter: &'a AuditL
 
     if let Some(search) = filter.search.as_deref() {
         let pattern = format!("%{}%", search.trim());
-        builder.push(" AND (")
+        builder
+            .push(" AND (")
             .push("action ILIKE ")
             .push_bind(pattern.clone())
             .push(" OR resource_type ILIKE ")
@@ -132,7 +142,10 @@ impl AuditLogRepository for PgAuditLogRepository {
         let limit = filter.limit.unwrap_or(25).clamp(1, 100);
         let offset = (page - 1) * limit;
 
-        let mut count_builder = apply_filters(QueryBuilder::<Postgres>::new("SELECT COUNT(*) FROM audit_logs"), &filter);
+        let mut count_builder = apply_filters(
+            QueryBuilder::<Postgres>::new("SELECT COUNT(*) FROM audit_logs"),
+            &filter,
+        );
         let total_count: i64 = count_builder
             .build_query_scalar()
             .fetch_one(&self.pool)
@@ -164,11 +177,13 @@ impl AuditLogRepository for PgAuditLogRepository {
     }
 
     async fn delete_older_than_months(&self, months: i32) -> Result<u64, DomainError> {
-        let result = sqlx::query("DELETE FROM audit_logs WHERE created_at < NOW() - ($1 * INTERVAL '1 month')")
-            .bind(months.max(0))
-            .execute(&self.pool)
-            .await
-            .map_err(map_sqlx)?;
+        let result = sqlx::query(
+            "DELETE FROM audit_logs WHERE created_at < NOW() - ($1 * INTERVAL '1 month')",
+        )
+        .bind(months.max(0))
+        .execute(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
 
         Ok(result.rows_affected())
     }

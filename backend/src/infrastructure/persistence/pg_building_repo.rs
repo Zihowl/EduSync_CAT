@@ -2,9 +2,7 @@ use async_trait::async_trait;
 use sqlx::{FromRow, PgPool};
 
 use crate::domain::{
-    errors::DomainError,
-    models::building::Building,
-    ports::building_repository::BuildingRepository,
+    errors::DomainError, models::building::Building, ports::building_repository::BuildingRepository,
 };
 
 #[derive(Clone)]
@@ -42,28 +40,34 @@ fn map_sqlx(e: sqlx::Error) -> DomainError {
 #[async_trait]
 impl BuildingRepository for PgBuildingRepository {
     async fn find_all(&self) -> Result<Vec<Building>, DomainError> {
-        let rows = sqlx::query_as::<_, BuildingRow>("SELECT id, name, description FROM buildings ORDER BY id DESC")
-            .fetch_all(&self.pool)
-            .await
-            .map_err(map_sqlx)?;
+        let rows = sqlx::query_as::<_, BuildingRow>(
+            "SELECT id, name, description FROM buildings ORDER BY id DESC",
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
     async fn find_by_id(&self, id: i32) -> Result<Option<Building>, DomainError> {
-        let row = sqlx::query_as::<_, BuildingRow>("SELECT id, name, description FROM buildings WHERE id = $1")
-            .bind(id)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(map_sqlx)?;
+        let row = sqlx::query_as::<_, BuildingRow>(
+            "SELECT id, name, description FROM buildings WHERE id = $1",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
         Ok(row.map(Into::into))
     }
 
     async fn find_by_name(&self, name: &str) -> Result<Option<Building>, DomainError> {
-        let row = sqlx::query_as::<_, BuildingRow>("SELECT id, name, description FROM buildings WHERE name = $1")
-            .bind(name)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(map_sqlx)?;
+        let row = sqlx::query_as::<_, BuildingRow>(
+            "SELECT id, name, description FROM buildings WHERE name = $1",
+        )
+        .bind(name)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
         Ok(row.map(Into::into))
     }
 
@@ -79,7 +83,12 @@ impl BuildingRepository for PgBuildingRepository {
         Ok(row.into())
     }
 
-    async fn update(&self, id: i32, name: Option<&str>, description: Option<Option<&str>>) -> Result<Building, DomainError> {
+    async fn update(
+        &self,
+        id: i32,
+        name: Option<&str>,
+        description: Option<Option<&str>>,
+    ) -> Result<Building, DomainError> {
         let mut current = self
             .find_by_id(id)
             .await?

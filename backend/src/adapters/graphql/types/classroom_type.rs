@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use async_graphql::{ComplexObject, Context, ID, SimpleObject};
+use async_graphql::{ComplexObject, Context, SimpleObject, ID};
 
 use crate::adapters::graphql::types::building_type::BuildingType;
 use crate::domain::models::classroom::Classroom;

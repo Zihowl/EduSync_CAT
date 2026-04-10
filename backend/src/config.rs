@@ -30,11 +30,14 @@ impl AppConfig {
         Self {
             app_host: env::var("APP_HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),
             app_port,
-            database_url: env::var("DATABASE_URL")
-                .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/edusync_db".to_string()),
-            jwt_secret: env::var("JWT_SECRET").unwrap_or_else(|_| "SUPER_SECRET_KEY_DEV_ONLY".to_string()),
+            database_url: env::var("DATABASE_URL").unwrap_or_else(|_| {
+                "postgres://postgres:postgres@localhost:5432/edusync_db".to_string()
+            }),
+            jwt_secret: env::var("JWT_SECRET")
+                .unwrap_or_else(|_| "SUPER_SECRET_KEY_DEV_ONLY".to_string()),
             jwt_expires_in_secs,
-            cors_origin: env::var("CORS_ORIGIN").unwrap_or_else(|_| "http://localhost:8100".to_string()),
+            cors_origin: env::var("CORS_ORIGIN")
+                .unwrap_or_else(|_| "http://localhost:8100".to_string()),
             brevo_api_key: env::var("BREVO_API_KEY").unwrap_or_default(),
             brevo_sender_email: env::var("BREVO_SENDER_EMAIL").unwrap_or_default(),
             brevo_sender_name: Self::read_brevo_sender_name(),

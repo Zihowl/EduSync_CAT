@@ -11,9 +11,10 @@ use super::{
         user_mutation::UserMutation,
     },
     queries::{
-        audit_log_query::AuditLogQuery, building_query::BuildingQuery, classroom_query::ClassroomQuery,
-        config_query::ConfigQuery, group_query::GroupQuery, schedule_query::ScheduleQuery,
-        subject_query::SubjectQuery, teacher_query::TeacherQuery, user_query::UserQuery,
+        audit_log_query::AuditLogQuery, building_query::BuildingQuery,
+        classroom_query::ClassroomQuery, config_query::ConfigQuery, group_query::GroupQuery,
+        schedule_query::ScheduleQuery, subject_query::SubjectQuery, teacher_query::TeacherQuery,
+        user_query::UserQuery,
     },
     realtime::RealtimeSubscription,
 };

@@ -2,8 +2,7 @@ use async_trait::async_trait;
 use sqlx::{FromRow, PgPool};
 
 use crate::domain::{
-    errors::DomainError,
-    models::allowed_domain::AllowedDomain,
+    errors::DomainError, models::allowed_domain::AllowedDomain,
     ports::allowed_domain_repository::AllowedDomainRepository,
 };
 
@@ -26,30 +25,39 @@ struct AllowedDomainRow {
 
 impl From<AllowedDomainRow> for AllowedDomain {
     fn from(v: AllowedDomainRow) -> Self {
-        Self { id: v.id, domain: v.domain }
+        Self {
+            id: v.id,
+            domain: v.domain,
+        }
     }
 }
 
 fn map_sqlx(e: sqlx::Error) -> DomainError {
-    DomainError::Internal(format!("Error de base de datos en dominios permitidos: {e}"))
+    DomainError::Internal(format!(
+        "Error de base de datos en dominios permitidos: {e}"
+    ))
 }
 
 #[async_trait]
 impl AllowedDomainRepository for PgAllowedDomainRepository {
     async fn find_all(&self) -> Result<Vec<AllowedDomain>, DomainError> {
-        let rows = sqlx::query_as::<_, AllowedDomainRow>("SELECT id, domain FROM allowed_domains ORDER BY id DESC")
-            .fetch_all(&self.pool)
-            .await
-            .map_err(map_sqlx)?;
+        let rows = sqlx::query_as::<_, AllowedDomainRow>(
+            "SELECT id, domain FROM allowed_domains ORDER BY id DESC",
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
     async fn find_by_domain(&self, domain: &str) -> Result<Option<AllowedDomain>, DomainError> {
-        let row = sqlx::query_as::<_, AllowedDomainRow>("SELECT id, domain FROM allowed_domains WHERE domain = $1")
-            .bind(domain)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(map_sqlx)?;
+        let row = sqlx::query_as::<_, AllowedDomainRow>(
+            "SELECT id, domain FROM allowed_domains WHERE domain = $1",
+        )
+        .bind(domain)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
         Ok(row.map(Into::into))
     }
 

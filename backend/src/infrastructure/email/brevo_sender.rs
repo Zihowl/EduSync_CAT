@@ -118,7 +118,9 @@ impl EmailSender for BrevoEmailSender {
             .json(&payload)
             .send()
             .await
-            .map_err(|error| DomainError::Internal(format!("No se pudo conectar con Brevo: {error}")))?;
+            .map_err(|error| {
+                DomainError::Internal(format!("No se pudo conectar con Brevo: {error}"))
+            })?;
 
         let status = response.status();
         if !status.is_success() {
@@ -141,6 +143,8 @@ mod tests {
         assert!(BrevoEmailSender::is_test_recipient("admin@example.test"));
         assert!(BrevoEmailSender::is_test_recipient("ADMIN@EXAMPLE.TEST"));
         assert!(!BrevoEmailSender::is_test_recipient("admin@example.com"));
-        assert!(!BrevoEmailSender::is_test_recipient("admin@example.test.mx"));
+        assert!(!BrevoEmailSender::is_test_recipient(
+            "admin@example.test.mx"
+        ));
     }
 }

@@ -2,9 +2,7 @@ use async_trait::async_trait;
 use sqlx::{FromRow, PgPool};
 
 use crate::domain::{
-    errors::DomainError,
-    models::group::Group,
-    ports::group_repository::GroupRepository,
+    errors::DomainError, models::group::Group, ports::group_repository::GroupRepository,
 };
 
 #[derive(Clone)]
@@ -42,23 +40,31 @@ fn map_sqlx(e: sqlx::Error) -> DomainError {
 #[async_trait]
 impl GroupRepository for PgGroupRepository {
     async fn find_all(&self) -> Result<Vec<Group>, DomainError> {
-        let rows = sqlx::query_as::<_, GroupRow>("SELECT id, name, parent_id FROM \"groups\" ORDER BY id DESC")
-            .fetch_all(&self.pool)
-            .await
-            .map_err(map_sqlx)?;
+        let rows = sqlx::query_as::<_, GroupRow>(
+            "SELECT id, name, parent_id FROM \"groups\" ORDER BY id DESC",
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
     async fn find_by_id(&self, id: i32) -> Result<Option<Group>, DomainError> {
-        let row = sqlx::query_as::<_, GroupRow>("SELECT id, name, parent_id FROM \"groups\" WHERE id = $1")
-            .bind(id)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(map_sqlx)?;
+        let row = sqlx::query_as::<_, GroupRow>(
+            "SELECT id, name, parent_id FROM \"groups\" WHERE id = $1",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
         Ok(row.map(Into::into))
     }
 
-    async fn find_by_name_and_parent(&self, name: &str, parent_id: Option<i32>) -> Result<Option<Group>, DomainError> {
+    async fn find_by_name_and_parent(
+        &self,
+        name: &str,
+        parent_id: Option<i32>,
+    ) -> Result<Option<Group>, DomainError> {
         let row = sqlx::query_as::<_, GroupRow>(
             "SELECT id, name, parent_id FROM \"groups\" WHERE name = $1 AND parent_id IS NOT DISTINCT FROM $2",
         )
@@ -82,7 +88,12 @@ impl GroupRepository for PgGroupRepository {
         Ok(row.into())
     }
 
-    async fn update(&self, id: i32, name: Option<&str>, parent_id: Option<Option<i32>>) -> Result<Group, DomainError> {
+    async fn update(
+        &self,
+        id: i32,
+        name: Option<&str>,
+        parent_id: Option<Option<i32>>,
+    ) -> Result<Group, DomainError> {
         let mut current = self
             .find_by_id(id)
             .await?

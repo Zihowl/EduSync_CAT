@@ -1,9 +1,12 @@
 use std::sync::Arc;
 
-use async_graphql::{Context, Object, Error as GqlError};
+use async_graphql::{Context, Error as GqlError, Object};
 
 use crate::{
-    adapters::{auth::middleware::{require_admin, AuthUser}, graphql::{schema::to_gql_error, types::user_type::UserType}},
+    adapters::{
+        auth::middleware::{require_admin, AuthUser},
+        graphql::{schema::to_gql_error, types::user_type::UserType},
+    },
     domain::services::user_service::UserService,
 };
 
@@ -28,14 +31,14 @@ impl UserQuery {
             .data_opt::<AuthUser>()
             .cloned()
             .ok_or_else(|| GqlError::new("No autorizado"))?;
-        
+
         let svc = ctx.data::<Arc<UserService>>()?;
-        
+
         match svc.find_by_id(auth_user.user_id).await {
             Ok(Some(user)) if user.is_active => Ok(user.into()),
             Ok(Some(_)) => Err(GqlError::new("Cuenta inactiva")),
             Ok(None) => Err(GqlError::new("Usuario no encontrado")),
-            Err(e) => Err(to_gql_error(e))
+            Err(e) => Err(to_gql_error(e)),
         }
     }
 }

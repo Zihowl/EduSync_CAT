@@ -3,7 +3,10 @@ use std::sync::Arc;
 use async_graphql::{Context, Object};
 
 use crate::{
-    adapters::{auth::middleware::require_admin, graphql::{schema::to_gql_error, types::subject_type::SubjectType}},
+    adapters::{
+        auth::middleware::require_admin,
+        graphql::{schema::to_gql_error, types::subject_type::SubjectType},
+    },
     domain::services::subject_service::SubjectService,
 };
 
@@ -23,7 +26,11 @@ impl SubjectQuery {
     }
 
     #[graphql(name = "GetSubject")]
-    async fn get_subject(&self, ctx: &Context<'_>, id: i32) -> async_graphql::Result<Option<SubjectType>> {
+    async fn get_subject(
+        &self,
+        ctx: &Context<'_>,
+        id: i32,
+    ) -> async_graphql::Result<Option<SubjectType>> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<SubjectService>>()?;
         svc.find_one(id)

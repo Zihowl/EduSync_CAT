@@ -1,9 +1,15 @@
 use std::sync::Arc;
 
-use async_graphql::{ComplexObject, Context, ID, SimpleObject};
+use async_graphql::{ComplexObject, Context, SimpleObject, ID};
 
-use crate::adapters::graphql::types::{classroom_type::ClassroomType, group_type::GroupType, subject_type::SubjectType, teacher_type::TeacherType};
-use crate::domain::services::{classroom_service::ClassroomService, group_service::GroupService, subject_service::SubjectService, teacher_service::TeacherService};
+use crate::adapters::graphql::types::{
+    classroom_type::ClassroomType, group_type::GroupType, subject_type::SubjectType,
+    teacher_type::TeacherType,
+};
+use crate::domain::services::{
+    classroom_service::ClassroomService, group_service::GroupService,
+    subject_service::SubjectService, teacher_service::TeacherService,
+};
 
 #[derive(SimpleObject, Clone)]
 #[graphql(complex)]

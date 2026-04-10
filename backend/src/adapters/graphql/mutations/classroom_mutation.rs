@@ -21,10 +21,15 @@ pub struct ClassroomMutation;
 #[Object]
 impl ClassroomMutation {
     #[graphql(name = "CreateClassroom")]
-    async fn create_classroom(&self, ctx: &Context<'_>, input: CreateClassroomInput) -> async_graphql::Result<ClassroomType> {
+    async fn create_classroom(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateClassroomInput,
+    ) -> async_graphql::Result<ClassroomType> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<ClassroomService>>()?;
-        let result = svc.create(&input.name, input.building_id)
+        let result = svc
+            .create(&input.name, input.building_id)
             .await
             .map(Into::into)
             .map_err(to_gql_error);
@@ -35,10 +40,15 @@ impl ClassroomMutation {
     }
 
     #[graphql(name = "UpdateClassroom")]
-    async fn update_classroom(&self, ctx: &Context<'_>, input: UpdateClassroomInput) -> async_graphql::Result<ClassroomType> {
+    async fn update_classroom(
+        &self,
+        ctx: &Context<'_>,
+        input: UpdateClassroomInput,
+    ) -> async_graphql::Result<ClassroomType> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<ClassroomService>>()?;
-        let result = svc.update(input.id, input.name.as_deref(), Some(input.building_id))
+        let result = svc
+            .update(input.id, input.name.as_deref(), Some(input.building_id))
             .await
             .map(Into::into)
             .map_err(to_gql_error);

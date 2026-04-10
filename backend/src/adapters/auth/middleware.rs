@@ -6,10 +6,7 @@ use uuid::Uuid;
 use crate::{
     adapters::auth::jwt::decode_jwt,
     config::AppConfig,
-    domain::{
-        models::user::User,
-        ports::user_repository::UserRepository,
-    },
+    domain::{models::user::User, ports::user_repository::UserRepository},
 };
 
 #[derive(Clone, Debug)]
@@ -30,7 +27,10 @@ impl AuthUser {
     }
 }
 
-pub fn read_auth_user_from_headers(headers: &axum::http::HeaderMap, config: &AppConfig) -> Option<AuthUser> {
+pub fn read_auth_user_from_headers(
+    headers: &axum::http::HeaderMap,
+    config: &AppConfig,
+) -> Option<AuthUser> {
     let header = headers.get(AUTHORIZATION)?.to_str().ok()?;
     let token = header.strip_prefix("Bearer ")?;
     let claims = decode_jwt(token, &config.jwt_secret).ok()?;
@@ -51,7 +51,13 @@ pub async fn read_active_auth_user_from_headers(
     let auth_user = read_auth_user_from_headers(headers, config)?;
 
     match user_repo.find_by_id(auth_user.user_id).await {
-        Ok(Some(User { id, email, role, is_active: true, .. })) => Some(AuthUser {
+        Ok(Some(User {
+            id,
+            email,
+            role,
+            is_active: true,
+            ..
+        })) => Some(AuthUser {
             user_id: id,
             email,
             role: role.as_str().to_string(),

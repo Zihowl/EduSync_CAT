@@ -306,7 +306,10 @@ impl ExcelService {
                     if !parsed.aula.is_empty() {
                         match self.find_classroom_id(&parsed.aula, building_id).await? {
                             Some(_) => {}
-                            None => errors.push(format!("Salón no encontrado: {} en {}", parsed.aula, parsed.edificio)),
+                            None => errors.push(format!(
+                                "Salón no encontrado: {} en {}",
+                                parsed.aula, parsed.edificio
+                            )),
                         }
                     }
                 }
@@ -333,7 +336,11 @@ impl ExcelService {
             .find_all()
             .await?
             .into_iter()
-            .find(|teacher| teacher.employee_number.eq_ignore_ascii_case(employee_number))
+            .find(|teacher| {
+                teacher
+                    .employee_number
+                    .eq_ignore_ascii_case(employee_number)
+            })
             .map(|teacher| teacher.id))
     }
 
@@ -387,10 +394,18 @@ impl ExcelService {
             .await?
             .ok_or_else(|| DomainError::NotFound("Salón no encontrado".to_string()))?;
 
-        let group = self.group_service.find_or_create(&parsed.grupo, None).await?;
+        let group = self
+            .group_service
+            .find_or_create(&parsed.grupo, None)
+            .await?;
 
         let subgroup = if let Some(subgroup_name) = parsed.subgroup.as_deref() {
-            Some(self.group_service.find_or_create(subgroup_name, Some(group.id)).await?.name)
+            Some(
+                self.group_service
+                    .find_or_create(subgroup_name, Some(group.id))
+                    .await?
+                    .name,
+            )
         } else {
             None
         };
@@ -416,12 +431,24 @@ impl ExcelService {
 
 fn parse_day(day: &str) -> i32 {
     let d = day.to_lowercase();
-    if d.contains("lun") { return 1; }
-    if d.contains("mar") { return 2; }
-    if d.contains("mie") || d.contains("mié") { return 3; }
-    if d.contains("jue") { return 4; }
-    if d.contains("vie") { return 5; }
-    if d.contains("sab") || d.contains("sáb") { return 6; }
+    if d.contains("lun") {
+        return 1;
+    }
+    if d.contains("mar") {
+        return 2;
+    }
+    if d.contains("mie") || d.contains("mié") {
+        return 3;
+    }
+    if d.contains("jue") {
+        return 4;
+    }
+    if d.contains("vie") {
+        return 5;
+    }
+    if d.contains("sab") || d.contains("sáb") {
+        return 6;
+    }
     0
 }
 
@@ -490,11 +517,15 @@ fn parse_uploaded_schedule_table(file: &[u8]) -> Result<ParsedScheduleTable, Dom
                 .map_err(|e| DomainError::BadRequest(format!("No se pudo leer hoja: {e}")))?;
 
             let mut rows = range.rows();
-            let header = rows
-                .next()
-                .ok_or_else(|| DomainError::BadRequest("El archivo no contiene filas".to_string()))?;
+            let header = rows.next().ok_or_else(|| {
+                DomainError::BadRequest("El archivo no contiene filas".to_string())
+            })?;
 
-            let headers: Vec<String> = header.iter().map(cell_to_string).map(normalize_header).collect();
+            let headers: Vec<String> = header
+                .iter()
+                .map(cell_to_string)
+                .map(normalize_header)
+                .collect();
             let rows = rows
                 .map(|row| row.iter().map(cell_to_string).collect::<Vec<String>>())
                 .collect::<Vec<Vec<String>>>();

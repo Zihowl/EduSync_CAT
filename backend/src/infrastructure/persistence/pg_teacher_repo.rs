@@ -2,9 +2,7 @@ use async_trait::async_trait;
 use sqlx::{FromRow, PgPool};
 
 use crate::domain::{
-    errors::DomainError,
-    models::teacher::Teacher,
-    ports::teacher_repository::TeacherRepository,
+    errors::DomainError, models::teacher::Teacher, ports::teacher_repository::TeacherRepository,
     validation::normalize_email,
 };
 
@@ -65,7 +63,10 @@ impl TeacherRepository for PgTeacherRepository {
         Ok(row.map(Into::into))
     }
 
-    async fn find_by_employee_number(&self, employee_number: &str) -> Result<Option<Teacher>, DomainError> {
+    async fn find_by_employee_number(
+        &self,
+        employee_number: &str,
+    ) -> Result<Option<Teacher>, DomainError> {
         let row = sqlx::query_as::<_, TeacherRow>(
             "SELECT id, employee_number, name, email FROM teachers WHERE employee_number = $1",
         )
@@ -88,7 +89,12 @@ impl TeacherRepository for PgTeacherRepository {
         Ok(row.map(Into::into))
     }
 
-    async fn create(&self, employee_number: &str, name: &str, email: Option<&str>) -> Result<Teacher, DomainError> {
+    async fn create(
+        &self,
+        employee_number: &str,
+        name: &str,
+        email: Option<&str>,
+    ) -> Result<Teacher, DomainError> {
         let email = email.map(normalize_email);
         let row = sqlx::query_as::<_, TeacherRow>(
             "INSERT INTO teachers (employee_number, name, email)
@@ -104,7 +110,13 @@ impl TeacherRepository for PgTeacherRepository {
         Ok(row.into())
     }
 
-    async fn update(&self, id: i32, employee_number: Option<&str>, name: Option<&str>, email: Option<Option<&str>>) -> Result<Teacher, DomainError> {
+    async fn update(
+        &self,
+        id: i32,
+        employee_number: Option<&str>,
+        name: Option<&str>,
+        email: Option<Option<&str>>,
+    ) -> Result<Teacher, DomainError> {
         let mut current = self
             .find_by_id(id)
             .await?

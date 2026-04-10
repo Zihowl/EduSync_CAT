@@ -57,7 +57,10 @@ pub struct RealtimeSubscription;
 #[Subscription]
 impl RealtimeSubscription {
     #[graphql(name = "RealtimeEvents")]
-    async fn realtime_events(&self, ctx: &Context<'_>) -> Pin<Box<dyn Stream<Item = RealtimeEvent> + Send>> {
+    async fn realtime_events(
+        &self,
+        ctx: &Context<'_>,
+    ) -> Pin<Box<dyn Stream<Item = RealtimeEvent> + Send>> {
         let broadcaster = ctx.data_unchecked::<Arc<RealtimeBroadcaster>>().clone();
         let receiver = broadcaster.subscribe();
 

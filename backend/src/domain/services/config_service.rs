@@ -53,10 +53,12 @@ impl ConfigService {
         start_date: &str,
         end_date: &str,
     ) -> Result<SchoolYear, DomainError> {
-        let start = NaiveDate::parse_from_str(start_date, "%Y-%m-%d")
-            .map_err(|_| DomainError::BadRequest("Formato de fecha inválido. Usa YYYY-MM-DD".to_string()))?;
-        let end = NaiveDate::parse_from_str(end_date, "%Y-%m-%d")
-            .map_err(|_| DomainError::BadRequest("Formato de fecha inválido. Usa YYYY-MM-DD".to_string()))?;
+        let start = NaiveDate::parse_from_str(start_date, "%Y-%m-%d").map_err(|_| {
+            DomainError::BadRequest("Formato de fecha inválido. Usa YYYY-MM-DD".to_string())
+        })?;
+        let end = NaiveDate::parse_from_str(end_date, "%Y-%m-%d").map_err(|_| {
+            DomainError::BadRequest("Formato de fecha inválido. Usa YYYY-MM-DD".to_string())
+        })?;
 
         if start > end {
             return Err(DomainError::BadRequest(
@@ -64,7 +66,9 @@ impl ConfigService {
             ));
         }
 
-        self.school_year_repo.set_current(start_date, end_date).await
+        self.school_year_repo
+            .set_current(start_date, end_date)
+            .await
     }
 
     pub async fn get_current_school_year(&self) -> Result<Option<SchoolYear>, DomainError> {
@@ -73,13 +77,19 @@ impl ConfigService {
 
     fn validate_domain_format(&self, domain: &str) -> Result<(), DomainError> {
         if domain.is_empty() {
-            return Err(DomainError::BadRequest("El dominio es requerido".to_string()));
+            return Err(DomainError::BadRequest(
+                "El dominio es requerido".to_string(),
+            ));
         }
         if domain.len() > 255 {
-            return Err(DomainError::BadRequest("El dominio es demasiado largo".to_string()));
+            return Err(DomainError::BadRequest(
+                "El dominio es demasiado largo".to_string(),
+            ));
         }
         if !domain.contains('.') {
-            return Err(DomainError::BadRequest("El dominio debe contener un punto".to_string()));
+            return Err(DomainError::BadRequest(
+                "El dominio debe contener un punto".to_string(),
+            ));
         }
 
         let regex = Regex::new(
@@ -87,7 +97,9 @@ impl ConfigService {
         )
         .map_err(|e| DomainError::Internal(format!("Regex inválida: {e}")))?;
         if !regex.is_match(domain) {
-            return Err(DomainError::BadRequest("Formato de dominio inválido".to_string()));
+            return Err(DomainError::BadRequest(
+                "Formato de dominio inválido".to_string(),
+            ));
         }
         Ok(())
     }

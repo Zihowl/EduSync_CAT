@@ -124,24 +124,32 @@ impl UserRepository for PgUserRepository {
     }
 
     async fn increment_failed_login_attempts(&self, user_id: Uuid) -> Result<(), DomainError> {
-        sqlx::query("UPDATE users SET failed_login_attempts = failed_login_attempts + 1 WHERE id = $1")
-            .bind(user_id)
-            .execute(&self.pool)
-            .await
-            .map_err(map_sqlx)?;
+        sqlx::query(
+            "UPDATE users SET failed_login_attempts = failed_login_attempts + 1 WHERE id = $1",
+        )
+        .bind(user_id)
+        .execute(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
         Ok(())
     }
 
     async fn reset_failed_login_attempts(&self, user_id: Uuid) -> Result<(), DomainError> {
-        sqlx::query("UPDATE users SET failed_login_attempts = 0, lockout_until = NULL WHERE id = $1")
-            .bind(user_id)
-            .execute(&self.pool)
-            .await
-            .map_err(map_sqlx)?;
+        sqlx::query(
+            "UPDATE users SET failed_login_attempts = 0, lockout_until = NULL WHERE id = $1",
+        )
+        .bind(user_id)
+        .execute(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
         Ok(())
     }
 
-    async fn set_lockout_until(&self, user_id: Uuid, until: Option<DateTime<Utc>>) -> Result<(), DomainError> {
+    async fn set_lockout_until(
+        &self,
+        user_id: Uuid,
+        until: Option<DateTime<Utc>>,
+    ) -> Result<(), DomainError> {
         sqlx::query("UPDATE users SET lockout_until = $2 WHERE id = $1")
             .bind(user_id)
             .bind(until)
@@ -170,7 +178,13 @@ impl UserRepository for PgUserRepository {
         Ok(row.into())
     }
 
-    async fn update_credentials(&self, user_id: Uuid, email: &str, password_hash: &str, is_temp_password: bool) -> Result<User, DomainError> {
+    async fn update_credentials(
+        &self,
+        user_id: Uuid,
+        email: &str,
+        password_hash: &str,
+        is_temp_password: bool,
+    ) -> Result<User, DomainError> {
         let email = normalize_email(email);
         let row = sqlx::query_as::<_, UserRow>(
             "UPDATE users

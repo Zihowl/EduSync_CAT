@@ -8,10 +8,7 @@ use crate::{
         auth::middleware::AuthUser,
         graphql::realtime::{publish_realtime_event, RealtimeScope},
     },
-    domain::{
-        models::audit_log::NewAuditLog,
-        ports::audit_log_repository::AuditLogRepository,
-    },
+    domain::{models::audit_log::NewAuditLog, ports::audit_log_repository::AuditLogRepository},
 };
 
 pub async fn record_admin_audit(

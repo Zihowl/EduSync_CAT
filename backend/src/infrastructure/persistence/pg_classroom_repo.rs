@@ -2,8 +2,7 @@ use async_trait::async_trait;
 use sqlx::{FromRow, PgPool};
 
 use crate::domain::{
-    errors::DomainError,
-    models::classroom::Classroom,
+    errors::DomainError, models::classroom::Classroom,
     ports::classroom_repository::ClassroomRepository,
 };
 
@@ -42,32 +41,42 @@ fn map_sqlx(e: sqlx::Error) -> DomainError {
 #[async_trait]
 impl ClassroomRepository for PgClassroomRepository {
     async fn find_all(&self) -> Result<Vec<Classroom>, DomainError> {
-        let rows = sqlx::query_as::<_, ClassroomRow>("SELECT id, name, building_id FROM classrooms ORDER BY id DESC")
-            .fetch_all(&self.pool)
-            .await
-            .map_err(map_sqlx)?;
+        let rows = sqlx::query_as::<_, ClassroomRow>(
+            "SELECT id, name, building_id FROM classrooms ORDER BY id DESC",
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
     async fn find_by_id(&self, id: i32) -> Result<Option<Classroom>, DomainError> {
-        let row = sqlx::query_as::<_, ClassroomRow>("SELECT id, name, building_id FROM classrooms WHERE id = $1")
-            .bind(id)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(map_sqlx)?;
+        let row = sqlx::query_as::<_, ClassroomRow>(
+            "SELECT id, name, building_id FROM classrooms WHERE id = $1",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
         Ok(row.map(Into::into))
     }
 
     async fn find_by_name(&self, name: &str) -> Result<Option<Classroom>, DomainError> {
-        let row = sqlx::query_as::<_, ClassroomRow>("SELECT id, name, building_id FROM classrooms WHERE name = $1")
-            .bind(name)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(map_sqlx)?;
+        let row = sqlx::query_as::<_, ClassroomRow>(
+            "SELECT id, name, building_id FROM classrooms WHERE name = $1",
+        )
+        .bind(name)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
         Ok(row.map(Into::into))
     }
 
-    async fn find_by_name_and_building(&self, name: &str, building_id: i32) -> Result<Option<Classroom>, DomainError> {
+    async fn find_by_name_and_building(
+        &self,
+        name: &str,
+        building_id: i32,
+    ) -> Result<Option<Classroom>, DomainError> {
         let row = sqlx::query_as::<_, ClassroomRow>(
             "SELECT id, name, building_id FROM classrooms WHERE name = $1 AND building_id = $2",
         )
@@ -91,7 +100,12 @@ impl ClassroomRepository for PgClassroomRepository {
         Ok(row.into())
     }
 
-    async fn update(&self, id: i32, name: Option<&str>, building_id: Option<Option<i32>>) -> Result<Classroom, DomainError> {
+    async fn update(
+        &self,
+        id: i32,
+        name: Option<&str>,
+        building_id: Option<Option<i32>>,
+    ) -> Result<Classroom, DomainError> {
         let mut current = self
             .find_by_id(id)
             .await?

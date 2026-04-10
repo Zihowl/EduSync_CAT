@@ -3,7 +3,10 @@ use std::sync::Arc;
 use async_graphql::{Context, Object};
 
 use crate::{
-    adapters::{auth::middleware::require_admin, graphql::{schema::to_gql_error, types::teacher_type::TeacherType}},
+    adapters::{
+        auth::middleware::require_admin,
+        graphql::{schema::to_gql_error, types::teacher_type::TeacherType},
+    },
     domain::services::teacher_service::TeacherService,
 };
 
@@ -23,7 +26,11 @@ impl TeacherQuery {
     }
 
     #[graphql(name = "GetTeacher")]
-    async fn get_teacher(&self, ctx: &Context<'_>, id: i32) -> async_graphql::Result<Option<TeacherType>> {
+    async fn get_teacher(
+        &self,
+        ctx: &Context<'_>,
+        id: i32,
+    ) -> async_graphql::Result<Option<TeacherType>> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<TeacherService>>()?;
         svc.find_one(id)

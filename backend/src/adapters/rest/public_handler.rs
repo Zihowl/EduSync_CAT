@@ -90,9 +90,12 @@ pub async fn public_schedules(
         .await
         .map_err(|e| (StatusCode::BAD_REQUEST, e.msg()))?;
 
-    let out = try_join_all(data.into_iter().map(|slot| build_public_schedule(&state, slot)))
-        .await
-        .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
+    let out = try_join_all(
+        data.into_iter()
+            .map(|slot| build_public_schedule(&state, slot)),
+    )
+    .await
+    .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
 
     Ok(Json(out))
 }

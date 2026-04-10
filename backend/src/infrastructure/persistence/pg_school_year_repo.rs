@@ -3,8 +3,7 @@ use chrono::{DateTime, Utc};
 use sqlx::{FromRow, PgPool};
 
 use crate::domain::{
-    errors::DomainError,
-    models::school_year::SchoolYear,
+    errors::DomainError, models::school_year::SchoolYear,
     ports::school_year_repository::SchoolYearRepository,
 };
 
@@ -54,7 +53,11 @@ impl SchoolYearRepository for PgSchoolYearRepository {
         Ok(row.map(Into::into))
     }
 
-    async fn set_current(&self, start_date: &str, end_date: &str) -> Result<SchoolYear, DomainError> {
+    async fn set_current(
+        &self,
+        start_date: &str,
+        end_date: &str,
+    ) -> Result<SchoolYear, DomainError> {
         if let Some(current) = self.get_current().await? {
             let row = sqlx::query_as::<_, SchoolYearRow>(
                 "UPDATE school_years

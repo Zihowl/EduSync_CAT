@@ -21,10 +21,15 @@ pub struct BuildingMutation;
 #[Object]
 impl BuildingMutation {
     #[graphql(name = "CreateBuilding")]
-    async fn create_building(&self, ctx: &Context<'_>, input: CreateBuildingInput) -> async_graphql::Result<BuildingType> {
+    async fn create_building(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateBuildingInput,
+    ) -> async_graphql::Result<BuildingType> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<BuildingService>>()?;
-        let result = svc.create(&input.name, input.description.as_deref())
+        let result = svc
+            .create(&input.name, input.description.as_deref())
             .await
             .map(Into::into)
             .map_err(to_gql_error);
@@ -35,10 +40,19 @@ impl BuildingMutation {
     }
 
     #[graphql(name = "UpdateBuilding")]
-    async fn update_building(&self, ctx: &Context<'_>, input: UpdateBuildingInput) -> async_graphql::Result<BuildingType> {
+    async fn update_building(
+        &self,
+        ctx: &Context<'_>,
+        input: UpdateBuildingInput,
+    ) -> async_graphql::Result<BuildingType> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<BuildingService>>()?;
-        let result = svc.update(input.id, input.name.as_deref(), Some(input.description.as_deref()))
+        let result = svc
+            .update(
+                input.id,
+                input.name.as_deref(),
+                Some(input.description.as_deref()),
+            )
             .await
             .map(Into::into)
             .map_err(to_gql_error);

@@ -6,10 +6,8 @@ use crate::domain::{
     errors::DomainError,
     models::schedule_slot::{ScheduleFilter, ScheduleSlot},
     ports::{
-        classroom_repository::ClassroomRepository,
-        group_repository::GroupRepository,
-        schedule_slot_repository::ScheduleSlotRepository,
-        subject_repository::SubjectRepository,
+        classroom_repository::ClassroomRepository, group_repository::GroupRepository,
+        schedule_slot_repository::ScheduleSlotRepository, subject_repository::SubjectRepository,
         teacher_repository::TeacherRepository,
     },
 };
@@ -78,8 +76,13 @@ impl ScheduleService {
 
     pub async fn create(&self, input: CreateScheduleSlot) -> Result<ScheduleSlot, DomainError> {
         self.validate_times(&input.start_time, &input.end_time)?;
-        self.ensure_dependencies(input.teacher_id, input.subject_id, input.classroom_id, input.group_id)
-            .await?;
+        self.ensure_dependencies(
+            input.teacher_id,
+            input.subject_id,
+            input.classroom_id,
+            input.group_id,
+        )
+        .await?;
         self.ensure_collisions(
             input.teacher_id,
             input.classroom_id,
@@ -166,7 +169,9 @@ impl ScheduleService {
         let to_min = |v: &str| -> Result<i32, DomainError> {
             let p: Vec<&str> = v.split(':').collect();
             if p.len() < 2 {
-                return Err(DomainError::BadRequest("Formato de hora inválido".to_string()));
+                return Err(DomainError::BadRequest(
+                    "Formato de hora inválido".to_string(),
+                ));
             }
             let h = p[0]
                 .parse::<i32>()
@@ -201,7 +206,12 @@ impl ScheduleService {
         if self.subject_repo.find_by_id(subject_id).await?.is_none() {
             return Err(DomainError::NotFound("Materia no encontrada".to_string()));
         }
-        if self.classroom_repo.find_by_id(classroom_id).await?.is_none() {
+        if self
+            .classroom_repo
+            .find_by_id(classroom_id)
+            .await?
+            .is_none()
+        {
             return Err(DomainError::NotFound("Salón no encontrado".to_string()));
         }
         if self.group_repo.find_by_id(group_id).await?.is_none() {

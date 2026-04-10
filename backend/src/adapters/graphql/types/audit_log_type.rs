@@ -1,4 +1,4 @@
-use async_graphql::{ID, Json, SimpleObject};
+use async_graphql::{Json, SimpleObject, ID};
 
 use crate::domain::models::audit_log::{AuditLog, AuditLogPage};
 

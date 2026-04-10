@@ -1,5 +1,5 @@
-pub mod auth_input;
 pub mod audit_log_input;
+pub mod auth_input;
 pub mod building_input;
 pub mod classroom_input;
 pub mod group_input;

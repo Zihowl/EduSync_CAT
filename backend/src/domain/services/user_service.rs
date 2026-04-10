@@ -3,7 +3,11 @@ use std::sync::Arc;
 use argon2::password_hash::rand_core::OsRng;
 use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
 use chrono::Utc;
-use rand::{distr::Alphanumeric, prelude::{IndexedRandom, SliceRandom}, RngExt};
+use rand::{
+    distr::Alphanumeric,
+    prelude::{IndexedRandom, SliceRandom},
+    RngExt,
+};
 use regex::Regex;
 use uuid::Uuid;
 
@@ -52,13 +56,19 @@ impl UserService {
         self.repo.find_by_email(&email).await
     }
 
-    pub async fn create_admin(&self, email: &str, full_name: &str) -> Result<(User, String), DomainError> {
+    pub async fn create_admin(
+        &self,
+        email: &str,
+        full_name: &str,
+    ) -> Result<(User, String), DomainError> {
         let email = normalize_email(email);
         self.ensure_email_format(&email)?;
         self.ensure_domain_allowed(&email).await?;
 
         if self.repo.find_by_email(&email).await?.is_some() {
-            return Err(DomainError::Conflict("El correo ya está registrado".to_string()));
+            return Err(DomainError::Conflict(
+                "El correo ya está registrado".to_string(),
+            ));
         }
 
         let temp_password = self.generate_temp_password(16)?;
@@ -82,15 +92,29 @@ impl UserService {
         Ok((user, temp_password))
     }
 
-    pub async fn disable_admin_access(&self, actor_user_id: Uuid, target_user_id: Uuid) -> Result<User, DomainError> {
-        self.toggle_admin_access(actor_user_id, target_user_id, false).await
+    pub async fn disable_admin_access(
+        &self,
+        actor_user_id: Uuid,
+        target_user_id: Uuid,
+    ) -> Result<User, DomainError> {
+        self.toggle_admin_access(actor_user_id, target_user_id, false)
+            .await
     }
 
-    pub async fn reactivate_admin_access(&self, actor_user_id: Uuid, target_user_id: Uuid) -> Result<User, DomainError> {
-        self.toggle_admin_access(actor_user_id, target_user_id, true).await
+    pub async fn reactivate_admin_access(
+        &self,
+        actor_user_id: Uuid,
+        target_user_id: Uuid,
+    ) -> Result<User, DomainError> {
+        self.toggle_admin_access(actor_user_id, target_user_id, true)
+            .await
     }
 
-    pub async fn force_reset_admin_password(&self, actor_user_id: Uuid, target_user_id: Uuid) -> Result<(User, String), DomainError> {
+    pub async fn force_reset_admin_password(
+        &self,
+        actor_user_id: Uuid,
+        target_user_id: Uuid,
+    ) -> Result<(User, String), DomainError> {
         let target_user = self.ensure_manageable_admin(target_user_id).await?;
         let temp_password = self.generate_temp_password(16)?;
         let hash = self.hash_password(&temp_password)?;
@@ -144,13 +168,8 @@ impl UserService {
         intro: &str,
         action: &str,
     ) {
-        let message = self.build_temp_password_email(
-            email,
-            recipient_name,
-            temp_password,
-            subject,
-            intro,
-        );
+        let message =
+            self.build_temp_password_email(email, recipient_name, temp_password, subject, intro);
 
         if let Err(error) = self.email_sender.send(message).await {
             tracing::warn!(
@@ -171,7 +190,11 @@ impl UserService {
         intro: &str,
     ) -> EmailMessage {
         let display_name = recipient_name.trim();
-        let display_name = if display_name.is_empty() { email } else { display_name };
+        let display_name = if display_name.is_empty() {
+            email
+        } else {
+            display_name
+        };
         let escaped_name = Self::escape_html(display_name);
         let escaped_email = Self::escape_html(email);
         let escaped_password = Self::escape_html(temp_password);
@@ -203,9 +226,16 @@ impl UserService {
             .replace('\'', "&#39;")
     }
 
-    async fn toggle_admin_access(&self, actor_user_id: Uuid, target_user_id: Uuid, is_active: bool) -> Result<User, DomainError> {
+    async fn toggle_admin_access(
+        &self,
+        actor_user_id: Uuid,
+        target_user_id: Uuid,
+        is_active: bool,
+    ) -> Result<User, DomainError> {
         if !is_active && actor_user_id == target_user_id {
-            return Err(DomainError::BadRequest("No puedes inhabilitar tu propia cuenta".to_string()));
+            return Err(DomainError::BadRequest(
+                "No puedes inhabilitar tu propia cuenta".to_string(),
+            ));
         }
 
         let target_user = self.ensure_manageable_admin(target_user_id).await?;
@@ -252,10 +282,14 @@ impl UserService {
     }
 
     fn ensure_email_format(&self, email: &str) -> Result<(), DomainError> {
-        let re = Regex::new(r"^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$")
-            .map_err(|e| DomainError::Internal(format!("Regex inválida: {e}")))?;
+        let re = Regex::new(
+            r"^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$",
+        )
+        .map_err(|e| DomainError::Internal(format!("Regex inválida: {e}")))?;
         if !re.is_match(email) {
-            return Err(DomainError::BadRequest("Correo electrónico inválido".to_string()));
+            return Err(DomainError::BadRequest(
+                "Correo electrónico inválido".to_string(),
+            ));
         }
         Ok(())
     }
@@ -266,7 +300,10 @@ impl UserService {
             .nth(1)
             .ok_or_else(|| DomainError::BadRequest("Correo electrónico inválido".to_string()))?;
         let allowed = self.allowed_domain_repo.find_all().await?;
-        if !allowed.iter().any(|d| d.domain.eq_ignore_ascii_case(domain)) {
+        if !allowed
+            .iter()
+            .any(|d| d.domain.eq_ignore_ascii_case(domain))
+        {
             return Err(DomainError::BadRequest(format!(
                 "El dominio @{domain} no está permitido"
             )));
@@ -279,12 +316,16 @@ impl UserService {
         Argon2::default()
             .hash_password(password.as_bytes(), &salt)
             .map(|h| h.to_string())
-                .map_err(|e| DomainError::Internal(format!("No se pudo generar el hash de la contraseña: {e}")))
+            .map_err(|e| {
+                DomainError::Internal(format!("No se pudo generar el hash de la contraseña: {e}"))
+            })
     }
 
     fn generate_temp_password(&self, length: usize) -> Result<String, DomainError> {
         if length < 4 {
-            return Err(DomainError::BadRequest("Longitud de contraseña inválida".to_string()));
+            return Err(DomainError::BadRequest(
+                "Longitud de contraseña inválida".to_string(),
+            ));
         }
         let upper = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         let lower = b"abcdefghijklmnopqrstuvwxyz";
@@ -314,8 +355,13 @@ mod tests {
     use super::*;
     use crate::domain::models::allowed_domain::AllowedDomain;
     use crate::domain::models::user::UserRole;
-    use crate::domain::ports::{allowed_domain_repository::AllowedDomainRepository, user_repository::UserRepository};
-    use argon2::{password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString}, Argon2};
+    use crate::domain::ports::{
+        allowed_domain_repository::AllowedDomainRepository, user_repository::UserRepository,
+    };
+    use argon2::{
+        password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
+        Argon2,
+    };
     use async_trait::async_trait;
     use chrono::Utc;
     use std::sync::{Arc, Mutex};
@@ -328,15 +374,27 @@ mod tests {
     #[async_trait]
     impl AllowedDomainRepository for MockAllowedDomainRepository {
         async fn find_all(&self) -> Result<Vec<AllowedDomain>, DomainError> {
-            Ok(vec![AllowedDomain { id: 1, domain: "example.com".to_string() }])
+            Ok(vec![AllowedDomain {
+                id: 1,
+                domain: "example.com".to_string(),
+            }])
         }
 
-        async fn find_by_domain(&self, _domain: &str) -> Result<Option<AllowedDomain>, DomainError> {
-            Ok(Some(AllowedDomain { id: 1, domain: "example.com".to_string() }))
+        async fn find_by_domain(
+            &self,
+            _domain: &str,
+        ) -> Result<Option<AllowedDomain>, DomainError> {
+            Ok(Some(AllowedDomain {
+                id: 1,
+                domain: "example.com".to_string(),
+            }))
         }
 
         async fn create(&self, domain: &str) -> Result<AllowedDomain, DomainError> {
-            Ok(AllowedDomain { id: 1, domain: domain.to_string() })
+            Ok(AllowedDomain {
+                id: 1,
+                domain: domain.to_string(),
+            })
         }
 
         async fn delete(&self, _id: i32) -> Result<bool, DomainError> {
@@ -350,7 +408,9 @@ mod tests {
 
     impl MockUserRepository {
         fn new(user: User) -> Self {
-            Self { user: Mutex::new(user) }
+            Self {
+                user: Mutex::new(user),
+            }
         }
     }
 
@@ -378,7 +438,9 @@ mod tests {
             self.sent_messages.lock().unwrap().push(message);
 
             if self.should_fail {
-                return Err(DomainError::Internal("Fallo simulado del correo".to_string()));
+                return Err(DomainError::Internal(
+                    "Fallo simulado del correo".to_string(),
+                ));
             }
 
             Ok(())
@@ -479,7 +541,13 @@ mod tests {
             }
         }
 
-        async fn update_credentials(&self, user_id: Uuid, email: &str, password_hash: &str, is_temp_password: bool) -> Result<User, DomainError> {
+        async fn update_credentials(
+            &self,
+            user_id: Uuid,
+            email: &str,
+            password_hash: &str,
+            is_temp_password: bool,
+        ) -> Result<User, DomainError> {
             let mut user = self.user.lock().unwrap();
             if user.id == user_id {
                 user.email = email.to_string();
@@ -519,7 +587,10 @@ mod tests {
         }
     }
 
-    fn build_service(user: User, should_fail_email: bool) -> (UserService, Arc<MockUserRepository>, Arc<MockEmailSender>) {
+    fn build_service(
+        user: User,
+        should_fail_email: bool,
+    ) -> (UserService, Arc<MockUserRepository>, Arc<MockEmailSender>) {
         let repo = Arc::new(MockUserRepository::new(user));
         let allowed_domain_repo = Arc::new(MockAllowedDomainRepository);
         let email_sender = Arc::new(MockEmailSender::new(should_fail_email));
@@ -538,7 +609,9 @@ mod tests {
 
         let result = service.disable_admin_access(user_id, user_id).await;
 
-        assert!(matches!(result, Err(DomainError::BadRequest(msg)) if msg.contains("No puedes inhabilitar")));
+        assert!(
+            matches!(result, Err(DomainError::BadRequest(msg)) if msg.contains("No puedes inhabilitar"))
+        );
     }
 
     #[tokio::test]
@@ -582,8 +655,12 @@ mod tests {
         assert_eq!(email_sender.messages().len(), 1);
 
         let parsed_hash = PasswordHash::new(&stored_user.password_hash).expect("hash válido");
-        assert!(Argon2::default().verify_password(temp_password.as_bytes(), &parsed_hash).is_ok());
-        assert!(Argon2::default().verify_password(TEST_PASSWORD.as_bytes(), &parsed_hash).is_err());
+        assert!(Argon2::default()
+            .verify_password(temp_password.as_bytes(), &parsed_hash)
+            .is_ok());
+        assert!(Argon2::default()
+            .verify_password(TEST_PASSWORD.as_bytes(), &parsed_hash)
+            .is_err());
     }
 
     #[tokio::test]
@@ -608,9 +685,13 @@ mod tests {
         let user = make_user("existing@example.com", UserRole::SuperAdmin, true);
         let (service, _repo, email_sender) = build_service(user, false);
 
-        let result = service.create_admin("EXISTING@EXAMPLE.COM", "Duplicado").await;
+        let result = service
+            .create_admin("EXISTING@EXAMPLE.COM", "Duplicado")
+            .await;
 
-        assert!(matches!(result, Err(DomainError::Conflict(msg)) if msg.contains("El correo ya está registrado")));
+        assert!(
+            matches!(result, Err(DomainError::Conflict(msg)) if msg.contains("El correo ya está registrado"))
+        );
         assert_eq!(email_sender.messages().len(), 0);
     }
 

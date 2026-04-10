@@ -40,21 +40,22 @@ impl ScheduleMutation {
         let subgroup = input.subgroup.clone();
         let is_published = input.is_published.unwrap_or(false);
 
-        let result: async_graphql::Result<ScheduleSlotType> = svc.create(CreateScheduleSlot {
-            teacher_id,
-            subject_id,
-            classroom_id,
-            group_id,
-            day_of_week,
-            start_time: start_time.clone(),
-            end_time: end_time.clone(),
-            subgroup: subgroup.clone(),
-            is_published,
-            created_by_id: Some(auth_user.user_id),
-        })
-        .await
-        .map(ScheduleSlotType::from)
-        .map_err(to_gql_error);
+        let result: async_graphql::Result<ScheduleSlotType> = svc
+            .create(CreateScheduleSlot {
+                teacher_id,
+                subject_id,
+                classroom_id,
+                group_id,
+                day_of_week,
+                start_time: start_time.clone(),
+                end_time: end_time.clone(),
+                subgroup: subgroup.clone(),
+                is_published,
+                created_by_id: Some(auth_user.user_id),
+            })
+            .await
+            .map(ScheduleSlotType::from)
+            .map_err(to_gql_error);
         if result.is_ok() {
             if let Ok(schedule) = &result {
                 record_admin_audit(
@@ -74,7 +75,8 @@ impl ScheduleMutation {
                         "subgroup": subgroup,
                         "is_published": is_published
                     }),
-                ).await;
+                )
+                .await;
             }
 
             publish_realtime_event(ctx, &[RealtimeScope::Schedules]);
@@ -101,21 +103,22 @@ impl ScheduleMutation {
         let subgroup = input.subgroup.clone();
         let is_published = input.is_published;
 
-        let result: async_graphql::Result<ScheduleSlotType> = svc.update(UpdateScheduleSlot {
-            id,
-            teacher_id,
-            subject_id,
-            classroom_id,
-            group_id,
-            day_of_week,
-            start_time: start_time.clone(),
-            end_time: end_time.clone(),
-            subgroup: Some(subgroup.clone()),
-            is_published,
-        })
-        .await
-        .map(ScheduleSlotType::from)
-        .map_err(to_gql_error);
+        let result: async_graphql::Result<ScheduleSlotType> = svc
+            .update(UpdateScheduleSlot {
+                id,
+                teacher_id,
+                subject_id,
+                classroom_id,
+                group_id,
+                day_of_week,
+                start_time: start_time.clone(),
+                end_time: end_time.clone(),
+                subgroup: Some(subgroup.clone()),
+                is_published,
+            })
+            .await
+            .map(ScheduleSlotType::from)
+            .map_err(to_gql_error);
         if result.is_ok() {
             if let Ok(schedule) = &result {
                 record_admin_audit(
@@ -135,7 +138,8 @@ impl ScheduleMutation {
                         "subgroup": subgroup,
                         "is_published": is_published
                     }),
-                ).await;
+                )
+                .await;
             }
 
             publish_realtime_event(ctx, &[RealtimeScope::Schedules]);
@@ -144,7 +148,11 @@ impl ScheduleMutation {
     }
 
     #[graphql(name = "RemoveScheduleSlot")]
-    async fn remove_schedule_slot(&self, ctx: &Context<'_>, id: i32) -> async_graphql::Result<bool> {
+    async fn remove_schedule_slot(
+        &self,
+        ctx: &Context<'_>,
+        id: i32,
+    ) -> async_graphql::Result<bool> {
         let auth_user = require_admin(ctx)?;
         let svc = ctx.data::<Arc<ScheduleService>>()?;
         let result = svc.remove(id).await.map_err(to_gql_error);
@@ -158,7 +166,8 @@ impl ScheduleMutation {
                 json!({
                     "schedule_id": id
                 }),
-            ).await;
+            )
+            .await;
 
             publish_realtime_event(ctx, &[RealtimeScope::Schedules]);
         }
@@ -174,7 +183,10 @@ impl ScheduleMutation {
     ) -> async_graphql::Result<i64> {
         let auth_user = require_admin(ctx)?;
         let svc = ctx.data::<Arc<ScheduleService>>()?;
-        let result = svc.set_published(&ids, is_published).await.map_err(to_gql_error);
+        let result = svc
+            .set_published(&ids, is_published)
+            .await
+            .map_err(to_gql_error);
         if result.is_ok() {
             record_admin_audit(
                 ctx,
@@ -186,7 +198,8 @@ impl ScheduleMutation {
                     "schedule_ids": ids,
                     "is_published": is_published
                 }),
-            ).await;
+            )
+            .await;
 
             publish_realtime_event(ctx, &[RealtimeScope::Schedules]);
         }

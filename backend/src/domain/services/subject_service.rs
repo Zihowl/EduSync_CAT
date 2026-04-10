@@ -37,7 +37,9 @@ impl SubjectService {
         let division = normalize_optional_text(division);
 
         if self.repo.find_by_code(&code).await?.is_some() {
-            return Err(DomainError::Conflict("El código de materia ya existe".to_string()));
+            return Err(DomainError::Conflict(
+                "El código de materia ya existe".to_string(),
+            ));
         }
         self.repo
             .create(&code, &name, grade, division.as_deref())
@@ -63,7 +65,9 @@ impl SubjectService {
             if code != current.code {
                 if let Some(existing) = self.repo.find_by_code(&code).await? {
                     if existing.id != id {
-                        return Err(DomainError::Conflict("El código de materia ya existe".to_string()));
+                        return Err(DomainError::Conflict(
+                            "El código de materia ya existe".to_string(),
+                        ));
                     }
                 }
             }
@@ -83,7 +87,13 @@ impl SubjectService {
         }
 
         self.repo
-            .update(id, Some(&current.code), Some(&current.name), current.grade, current.division.as_deref())
+            .update(
+                id,
+                Some(&current.code),
+                Some(&current.name),
+                current.grade,
+                current.division.as_deref(),
+            )
             .await
     }
 

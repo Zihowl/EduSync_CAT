@@ -25,22 +25,38 @@ impl TeacherService {
         self.repo.find_by_id(id).await
     }
 
-    pub async fn create(&self, employee_number: &str, name: &str, email: Option<&str>) -> Result<Teacher, DomainError> {
+    pub async fn create(
+        &self,
+        employee_number: &str,
+        name: &str,
+        email: Option<&str>,
+    ) -> Result<Teacher, DomainError> {
         let employee_number = normalize_required_text("Número de empleado", employee_number)?;
         let name = normalize_required_text("Nombre del docente", name)?;
         let email = normalize_optional_email(email);
 
-        if self.repo.find_by_employee_number(&employee_number).await?.is_some() {
-            return Err(DomainError::Conflict("El número de empleado ya existe".to_string()));
+        if self
+            .repo
+            .find_by_employee_number(&employee_number)
+            .await?
+            .is_some()
+        {
+            return Err(DomainError::Conflict(
+                "El número de empleado ya existe".to_string(),
+            ));
         }
 
         if let Some(email) = email.as_deref() {
             if self.repo.find_by_email(email).await?.is_some() {
-                return Err(DomainError::Conflict("El correo ya está registrado".to_string()));
+                return Err(DomainError::Conflict(
+                    "El correo ya está registrado".to_string(),
+                ));
             }
         }
 
-        self.repo.create(&employee_number, &name, email.as_deref()).await
+        self.repo
+            .create(&employee_number, &name, email.as_deref())
+            .await
     }
 
     pub async fn update(
@@ -61,7 +77,9 @@ impl TeacherService {
             if employee_number != current.employee_number {
                 if let Some(existing) = self.repo.find_by_employee_number(&employee_number).await? {
                     if existing.id != id {
-                        return Err(DomainError::Conflict("El número de empleado ya existe".to_string()));
+                        return Err(DomainError::Conflict(
+                            "El número de empleado ya existe".to_string(),
+                        ));
                     }
                 }
             }
@@ -78,7 +96,9 @@ impl TeacherService {
                 if current.email.as_deref() != Some(email) {
                     if let Some(existing) = self.repo.find_by_email(email).await? {
                         if existing.id != id {
-                            return Err(DomainError::Conflict("El correo ya está registrado".to_string()));
+                            return Err(DomainError::Conflict(
+                                "El correo ya está registrado".to_string(),
+                            ));
                         }
                     }
                 }
@@ -87,7 +107,12 @@ impl TeacherService {
         }
 
         self.repo
-            .update(id, Some(&current.employee_number), Some(&current.name), Some(current.email.as_deref()))
+            .update(
+                id,
+                Some(&current.employee_number),
+                Some(&current.name),
+                Some(current.email.as_deref()),
+            )
             .await
     }
 

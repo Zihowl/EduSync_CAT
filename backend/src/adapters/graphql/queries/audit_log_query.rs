@@ -7,15 +7,11 @@ use crate::{
     adapters::{
         auth::middleware::require_super_admin,
         graphql::{
-            inputs::audit_log_input::AuditLogFilterInput,
-            schema::to_gql_error,
+            inputs::audit_log_input::AuditLogFilterInput, schema::to_gql_error,
             types::audit_log_type::AuditLogPageType,
         },
     },
-    domain::{
-        models::audit_log::AuditLogFilter,
-        ports::audit_log_repository::AuditLogRepository,
-    },
+    domain::{models::audit_log::AuditLogFilter, ports::audit_log_repository::AuditLogRepository},
 };
 
 #[derive(Default)]
@@ -58,7 +54,9 @@ impl AuditLogQuery {
 }
 
 fn trim_optional(value: Option<String>) -> Option<String> {
-    value.map(|text| text.trim().to_string()).filter(|text| !text.is_empty())
+    value
+        .map(|text| text.trim().to_string())
+        .filter(|text| !text.is_empty())
 }
 
 fn parse_date(value: Option<&str>) -> async_graphql::Result<Option<NaiveDate>> {

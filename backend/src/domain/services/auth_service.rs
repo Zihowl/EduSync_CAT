@@ -1,6 +1,9 @@
 use std::sync::{Arc, OnceLock};
 
-use argon2::{Argon2, password_hash::{PasswordHash, PasswordHasher, SaltString, rand_core::OsRng}, PasswordVerifier};
+use argon2::{
+    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, SaltString},
+    Argon2, PasswordVerifier,
+};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, EncodingKey, Header};
 use regex::Regex;
@@ -39,8 +42,10 @@ pub struct LoginResult {
 fn email_regex() -> &'static Regex {
     static EMAIL_REGEX: OnceLock<Regex> = OnceLock::new();
     EMAIL_REGEX.get_or_init(|| {
-        Regex::new(r"^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$")
-            .expect("hardcoded email regex must be valid")
+        Regex::new(
+            r"^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$",
+        )
+        .expect("hardcoded email regex must be valid")
     })
 }
 
@@ -59,14 +64,21 @@ fn password_meets_complexity(password: &str) -> bool {
     if password.chars().any(|c| c.is_ascii_digit()) {
         categories += 1;
     }
-    if password.chars().any(|c| "!@#$%^&*()-_=+[]{}<>?".contains(c)) {
+    if password
+        .chars()
+        .any(|c| "!@#$%^&*()-_=+[]{}<>?".contains(c))
+    {
         categories += 1;
     }
     categories >= 3
 }
 
 impl AuthService {
-    pub fn new(repo: Arc<dyn UserRepository>, jwt_secret: String, jwt_expires_in_secs: i64) -> Self {
+    pub fn new(
+        repo: Arc<dyn UserRepository>,
+        jwt_secret: String,
+        jwt_expires_in_secs: i64,
+    ) -> Self {
         Self {
             repo,
             jwt_secret,
@@ -81,11 +93,15 @@ impl AuthService {
         }
 
         if !is_valid_email(&normalized_email) {
-            return Err(DomainError::BadRequest("Correo electrónico inválido".to_string()));
+            return Err(DomainError::BadRequest(
+                "Correo electrónico inválido".to_string(),
+            ));
         }
 
         if password.trim().is_empty() {
-            return Err(DomainError::BadRequest("Contraseña es requerida".to_string()));
+            return Err(DomainError::BadRequest(
+                "Contraseña es requerida".to_string(),
+            ));
         }
 
         let user = self
@@ -100,7 +116,10 @@ impl AuthService {
 
         if let Some(lockout_until) = user.lockout_until {
             if lockout_until > Utc::now() {
-                let remaining = lockout_until.signed_duration_since(Utc::now()).num_seconds().max(0);
+                let remaining = lockout_until
+                    .signed_duration_since(Utc::now())
+                    .num_seconds()
+                    .max(0);
                 return Err(DomainError::Unauthorized(format!(
                     "Cuenta bloqueada temporalmente. Intenta de nuevo en {} segundos",
                     remaining
@@ -112,10 +131,18 @@ impl AuthService {
         Ok(user)
     }
 
-    async fn verify_user_password(&self, user: &User, password: &str, allow_temp_password: bool) -> Result<(), DomainError> {
+    async fn verify_user_password(
+        &self,
+        user: &User,
+        password: &str,
+        allow_temp_password: bool,
+    ) -> Result<(), DomainError> {
         if let Some(lockout_until) = user.lockout_until {
             if lockout_until > Utc::now() {
-                let remaining = lockout_until.signed_duration_since(Utc::now()).num_seconds().max(0);
+                let remaining = lockout_until
+                    .signed_duration_since(Utc::now())
+                    .num_seconds()
+                    .max(0);
                 return Err(DomainError::Unauthorized(format!(
                     "Cuenta bloqueada temporalmente. Intenta de nuevo en {} segundos",
                     remaining
@@ -126,14 +153,15 @@ impl AuthService {
         let parsed = PasswordHash::new(&user.password_hash)
             .map_err(|_| DomainError::Unauthorized("Credenciales inválidas".to_string()))?;
 
-        if Argon2::default().verify_password(password.as_bytes(), &parsed).is_err() {
+        if Argon2::default()
+            .verify_password(password.as_bytes(), &parsed)
+            .is_err()
+        {
             self.repo.increment_failed_login_attempts(user.id).await?;
 
-            let updated_user = self
-                .repo
-                .find_by_id(user.id)
-                .await?
-                .ok_or_else(|| DomainError::Internal("Usuario no encontrado tras intento fallido".to_string()))?;
+            let updated_user = self.repo.find_by_id(user.id).await?.ok_or_else(|| {
+                DomainError::Internal("Usuario no encontrado tras intento fallido".to_string())
+            })?;
 
             let attempts = updated_user.failed_login_attempts;
             let lockout_seconds = match attempts {
@@ -152,14 +180,18 @@ impl AuthService {
                 )));
             }
 
-            return Err(DomainError::Unauthorized("Credenciales inválidas".to_string()));
+            return Err(DomainError::Unauthorized(
+                "Credenciales inválidas".to_string(),
+            ));
         }
 
         self.repo.reset_failed_login_attempts(user.id).await?;
         self.repo.set_lockout_until(user.id, None).await?;
 
         if !allow_temp_password && user.is_temp_password {
-            return Err(DomainError::Unauthorized("Contraseña temporal. Cambia tu contraseña antes de continuar".to_string()));
+            return Err(DomainError::Unauthorized(
+                "Contraseña temporal. Cambia tu contraseña antes de continuar".to_string(),
+            ));
         }
 
         Ok(())
@@ -202,15 +234,21 @@ impl AuthService {
         let new_password = new_password.trim();
 
         if current_email.is_empty() || current_password.is_empty() {
-            return Err(DomainError::BadRequest("Correo y contraseña actual son requeridos".to_string()));
+            return Err(DomainError::BadRequest(
+                "Correo y contraseña actual son requeridos".to_string(),
+            ));
         }
 
         if !is_valid_email(&current_email) {
-            return Err(DomainError::BadRequest("Correo electrónico inválido".to_string()));
+            return Err(DomainError::BadRequest(
+                "Correo electrónico inválido".to_string(),
+            ));
         }
 
         if new_email.is_empty() || new_password.is_empty() {
-            return Err(DomainError::BadRequest("Correo y nueva contraseña son requeridos".to_string()));
+            return Err(DomainError::BadRequest(
+                "Correo y nueva contraseña son requeridos".to_string(),
+            ));
         }
 
         let user = self
@@ -223,42 +261,59 @@ impl AuthService {
             return Err(DomainError::Unauthorized("Cuenta inactiva".to_string()));
         }
 
-        self.verify_user_password(&user, current_password, true).await?;
+        self.verify_user_password(&user, current_password, true)
+            .await?;
 
         if !is_valid_email(&new_email) {
             return Err(DomainError::BadRequest("Nuevo correo inválido".to_string()));
         }
 
         if new_email.ends_with("@setup.local") {
-            return Err(DomainError::BadRequest("El dominio @setup.local no está permitido".to_string()));
+            return Err(DomainError::BadRequest(
+                "El dominio @setup.local no está permitido".to_string(),
+            ));
         }
 
         if new_email != current_email && user.role != UserRole::SuperAdmin {
-            return Err(DomainError::Unauthorized("Solo el Súper Administrador puede cambiar el correo electrónico".to_string()));
+            return Err(DomainError::Unauthorized(
+                "Solo el Súper Administrador puede cambiar el correo electrónico".to_string(),
+            ));
         }
 
         if new_email != current_email {
             if self.repo.find_by_email(&new_email).await?.is_some() {
-                return Err(DomainError::Conflict("El correo ya está registrado".to_string()));
+                return Err(DomainError::Conflict(
+                    "El correo ya está registrado".to_string(),
+                ));
             }
         }
 
         if new_password.len() < 8 {
-            return Err(DomainError::BadRequest("La contraseña debe tener al menos 8 caracteres".to_string()));
+            return Err(DomainError::BadRequest(
+                "La contraseña debe tener al menos 8 caracteres".to_string(),
+            ));
         }
 
         if !password_meets_complexity(new_password) {
             return Err(DomainError::BadRequest("La contraseña debe incluir al menos 3 de 4 categorías: mayúsculas, minúsculas, números y símbolos".to_string()));
         }
 
-        if self.verify_user_password(&user, new_password, true).await.is_ok() {
-            return Err(DomainError::BadRequest("La nueva contraseña no puede ser igual a la actual".to_string()));
+        if self
+            .verify_user_password(&user, new_password, true)
+            .await
+            .is_ok()
+        {
+            return Err(DomainError::BadRequest(
+                "La nueva contraseña no puede ser igual a la actual".to_string(),
+            ));
         }
 
         let mut rng = OsRng;
         let new_password_hash = Argon2::default()
             .hash_password(new_password.as_bytes(), &SaltString::generate(&mut rng))
-            .map_err(|e| DomainError::Internal(format!("No se pudo generar el hash de la contraseña: {e}")))?
+            .map_err(|e| {
+                DomainError::Internal(format!("No se pudo generar el hash de la contraseña: {e}"))
+            })?
             .to_string();
 
         let updated_user = self
@@ -273,15 +328,18 @@ impl AuthService {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::AppConfig;
     use crate::adapters::auth::jwt::decode_jwt;
     use crate::adapters::auth::middleware::read_auth_user_from_headers;
+    use crate::config::AppConfig;
     use crate::domain::errors::DomainError;
 
     const TEST_PASSWORD: &str = "CorrectHorseBatteryStaple1!";
     use crate::domain::models::user::{User, UserRole};
     use crate::domain::ports::user_repository::UserRepository;
-    use argon2::{password_hash::{PasswordHasher, SaltString}, Argon2};
+    use argon2::{
+        password_hash::{PasswordHasher, SaltString},
+        Argon2,
+    };
     use async_trait::async_trait;
     use chrono::{Duration, Utc};
     use std::sync::Mutex;
@@ -381,7 +439,13 @@ mod tests {
             }
         }
 
-        async fn update_credentials(&self, user_id: Uuid, email: &str, password_hash: &str, is_temp_password: bool) -> Result<User, DomainError> {
+        async fn update_credentials(
+            &self,
+            user_id: Uuid,
+            email: &str,
+            password_hash: &str,
+            is_temp_password: bool,
+        ) -> Result<User, DomainError> {
             let mut user = self.user.lock().unwrap();
             if user.id == user_id {
                 user.email = email.to_string();
@@ -430,32 +494,58 @@ mod tests {
 
         // First two invalid attempts should not trigger lockout.
         for _ in 0..2 {
-            let res = auth_service.validate_user("admin@example.com", "wrong password").await;
+            let res = auth_service
+                .validate_user("admin@example.com", "wrong password")
+                .await;
             assert!(matches!(res, Err(DomainError::Unauthorized(_))));
         }
 
-        let user_after_two = repo.find_by_email("admin@example.com").await.unwrap().unwrap();
+        let user_after_two = repo
+            .find_by_email("admin@example.com")
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(user_after_two.failed_login_attempts, 2);
         assert!(user_after_two.lockout_until.is_none());
 
         // Third invalid attempt triggers 15s lockout.
-        let res3 = auth_service.validate_user("admin@example.com", "wrong password").await;
-        assert!(matches!(res3, Err(DomainError::Unauthorized(msg)) if msg.contains("Cuenta bloqueada temporalmente")));
+        let res3 = auth_service
+            .validate_user("admin@example.com", "wrong password")
+            .await;
+        assert!(
+            matches!(res3, Err(DomainError::Unauthorized(msg)) if msg.contains("Cuenta bloqueada temporalmente"))
+        );
 
-        let user_after_three = repo.find_by_email("admin@example.com").await.unwrap().unwrap();
+        let user_after_three = repo
+            .find_by_email("admin@example.com")
+            .await
+            .unwrap()
+            .unwrap();
         assert!(user_after_three.failed_login_attempts >= 3);
         assert!(user_after_three.lockout_until.is_some());
 
         // If lockout is in effect, login with correct password is blocked.
-        let res_locked = auth_service.validate_user("admin@example.com", TEST_PASSWORD).await;
-        assert!(matches!(res_locked, Err(DomainError::Unauthorized(msg)) if msg.contains("Cuenta bloqueada temporalmente")));
+        let res_locked = auth_service
+            .validate_user("admin@example.com", TEST_PASSWORD)
+            .await;
+        assert!(
+            matches!(res_locked, Err(DomainError::Unauthorized(msg)) if msg.contains("Cuenta bloqueada temporalmente"))
+        );
 
         // Force unlock and test successful login resets counters.
-        repo.set_lockout_until(user_after_three.id, Some(Utc::now() - Duration::seconds(1))).await.unwrap();
-        let success = auth_service.validate_user("admin@example.com", TEST_PASSWORD).await;
+        repo.set_lockout_until(user_after_three.id, Some(Utc::now() - Duration::seconds(1)))
+            .await
+            .unwrap();
+        let success = auth_service
+            .validate_user("admin@example.com", TEST_PASSWORD)
+            .await;
         assert!(success.is_ok());
 
-        let user_after_success = repo.find_by_email("admin@example.com").await.unwrap().unwrap();
+        let user_after_success = repo
+            .find_by_email("admin@example.com")
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(user_after_success.failed_login_attempts, 0);
         assert!(user_after_success.lockout_until.is_none());
     }
@@ -470,7 +560,9 @@ mod tests {
             user.is_temp_password = true;
         }
 
-        let result = auth_service.validate_user("admin@example.com", TEST_PASSWORD).await;
+        let result = auth_service
+            .validate_user("admin@example.com", TEST_PASSWORD)
+            .await;
 
         assert!(result.is_ok());
 
@@ -483,7 +575,9 @@ mod tests {
     async fn test_validate_user_accepts_uppercase_email_input() {
         let (auth_service, _repo) = setup_auth_service().await;
 
-        let result = auth_service.validate_user("ADMIN@EXAMPLE.COM", TEST_PASSWORD).await;
+        let result = auth_service
+            .validate_user("ADMIN@EXAMPLE.COM", TEST_PASSWORD)
+            .await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap().email, "admin@example.com");
@@ -493,11 +587,19 @@ mod tests {
     async fn test_validate_user_rejects_invalid_email_format() {
         let (auth_service, repo) = setup_auth_service().await;
 
-        let result = auth_service.validate_user("admin@example", TEST_PASSWORD).await;
+        let result = auth_service
+            .validate_user("admin@example", TEST_PASSWORD)
+            .await;
 
-        assert!(matches!(result, Err(DomainError::BadRequest(msg)) if msg.contains("Correo electrónico inválido")));
+        assert!(
+            matches!(result, Err(DomainError::BadRequest(msg)) if msg.contains("Correo electrónico inválido"))
+        );
 
-        let user = repo.find_by_email("admin@example.com").await.unwrap().unwrap();
+        let user = repo
+            .find_by_email("admin@example.com")
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(user.failed_login_attempts, 0);
         assert!(user.lockout_until.is_none());
     }
@@ -557,7 +659,11 @@ mod tests {
         let updated_user = result.unwrap();
         assert_eq!(updated_user.email, "new-admin@example.com");
 
-        let stored_user = repo.find_by_email("new-admin@example.com").await.unwrap().unwrap();
+        let stored_user = repo
+            .find_by_email("new-admin@example.com")
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(stored_user.email, "new-admin@example.com");
     }
 
@@ -574,7 +680,9 @@ mod tests {
             )
             .await;
 
-        assert!(matches!(result, Err(DomainError::BadRequest(msg)) if msg.contains("La nueva contraseña no puede ser igual a la actual")));
+        assert!(
+            matches!(result, Err(DomainError::BadRequest(msg)) if msg.contains("La nueva contraseña no puede ser igual a la actual"))
+        );
     }
 
     #[tokio::test]
@@ -595,7 +703,9 @@ mod tests {
             )
             .await;
 
-        assert!(matches!(result, Err(DomainError::Unauthorized(msg)) if msg.contains("Solo el Súper Administrador puede cambiar el correo electrónico")));
+        assert!(
+            matches!(result, Err(DomainError::Unauthorized(msg)) if msg.contains("Solo el Súper Administrador puede cambiar el correo electrónico"))
+        );
     }
 
     #[tokio::test]
@@ -623,54 +733,64 @@ mod tests {
             )
             .await;
 
-        assert!(matches!(result, Err(DomainError::Unauthorized(msg)) if msg.contains("Solo el Súper Administrador puede cambiar el correo electrónico")));
+        assert!(
+            matches!(result, Err(DomainError::Unauthorized(msg)) if msg.contains("Solo el Súper Administrador puede cambiar el correo electrónico"))
+        );
     }
 
     #[tokio::test]
     async fn test_login_token_contains_role_and_valid_signature() {
-    let (auth_service, repo) = setup_auth_service().await;
-    let user = repo.find_by_email("admin@example.com").await.unwrap().unwrap();
+        let (auth_service, repo) = setup_auth_service().await;
+        let user = repo
+            .find_by_email("admin@example.com")
+            .await
+            .unwrap()
+            .unwrap();
 
-    let login_result = auth_service.login(user.clone()).unwrap();
-    let claims = decode_jwt(&login_result.access_token, "secret").expect("JWT debe ser decodificable");
+        let login_result = auth_service.login(user.clone()).unwrap();
+        let claims =
+            decode_jwt(&login_result.access_token, "secret").expect("JWT debe ser decodificable");
 
-    assert_eq!(claims.email, "admin@example.com");
-    assert_eq!(claims.role, "SUPER_ADMIN");
-    assert!(claims.exp > Utc::now().timestamp());
+        assert_eq!(claims.email, "admin@example.com");
+        assert_eq!(claims.role, "SUPER_ADMIN");
+        assert!(claims.exp > Utc::now().timestamp());
+    }
+
+    #[tokio::test]
+    async fn test_read_auth_user_from_headers_extracts_claims() {
+        let claims = crate::adapters::auth::jwt::JwtClaims {
+            sub: Uuid::new_v4().to_string(),
+            email: "admin@example.com".to_string(),
+            role: "SUPER_ADMIN".to_string(),
+            exp: (Utc::now() + Duration::seconds(3600)).timestamp(),
+        };
+        let token =
+            crate::adapters::auth::jwt::encode_jwt(&claims, "secret").expect("JWT debe generarse");
+
+        let mut headers = axum::http::HeaderMap::new();
+        headers.insert(
+            axum::http::header::AUTHORIZATION,
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let config = AppConfig {
+            app_host: "0.0.0.0".to_string(),
+            app_port: 3000,
+            database_url: "postgres://postgres:postgres@localhost:5432/edusync_db".to_string(),
+            jwt_secret: "secret".to_string(),
+            jwt_expires_in_secs: 3600,
+            cors_origin: "http://localhost:8100".to_string(),
+            brevo_api_key: String::new(),
+            brevo_sender_email: String::new(),
+            brevo_sender_name: std::env::var("BREVO_SENDER_NAME").unwrap_or_default(),
+            genesis_super_admin_email: "superadmin@edusync.edu.mx".to_string(),
+            genesis_super_admin_password: "ChangeMe123!".to_string(),
+            genesis_super_admin_name: "Súper Administrador".to_string(),
+        };
+
+        let auth_user =
+            read_auth_user_from_headers(&headers, &config).expect("Debe extraerse sesión");
+        assert_eq!(auth_user.email, "admin@example.com");
+        assert_eq!(auth_user.role, "SUPER_ADMIN");
+    }
 }
-
-#[tokio::test]
-async fn test_read_auth_user_from_headers_extracts_claims() {
-    let claims = crate::adapters::auth::jwt::JwtClaims {
-        sub: Uuid::new_v4().to_string(),
-        email: "admin@example.com".to_string(),
-        role: "SUPER_ADMIN".to_string(),
-        exp: (Utc::now() + Duration::seconds(3600)).timestamp(),
-    };
-    let token = crate::adapters::auth::jwt::encode_jwt(&claims, "secret").expect("JWT debe generarse");
-
-    let mut headers = axum::http::HeaderMap::new();
-    headers.insert(axum::http::header::AUTHORIZATION, format!("Bearer {}", token).parse().unwrap());
-
-    let config = AppConfig {
-        app_host: "0.0.0.0".to_string(),
-        app_port: 3000,
-        database_url: "postgres://postgres:postgres@localhost:5432/edusync_db".to_string(),
-        jwt_secret: "secret".to_string(),
-        jwt_expires_in_secs: 3600,
-        cors_origin: "http://localhost:8100".to_string(),
-        brevo_api_key: String::new(),
-        brevo_sender_email: String::new(),
-        brevo_sender_name: std::env::var("BREVO_SENDER_NAME").unwrap_or_default(),
-        genesis_super_admin_email: "superadmin@edusync.edu.mx".to_string(),
-        genesis_super_admin_password: "ChangeMe123!".to_string(),
-        genesis_super_admin_name: "Súper Administrador".to_string(),
-    };
-
-    let auth_user = read_auth_user_from_headers(&headers, &config).expect("Debe extraerse sesión");
-    assert_eq!(auth_user.email, "admin@example.com");
-    assert_eq!(auth_user.role, "SUPER_ADMIN");
-}
-}
-
-

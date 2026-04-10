@@ -94,9 +94,13 @@ async fn authorize_admin(
     headers: &HeaderMap,
     state: &AppState,
 ) -> Result<AuthUser, (axum::http::StatusCode, String)> {
-    let auth_user = read_active_auth_user_from_headers(&headers, &state.config, state.user_repo.clone())
-        .await
-        .ok_or((axum::http::StatusCode::UNAUTHORIZED, "No autorizado".to_string()))?;
+    let auth_user =
+        read_active_auth_user_from_headers(&headers, &state.config, state.user_repo.clone())
+            .await
+            .ok_or((
+                axum::http::StatusCode::UNAUTHORIZED,
+                "No autorizado".to_string(),
+            ))?;
 
     if !auth_user.is_admin_horarios() {
         return Err((
@@ -112,16 +116,19 @@ async fn extract_uploaded_file(
     multipart: &mut Multipart,
 ) -> Result<Vec<u8>, (axum::http::StatusCode, String)> {
     let mut file_bytes: Option<Vec<u8>> = None;
-    while let Some(field) = multipart
-        .next_field()
-        .await
-        .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, format!("Multipart inválido: {e}")))?
-    {
+    while let Some(field) = multipart.next_field().await.map_err(|e| {
+        (
+            axum::http::StatusCode::BAD_REQUEST,
+            format!("Multipart inválido: {e}"),
+        )
+    })? {
         if field.name() == Some("file") {
-            let data = field
-                .bytes()
-                .await
-                .map_err(|e| (axum::http::StatusCode::BAD_REQUEST, format!("Archivo inválido: {e}")))?;
+            let data = field.bytes().await.map_err(|e| {
+                (
+                    axum::http::StatusCode::BAD_REQUEST,
+                    format!("Archivo inválido: {e}"),
+                )
+            })?;
             file_bytes = Some(data.to_vec());
             break;
         }

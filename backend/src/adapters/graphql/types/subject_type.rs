@@ -1,4 +1,4 @@
-use async_graphql::{ID, SimpleObject};
+use async_graphql::{SimpleObject, ID};
 
 use crate::domain::models::subject::Subject;
 

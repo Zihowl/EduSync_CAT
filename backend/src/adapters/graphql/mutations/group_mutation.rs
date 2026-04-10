@@ -21,10 +21,15 @@ pub struct GroupMutation;
 #[Object]
 impl GroupMutation {
     #[graphql(name = "CreateGroup")]
-    async fn create_group(&self, ctx: &Context<'_>, input: CreateGroupInput) -> async_graphql::Result<GroupType> {
+    async fn create_group(
+        &self,
+        ctx: &Context<'_>,
+        input: CreateGroupInput,
+    ) -> async_graphql::Result<GroupType> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<GroupService>>()?;
-        let result = svc.create(&input.name, input.parent_id)
+        let result = svc
+            .create(&input.name, input.parent_id)
             .await
             .map(Into::into)
             .map_err(to_gql_error);
@@ -35,10 +40,15 @@ impl GroupMutation {
     }
 
     #[graphql(name = "UpdateGroup")]
-    async fn update_group(&self, ctx: &Context<'_>, input: UpdateGroupInput) -> async_graphql::Result<GroupType> {
+    async fn update_group(
+        &self,
+        ctx: &Context<'_>,
+        input: UpdateGroupInput,
+    ) -> async_graphql::Result<GroupType> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<GroupService>>()?;
-        let result = svc.update(input.id, input.name.as_deref(), Some(input.parent_id))
+        let result = svc
+            .update(input.id, input.name.as_deref(), Some(input.parent_id))
             .await
             .map(Into::into)
             .map_err(to_gql_error);

@@ -3,7 +3,10 @@ use std::sync::Arc;
 use async_graphql::{Context, Object};
 
 use crate::{
-    adapters::{auth::middleware::require_admin, graphql::{schema::to_gql_error, types::building_type::BuildingType}},
+    adapters::{
+        auth::middleware::require_admin,
+        graphql::{schema::to_gql_error, types::building_type::BuildingType},
+    },
     domain::services::building_service::BuildingService,
 };
 
@@ -23,7 +26,11 @@ impl BuildingQuery {
     }
 
     #[graphql(name = "GetBuilding")]
-    async fn get_building(&self, ctx: &Context<'_>, id: i32) -> async_graphql::Result<Option<BuildingType>> {
+    async fn get_building(
+        &self,
+        ctx: &Context<'_>,
+        id: i32,
+    ) -> async_graphql::Result<Option<BuildingType>> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<BuildingService>>()?;
         svc.find_one(id)

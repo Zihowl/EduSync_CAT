@@ -3,7 +3,10 @@ use std::sync::Arc;
 use async_graphql::{Context, Object};
 
 use crate::{
-    adapters::{auth::middleware::require_admin, graphql::{schema::to_gql_error, types::group_type::GroupType}},
+    adapters::{
+        auth::middleware::require_admin,
+        graphql::{schema::to_gql_error, types::group_type::GroupType},
+    },
     domain::services::group_service::GroupService,
 };
 
@@ -23,7 +26,11 @@ impl GroupQuery {
     }
 
     #[graphql(name = "GetGroup")]
-    async fn get_group(&self, ctx: &Context<'_>, id: i32) -> async_graphql::Result<Option<GroupType>> {
+    async fn get_group(
+        &self,
+        ctx: &Context<'_>,
+        id: i32,
+    ) -> async_graphql::Result<Option<GroupType>> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<GroupService>>()?;
         svc.find_one(id)

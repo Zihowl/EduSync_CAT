@@ -17,7 +17,11 @@ pub struct AuthMutation;
 #[Object]
 impl AuthMutation {
     #[graphql(name = "Login")]
-    async fn login(&self, ctx: &Context<'_>, login_input: LoginInput) -> async_graphql::Result<LoginResponseType> {
+    async fn login(
+        &self,
+        ctx: &Context<'_>,
+        login_input: LoginInput,
+    ) -> async_graphql::Result<LoginResponseType> {
         let svc = ctx.data::<Arc<AuthService>>()?;
         let user = svc
             .validate_user(&login_input.email, &login_input.password)
@@ -44,7 +48,11 @@ impl AuthMutation {
     }
 
     #[graphql(name = "ChangeCredentials")]
-    async fn change_credentials(&self, ctx: &Context<'_>, input: ChangeCredentialsInput) -> async_graphql::Result<UserType> {
+    async fn change_credentials(
+        &self,
+        ctx: &Context<'_>,
+        input: ChangeCredentialsInput,
+    ) -> async_graphql::Result<UserType> {
         let svc = ctx.data::<Arc<AuthService>>()?;
         let user = svc
             .change_credentials(
