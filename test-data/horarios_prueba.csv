@@ -1,27 +1,59 @@
 ClaveMateria,Materia,Grado,NoEmpleado,Docente,Grupo,Subgrupo,Aula,Edificio,Dia,HoraInicio,HoraFin
-ING101,Inglés Académico I,1,EMP-1001,Ana Torres Guzmán,1A,,IDI-101,Edificio de Idiomas,Martes,07:00,08:30
-ING101,Inglés Académico I,1,EMP-1001,Ana Torres Guzmán,1A,,IDI-101,Edificio de Idiomas,Jueves,07:00,08:30
-MAT101,Cálculo Diferencial,2,EMP-1002,Carlos Herrera López,2A,Software,CB-201,Edificio de Ciencias Básicas,Lunes,08:30,10:00
-MAT101,Cálculo Diferencial,2,EMP-1002,Carlos Herrera López,2A,Software,CB-201,Edificio de Ciencias Básicas,Miércoles,08:30,10:00
-FIS101,Física General,8,EMP-1003,María González Ruiz,8C,1,LAB-FIS-1,Edificio de Ciencias Básicas,Martes,10:00,11:30
-FIS101,Física General,8,EMP-1003,María González Ruiz,8C,1,LAB-FIS-1,Edificio de Ciencias Básicas,Jueves,10:00,11:30
-PRO101,Programación I,2,EMP-1004,Javier Medina Soto,2A,Software,LAB-COMP-1,Edificio de Ingeniería,Lunes,10:00,12:00
-PRO101,Programación I,2,EMP-1004,Javier Medina Soto,2A,Software,LAB-COMP-1,Edificio de Ingeniería,Miércoles,10:00,12:00
-BD201,Bases de Datos,2,EMP-1004,Javier Medina Soto,2C,1,LAB-COMP-2,Edificio de Ingeniería,Martes,10:00,12:00
-BD201,Bases de Datos,2,EMP-1004,Javier Medina Soto,2C,1,LAB-COMP-2,Edificio de Ingeniería,Jueves,10:00,12:00
-RED201,Redes de Computadoras,NULL,EMP-1005,Sofía Navarro Díaz,Lucha,Principiantes,LAB-NET-1,Edificio de Ingeniería,Lunes,12:00,13:30
-RED201,Redes de Computadoras,NULL,EMP-1005,Sofía Navarro Díaz,Lucha,Principiantes,LAB-NET-1,Edificio de Ingeniería,Viernes,12:00,13:30
-QUI101,Química General,3,EMP-1006,Patricia Castillo León,3B,,LAB-QUI-1,Edificio de Ciencias Básicas,Miércoles,12:00,13:30
-QUI101,Química General,3,EMP-1006,Patricia Castillo León,3B,,LAB-QUI-1,Edificio de Ciencias Básicas,Viernes,12:00,13:30
-HIS101,Historia de México,3,EMP-1007,Elena Gómez Rivera,3B,1,HUM-104,Edificio de Humanidades,Martes,08:30,10:00
-HIS101,Historia de México,3,EMP-1007,Elena Gómez Rivera,3B,1,HUM-104,Edificio de Humanidades,Viernes,08:30,10:00
-ADM101,Administración,3,EMP-1008,Ricardo Salas Moreno,3C,1,ADM-202,Edificio Administrativo,Lunes,14:00,15:30
-ADM101,Administración,3,EMP-1008,Ricardo Salas Moreno,3C,1,ADM-202,Edificio Administrativo,Miércoles,14:00,15:30
-EST101,Estadística Aplicada,3,EMP-1009,Laura Chávez Martínez,3B,,ECON-110,Edificio de Ciencias Económicas,Martes,12:00,13:30
-EST101,Estadística Aplicada,3,EMP-1009,Laura Chávez Martínez,3B,,ECON-110,Edificio de Ciencias Económicas,Jueves,12:00,13:30
-RED301,Seguridad Informática,8,EMP-1010,Daniel Herrera Cruz,8C,1,LAB-NET-2,Edificio de Ingeniería,Martes,16:00,18:00
-RED301,Seguridad Informática,8,EMP-1010,Daniel Herrera Cruz,8C,1,LAB-NET-2,Edificio de Ingeniería,Viernes,16:00,18:00
-DIB101,Dibujo Técnico,,EMP-1011,Miguel Ángel Ruiz,Puentes de Palitos,Creativo,ARQ-301,Edificio de Arquitectura,Lunes,16:00,17:30
-DIB101,Dibujo Técnico,,EMP-1011,Miguel Ángel Ruiz,Puentes de Palitos,Creativo,ARQ-301,Edificio de Arquitectura,Miércoles,16:00,17:30
-INV201,Metodología de la Investigación,NULL,EMP-1012,Verónica Pineda Ortega,Ajedrez,ELO 1000,POS-204,Edificio de Posgrado,Jueves,18:00,19:30
-INV201,Metodología de la Investigación,NULL,EMP-1012,Verónica Pineda Ortega,Ajedrez,ELO 500,POS-204,Edificio de Posgrado,Sábado,09:00,10:30
+FDS101,Fundamentos de desarrollo de software,1,EMP-2001,Javier Medina Soto,1A,1,C-101,L,Lunes,07:00,08:40
+FDS101,Fundamentos de desarrollo de software,1,EMP-2001,Javier Medina Soto,1A,1,C-101,L,Miércoles,07:00,08:40
+PM101,Pensamiento matemático I,1,EMP-2002,Laura Chávez Martínez,1A,,S-101,B,Martes,07:50,09:30
+PM101,Pensamiento matemático I,1,EMP-2002,Laura Chávez Martínez,1A,,S-101,B,Jueves,07:50,09:30
+LCI101,Lengua y comunicación I,1,EMP-2003,Elena Gómez Rivera,1A,,S-102,G,Lunes,09:30,11:10
+LCI101,Lengua y comunicación I,1,EMP-2003,Elena Gómez Rivera,1A,,S-102,G,Miércoles,09:30,11:10
+PES201,Programación estructurada,2,EMP-2004,Carlos Herrera López,2A,1,C-102,L,Lunes,08:40,10:20
+PES201,Programación estructurada,2,EMP-2004,Carlos Herrera López,2A,1,C-102,L,Miércoles,08:40,10:20
+STC201,Soporte técnico de equipo de cómputo,2,EMP-2005,Miguel Ángel Ruiz,2A,1,C-103,F,Martes,10:20,12:00
+STC201,Soporte técnico de equipo de cómputo,2,EMP-2005,Miguel Ángel Ruiz,2A,1,C-103,F,Jueves,10:20,12:00
+CDI201,Cultura digital II,2,EMP-2006,Sofía Navarro Díaz,2A,,C-104,F,Lunes,11:10,12:50
+CDI201,Cultura digital II,2,EMP-2006,Sofía Navarro Díaz,2A,,C-104,F,Miércoles,11:10,12:50
+POO301,Programación orientada a objetos I,3,EMP-2007,Andrea Sandoval Reyes,3A,1,C-105,G,Martes,07:00,08:40
+POO301,Programación orientada a objetos I,3,EMP-2007,Andrea Sandoval Reyes,3A,1,C-105,G,Jueves,07:00,08:40
+IRI301,Infraestructura de redes I,3,EMP-2008,Daniel Herrera Cruz,3A,1,C-106,G,Lunes,08:40,10:20
+IRI301,Infraestructura de redes I,3,EMP-2008,Daniel Herrera Cruz,3A,1,C-106,G,Miércoles,08:40,10:20
+HII301,Humanidades II,3,EMP-2009,Verónica Pineda Ortega,3A,,S-103,L,Martes,12:00,13:40
+HII301,Humanidades II,3,EMP-2009,Verónica Pineda Ortega,3A,,S-103,L,Jueves,12:00,13:40
+POO401,Programación orientada a objetos II,4,EMP-2010,Óscar Villarreal Peña,4A,1,C-201,B,Lunes,07:50,09:30
+POO401,Programación orientada a objetos II,4,EMP-2010,Óscar Villarreal Peña,4A,1,C-201,B,Miércoles,07:50,09:30
+BDI401,Base de datos I,4,EMP-2011,Patricia Castillo León,4A,1,C-202,B,Martes,09:30,11:10
+BDI401,Base de datos I,4,EMP-2011,Patricia Castillo León,4A,1,C-202,B,Jueves,09:30,11:10
+CSI401,Ciencias sociales III,4,EMP-2012,Ricardo Salas Moreno,4A,,S-104,B,Lunes,12:00,13:40
+CSI401,Ciencias sociales III,4,EMP-2012,Ricardo Salas Moreno,4A,,S-104,B,Miércoles,12:00,13:40
+INT501,Interfaces,5,EMP-2013,Claudia Núñez León,5A,1,C-203,L,Lunes,10:20,12:00
+INT501,Interfaces,5,EMP-2013,Claudia Núñez León,5A,1,C-203,L,Miércoles,10:20,12:00
+BDII501,Base de datos II,5,EMP-2014,Luis Alberto Ortega,5A,1,C-204,L,Martes,11:10,12:50
+BDII501,Base de datos II,5,EMP-2014,Luis Alberto Ortega,5A,1,C-204,L,Jueves,11:10,12:50
+SO501,Sistemas operativos,5,EMP-2015,María González Ruiz,5A,1,C-205,F,Lunes,12:50,14:30
+SO501,Sistemas operativos,5,EMP-2015,María González Ruiz,5A,1,C-205,F,Miércoles,12:50,14:30
+PMO601,Programación móvil I,6,EMP-2016,Fernando Ledesma Ortiz,6A,1,C-206,F,Martes,08:40,10:20
+PMO601,Programación móvil I,6,EMP-2016,Fernando Ledesma Ortiz,6A,1,C-206,F,Jueves,08:40,10:20
+PWEB601,Programación WEB I,6,EMP-2017,Ana Torres Guzmán,6A,1,C-207,G,Lunes,10:20,12:00
+PWEB601,Programación WEB I,6,EMP-2017,Ana Torres Guzmán,6A,1,C-207,G,Miércoles,10:20,12:00
+MMD601,Modelos y métodos de desarrollo de software II,6,EMP-2018,Gabriela Ríos Salazar,6A,1,C-208,L,Martes,12:50,14:30
+MMD601,Modelos y métodos de desarrollo de software II,6,EMP-2018,Gabriela Ríos Salazar,6A,1,C-208,L,Jueves,12:50,14:30
+PWEB701,Programación WEB II,7,EMP-2019,Javier Medina Soto,7A,1,C-209,F,Lunes,07:50,09:30
+PWEB701,Programación WEB II,7,EMP-2019,Javier Medina Soto,7A,1,C-209,F,Miércoles,07:50,09:30
+CNU701,Cómputo nube,7,EMP-2020,Héctor Molina Castro,7A,1,C-210,G,Martes,09:30,11:10
+CNU701,Cómputo nube,7,EMP-2020,Héctor Molina Castro,7A,1,C-210,G,Jueves,09:30,11:10
+PI701,Proyecto integrador I,7,EMP-2021,Andrea Sandoval Reyes,7A,1,C-211,L,Lunes,11:10,12:50
+PI701,Proyecto integrador I,7,EMP-2021,Andrea Sandoval Reyes,7A,1,C-211,L,Miércoles,11:10,12:50
+CIB801,Ciberseguridad,8,EMP-2022,Patricia Castillo León,8A,1,C-212,F,Lunes,08:40,10:20
+CIB801,Ciberseguridad,8,EMP-2022,Patricia Castillo León,8A,1,C-212,F,Miércoles,08:40,10:20
+PMO801,Programación móvil II,8,EMP-2023,Fernando Ledesma Ortiz,8A,1,C-213,G,Martes,10:20,12:00
+PMO801,Programación móvil II,8,EMP-2023,Fernando Ledesma Ortiz,8A,1,C-213,G,Jueves,10:20,12:00
+PI802,Proyecto integrador II,8,EMP-2024,Miguel Ángel Ruiz,8A,1,C-214,L,Lunes,12:00,13:40
+PI802,Proyecto integrador II,8,EMP-2024,Miguel Ángel Ruiz,8A,1,C-214,L,Miércoles,12:00,13:40
+ACF001,Acondicionamiento Físico,,EMP-3001,Gabriela Ríos Salazar,J1,Acondicionamiento Físico,ACF-01,J,Lunes,15:00,16:30
+ACF001,Acondicionamiento Físico,,EMP-3001,Gabriela Ríos Salazar,J1,Acondicionamiento Físico,ACF-01,J,Miércoles,15:00,16:30
+AJD001,Ajedrez,,EMP-3002,Héctor Molina Castro,J2,Ajedrez,AJD-01,J,Martes,15:30,17:00
+AJD001,Ajedrez,,EMP-3002,Héctor Molina Castro,J2,Ajedrez,AJD-01,J,Jueves,15:30,17:00
+DAE001,Danza Aérea,,EMP-3003,Claudia Núñez León,J3,Danza Aérea,DAE-01,J,Lunes,16:00,18:00
+DAE001,Danza Aérea,,EMP-3003,Claudia Núñez León,J3,Danza Aérea,DAE-01,J,Viernes,16:00,18:00
+RTL001,Ritmos Latinos,,EMP-3004,Sofía Navarro Díaz,J4,Ritmos Latinos,RTL-01,J,Martes,17:00,18:30
+RTL001,Ritmos Latinos,,EMP-3004,Sofía Navarro Díaz,J4,Ritmos Latinos,RTL-01,J,Jueves,17:00,18:30
+TEO001,Teatro,,EMP-3005,Miguel Ángel Ruiz,J5,Teatro,TEO-01,J,Jueves,15:00,17:00
+TEO001,Teatro,,EMP-3005,Miguel Ángel Ruiz,J5,Teatro,TEO-01,J,Sábado,15:00,17:00
