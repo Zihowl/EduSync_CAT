@@ -1,0 +1,72 @@
+
+.schedule-calendar__context-menu {
+  position: fixed;
+  z-index: 9999;
+  min-width: 160px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.6rem;
+  padding: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  transform-origin: top left;
+  animation: contextMenuFadeIn 0.15s ease-out forwards;
+}
+
+@keyframes contextMenuFadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.schedule-calendar__context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.5rem 0.8rem;
+  border: none;
+  background: transparent;
+  color: var(--schedule-text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: left;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.schedule-calendar__context-menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.schedule-calendar__context-menu-item ion-icon {
+  font-size: 1.1rem;
+}
+
+.schedule-calendar__context-menu-item--danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+.schedule-calendar__context-menu-item--danger ion-icon {
+  color: #ef4444;
+}
+
+.schedule-calendar__context-menu-item--success:hover {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+.schedule-calendar__context-menu-item--success ion-icon {
+  color: #10b981;
+}
+
+.schedule-calendar__context-menu-item--warning:hover {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+.schedule-calendar__context-menu-item--warning ion-icon {
+  color: #f59e0b;
+}

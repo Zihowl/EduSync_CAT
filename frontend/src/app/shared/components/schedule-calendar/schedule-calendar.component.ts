@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
+import { ActionSheetController } from '@ionic/angular/standalone';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { addIcons } from 'ionicons';
-import { calendarOutline, checkmarkCircleOutline, ellipseOutline } from 'ionicons/icons';
+import { calendarOutline, checkmarkCircleOutline, ellipseOutline, ellipsisVertical, listOutline, checkbox, informationCircleOutline, close, closeCircleOutline } from 'ionicons/icons';
 import { IonBadge, IonChip, IonIcon } from '@ionic/angular/standalone';
 import {
     formatClockTime,
@@ -29,9 +30,17 @@ interface DayCluster {
     selector: 'app-schedule-calendar',
     standalone: true,
     imports: [CommonModule, IonBadge, IonChip, IonIcon],
+    providers: [],
     template: `
     <div class="schedule-calendar" [style.--schedule-day-count]="visibleDays.length">
       <div class="schedule-calendar__viewport">
+        <div class="schedule-calendar__toolbar" *ngIf="editable && events.length > 0">
+          <button type="button" class="schedule-calendar__selection-mode-btn" [class.schedule-calendar__selection-mode-btn--active]="selectionMode" (click)="toggleSelectionMode()">
+            <ion-icon [name]="selectionMode ? 'checkbox' : 'list-outline'"></ion-icon>
+            <span>{{ selectionMode ? 'Finalizar selección' : 'Selección Múltiple' }}</span>
+          </button>
+        </div>
+
         <div *ngIf="showHeaders && !showEmptyState" class="schedule-calendar__header">
           <div class="schedule-calendar__time-head">
             <span>Hora</span>
@@ -132,30 +141,9 @@ interface DayCluster {
                       </ion-chip>
                     </div>
 
-                    <div *ngIf="editable && event.actions?.length" class="schedule-calendar__actions" (click)="$event.stopPropagation()">
-                      <button
-                        *ngFor="let action of event.actions; trackBy: trackByAction"
-                        type="button"
-                        class="schedule-calendar__action"
-                        [class.schedule-calendar__action--danger]="action.tone === 'danger'"
-                        [class.schedule-calendar__action--success]="action.tone === 'success'"
-                        [class.schedule-calendar__action--warning]="action.tone === 'warning'"
-                        [class.schedule-calendar__action--medium]="!action.tone || action.tone === 'medium'"
-                        [attr.aria-label]="action.label"
-                        (click)="emitActionClick(event, action, $event)">
-                        <ion-icon [name]="action.icon"></ion-icon>
-                      </button>
+                    <div *ngIf="event.selected && selectionMode" class="schedule-calendar__selection-indicator">
+                      <ion-icon name="checkmark-circle-outline"></ion-icon>
                     </div>
-
-                    <button
-                      *ngIf="editable"
-                      type="button"
-                      class="schedule-calendar__selection"
-                      [class.schedule-calendar__selection--on]="event.selected"
-                      [attr.aria-label]="event.selected ? 'Quitar selección' : 'Seleccionar bloque'"
-                      (click)="toggleSelection(event, $event)">
-                      <ion-icon [name]="event.selected ? 'checkmark-circle-outline' : 'ellipse-outline'"></ion-icon>
-                    </button>
                   </div>
                 </article>
               </section>
@@ -175,6 +163,7 @@ export class ScheduleCalendarComponent implements OnChanges {
   @Input() minuteHeight = 1;
   @Input() slotMinutes = 30;
   @Input() editable = false;
+  @Input() selectionMode = false;
   @Input() highlightedDay: number | null = null;
   @Input() showCurrentTimeMarker = true;
   @Input() showHeaders = true;
@@ -188,8 +177,16 @@ export class ScheduleCalendarComponent implements OnChanges {
   @Output() actionSelected = new EventEmitter<ScheduleCalendarActionClick>();
   @Output() selectionToggled = new EventEmitter<ScheduleCalendarEvent>();
   @Output() dayHeaderSelected = new EventEmitter<number>();
+  @Output() selectionModeChange = new EventEmitter<boolean>();
 
   @ViewChild('scrollBody', { static: false }) scrollBody?: ElementRef<HTMLElement>;
+
+  constructor(private actionSheetCtrl: ActionSheetController) {}
+
+  toggleSelectionMode(): void {
+      this.selectionMode = !this.selectionMode;
+      this.selectionModeChange.emit(this.selectionMode);
+  }
 
   layoutsByDay = new Map<number, ScheduleCalendarLayoutEvent[]>();
   slots: Array<{ minuteOfDay: number; top: number; height: number }> = [];
@@ -292,12 +289,50 @@ export class ScheduleCalendarComponent implements OnChanges {
       return this.layoutsByDay.get(normalizeDayOfWeek(day)) ?? [];
   }
 
-  emitEventClick(event: ScheduleCalendarLayoutEvent, domEvent: MouseEvent): void {
-      if ((domEvent.target as HTMLElement)?.closest('.schedule-calendar__action, .schedule-calendar__selection')) {
+  async emitEventClick(event: ScheduleCalendarLayoutEvent, domEvent: MouseEvent): Promise<void> {
+      domEvent.stopPropagation();
+
+      if (this.selectionMode) {
+          this.toggleSelection(event, domEvent);
           return;
       }
 
-      this.eventSelected.emit(event);
+      if (!this.editable) {
+          this.eventSelected.emit(event);
+          return;
+      }
+
+      const buttons: any[] = (event.actions || []).map(action => ({
+          text: action.label,
+          icon: action.icon,
+          role: action.tone === 'danger' ? 'destructive' : undefined,
+          handler: () => this.emitActionClick(event, action, domEvent)
+      }));
+
+      buttons.push({
+          text: 'Seleccionar bloque',
+          icon: 'checkmark-circle-outline',
+          handler: () => {
+              this.toggleSelectionMode();
+              this.toggleSelection(event, domEvent);
+          }
+      });
+
+      buttons.push({
+          text: 'Ver detalles',
+          icon: 'information-circle-outline',
+          handler: () => this.eventSelected.emit(event)
+      });
+
+      buttons.push({ text: 'Cancelar', icon: 'close', role: 'cancel' });
+
+      const actionSheet = await this.actionSheetCtrl.create({
+          header: event.title,
+          subHeader: event.subtitle || `${this.formatShortClock(event.startTime)} - ${this.formatShortClock(event.endTime)}`,
+          buttons
+      });
+
+      await actionSheet.present();
   }
 
   emitCellClick(dayOfWeek: number, minuteOfDay: number): void {
@@ -468,4 +503,10 @@ addIcons({
     calendarOutline,
     checkmarkCircleOutline,
     ellipseOutline,
+    ellipsisVertical,
+    listOutline,
+    checkbox,
+    informationCircleOutline,
+    close,
+    closeCircleOutline
 });

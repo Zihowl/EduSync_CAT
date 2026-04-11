@@ -436,16 +436,79 @@
   font-weight: 600;
 }
 
-.schedule-calendar__actions {
-  position: absolute;
-  top: 0.35rem;
-  right: 0.35rem;
+
+.schedule-calendar__context-menu {
+  position: fixed;
+  z-index: 9999;
+  min-width: 160px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.6rem;
+  padding: 0.4rem;
   display: flex;
+  flex-direction: column;
   gap: 0.2rem;
-  z-index: 4;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  transform-origin: top left;
+  animation: contextMenuFadeIn 0.15s ease-out forwards;
 }
 
-.schedule-calendar__action,
+@keyframes contextMenuFadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.schedule-calendar__context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.5rem 0.8rem;
+  border: none;
+  background: transparent;
+  color: var(--schedule-text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: left;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.schedule-calendar__context-menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.schedule-calendar__context-menu-item ion-icon {
+  font-size: 1.1rem;
+}
+
+.schedule-calendar__context-menu-item--danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+.schedule-calendar__context-menu-item--danger ion-icon {
+  color: #ef4444;
+}
+
+.schedule-calendar__context-menu-item--success:hover {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+.schedule-calendar__context-menu-item--success ion-icon {
+  color: #10b981;
+}
+
+.schedule-calendar__context-menu-item--warning:hover {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+.schedule-calendar__context-menu-item--warning ion-icon {
+  color: #f59e0b;
+}
+
 .schedule-calendar__selection {
   display: inline-flex;
   align-items: center;
@@ -460,57 +523,86 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   cursor: pointer;
   transition: all 0.2s ease;
+  position: absolute;
+  top: 0.35rem;
+  left: 0.35rem;
+  z-index: 4;
 }
 
-.schedule-calendar__action:hover,
 .schedule-calendar__selection:hover {
   background: rgba(30, 41, 59, 1);
   transform: scale(1.05);
 }
 
-.schedule-calendar__action ion-icon,
 .schedule-calendar__selection ion-icon {
   font-size: 0.85rem;
 }
 
-.schedule-calendar__action--danger {
-  color: #dc2626;
-}
-
-.schedule-calendar__action--success {
-  color: #2563eb;
-}
-
-.schedule-calendar__action--warning {
-  color: #b45309;
-}
-
-.schedule-calendar__selection {
-  position: absolute;
-  top: 0.22rem;
-  left: 0.22rem;
-  z-index: 4;
-}
-
 .schedule-calendar__selection--on {
-  background: rgba(37, 99, 235, 0.95);
+  background: rgba(37, 99, 235, 1);
   color: #ffffff;
+  border-color: rgba(59, 130, 246, 0.4);
 }
 
-@media (max-width: 900px) {
-  :host {
-    --schedule-time-rail-width: 60px;
-    --schedule-day-column-min: 150px;
+.schedule-calendar__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  margin-bottom: 0.5rem;
+}
+
+.schedule-calendar__selection-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: var(--schedule-surface-strong, rgba(30, 41, 59, 0.4));
+  color: var(--schedule-text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(8px);
+
+  ion-icon {
+    font-size: 1.1rem;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  &--active {
+    background: rgba(37, 99, 235, 0.8);
+    border-color: rgba(59, 130, 246, 0.5);
+    color: #ffffff;
+    
+    &:hover {
+      background: rgba(37, 99, 235, 1);
+    }
   }
 }
 
-@media (max-width: 600px) {
-  :host {
-    --schedule-time-rail-width: 54px;
-    --schedule-day-column-min: 140px;
-  }
-
-  .schedule-calendar__day-head {
-    padding: 0.5rem 0.6rem;
+.schedule-calendar__selection-indicator {
+  position: absolute;
+  top: 0.35rem;
+  left: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 1);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 4;
+  
+  ion-icon {
+    font-size: 0.85rem;
   }
 }
