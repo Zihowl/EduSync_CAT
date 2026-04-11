@@ -40,7 +40,7 @@ interface DayCluster {
                 </button>
             </div>
 
-      <div class="schedule-calendar__viewport">
+      <div #scrollBody class="schedule-calendar__viewport">
         <div *ngIf="showHeaders && !showEmptyState" class="schedule-calendar__header">
           <div class="schedule-calendar__time-head">
             <span>Hora</span>
@@ -68,7 +68,7 @@ interface DayCluster {
         </div>
 
         <ng-template #calendarBodyTemplate>
-          <div #scrollBody class="schedule-calendar__body" [style.--schedule-calendar-height.px]="calendarHeight">
+          <div class="schedule-calendar__body" [style.--schedule-calendar-height.px]="calendarHeight">
             <div class="schedule-calendar__time-rail">
               <span
                 *ngFor="let hour of hourMarkers; trackBy: trackByHour"
