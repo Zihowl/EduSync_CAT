@@ -298,6 +298,8 @@
 
 .schedule-calendar__event-shell {
   position: relative;
+  display: flex;
+  flex-direction: column;
   height: 100%;
   padding: 0.5rem 0.6rem;
   border-radius: 0.8rem;
@@ -374,11 +376,11 @@
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
-.schedule-calendar__event-top {
+.schedule-calendar__event-footer {
   display: flex;
-  align-items: flex-start;
   justify-content: flex-end;
-  gap: 0.35rem;
+  margin-top: auto;
+  padding-top: 0.35rem;
 }
 
 .schedule-calendar__badge {

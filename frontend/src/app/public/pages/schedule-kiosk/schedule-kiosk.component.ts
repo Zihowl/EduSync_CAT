@@ -285,7 +285,6 @@ export class ScheduleKioskComponent implements OnInit {
             subtitle: `${this.getDayName(schedule.dayOfWeek)} · ${this.formatTime(schedule.startTime)} - ${this.formatTime(schedule.endTime)}`,
             meta: [
                 schedule.teacher?.name || 'Sin docente',
-                this.getGroupLabel(schedule.group),
                 schedule.classroom?.name || 'Sin aula'
             ].filter((value): value is string => Boolean(value)),
             selected: this.selectedSchedule != null && Number(this.selectedSchedule.id) === Number(schedule.id),

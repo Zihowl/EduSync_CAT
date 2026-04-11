@@ -120,12 +120,7 @@ interface DayCluster {
                   [attr.data-tone]="event.statusTone || 'primary'"
                   (click)="emitEventClick(event, $event)">
 
-                                    <div class="schedule-calendar__event-shell">
-                                        <div *ngIf="event.statusLabel" class="schedule-calendar__event-top">
-                                            <ion-badge *ngIf="event.statusLabel" [color]="event.statusTone || 'primary'" class="schedule-calendar__badge">
-                                                {{ event.statusLabel }}
-                                            </ion-badge>
-                                        </div>
+                  <div class="schedule-calendar__event-shell">
 
                     <h3 class="schedule-calendar__event-title">{{ event.title }}</h3>
 
@@ -136,6 +131,12 @@ interface DayCluster {
                         {{ item }}
                       </ion-chip>
                     </div>
+
+                                        <div *ngIf="event.statusLabel" class="schedule-calendar__event-footer">
+                                            <ion-badge [color]="event.statusTone || 'primary'" class="schedule-calendar__badge">
+                                                {{ event.statusLabel }}
+                                            </ion-badge>
+                                        </div>
 
                     <div *ngIf="event.selected && selectionMode" class="schedule-calendar__selection-indicator">
                       <ion-icon name="checkmark-circle-outline"></ion-icon>

@@ -674,7 +674,6 @@ export class SchedulesComponent implements OnInit {
             subtitle: `${this.getDayName(schedule.dayOfWeek)} · ${this.formatTime(schedule.startTime)} - ${this.formatTime(schedule.endTime)}`,
             meta: [
                 schedule.teacher?.name || 'Sin docente',
-                `${this.getGroupLabel(schedule.group)}${schedule.subgroup ? ` · ${schedule.subgroup}` : ''}`,
                 schedule.classroom?.name || 'Sin aula'
             ].filter((value): value is string => Boolean(value)),
             statusLabel: schedule.isPublished ? 'Publicado' : 'Borrador',
