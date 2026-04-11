@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
@@ -365,6 +365,8 @@ interface ScheduleBlockForm {
     styleUrls: ['./schedules.component.scss']
 })
 export class SchedulesComponent implements OnInit {
+    @ViewChild(ScheduleCalendarComponent) calendarComponent?: ScheduleCalendarComponent;
+
     private apollo = inject(Apollo);
     private notifications = inject(NotificationService);
     private queryCache = inject(RealtimeQueryCacheService);
@@ -601,6 +603,10 @@ export class SchedulesComponent implements OnInit {
         }
 
         this.refreshCalendarView();
+
+        globalThis.setTimeout(() => {
+            this.calendarComponent?.scrollToFirstEvent();
+        }, 100);
     }
 
     private clearFilterSelection(): void {
@@ -703,6 +709,7 @@ export class SchedulesComponent implements OnInit {
     }
 
     onGroupFilterChange(): void {
+        this.filterSubgroupValue = null;
         this.clearFilterSelection();
         this.applyVisibleFilters();
     }

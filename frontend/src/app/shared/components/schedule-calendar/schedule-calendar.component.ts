@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { addIcons } from 'ionicons';
 import { calendarOutline, checkmarkCircleOutline, ellipseOutline } from 'ionicons/icons';
 import { IonBadge, IonChip, IonIcon } from '@ionic/angular/standalone';
@@ -50,7 +50,7 @@ interface DayCluster {
           </button>
         </div>
 
-        <div *ngIf="showEmptyState; else calendarBody" class="schedule-calendar__body schedule-calendar__body--empty">
+        <div *ngIf="showEmptyState; else calendarBodyTemplate" class="schedule-calendar__body schedule-calendar__body--empty">
           <div class="schedule-calendar__empty-state" role="status" aria-live="polite">
             <ion-icon [name]="emptyIcon" class="schedule-calendar__empty-state-icon"></ion-icon>
             <h3>{{ emptyTitle }}</h3>
@@ -58,8 +58,8 @@ interface DayCluster {
           </div>
         </div>
 
-        <ng-template #calendarBody>
-          <div class="schedule-calendar__body" [style.--schedule-calendar-height.px]="calendarHeight">
+        <ng-template #calendarBodyTemplate>
+          <div #scrollBody class="schedule-calendar__body" [style.--schedule-calendar-height.px]="calendarHeight">
             <div class="schedule-calendar__time-rail">
               <span
                 *ngFor="let hour of hourMarkers; trackBy: trackByHour"
@@ -189,6 +189,8 @@ export class ScheduleCalendarComponent implements OnChanges {
   @Output() selectionToggled = new EventEmitter<ScheduleCalendarEvent>();
   @Output() dayHeaderSelected = new EventEmitter<number>();
 
+  @ViewChild('scrollBody', { static: false }) scrollBody?: ElementRef<HTMLElement>;
+
   layoutsByDay = new Map<number, ScheduleCalendarLayoutEvent[]>();
   slots: Array<{ minuteOfDay: number; top: number; height: number }> = [];
   hourMarkers: number[] = [];
@@ -223,7 +225,29 @@ export class ScheduleCalendarComponent implements OnChanges {
           ? (currentMinute - this.startMinute) * this.minuteHeight
           : -1;
   }
+  public scrollToFirstEvent(): void {
+      if (!this.scrollBody || this.events.length === 0) return;
 
+      let minTop = Number.MAX_SAFE_INTEGER;
+      for (const event of this.events) {
+          const startMinute = parseClockTime(event.startTime);
+          const top = Math.max(0, (startMinute - this.startMinute) * this.minuteHeight);
+          if (top < minTop) {
+              minTop = top;
+          }
+      }
+
+      if (minTop !== Number.MAX_SAFE_INTEGER) {
+          globalThis.setTimeout(() => {
+              if (this.scrollBody) {
+                  this.scrollBody.nativeElement.scrollTo({
+                      top: Math.max(0, minTop - 30), // 30px padding
+                      behavior: 'smooth'
+                  });
+              }
+          }, 50); // slight delay to allow rendering
+      }
+  }
   trackByDay(index: number, day: number): number {
       return day;
   }
