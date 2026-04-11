@@ -84,6 +84,69 @@ impl ScheduleMutation {
         result
     }
 
+    #[graphql(name = "CreateScheduleSlots")]
+    async fn create_schedule_slots(
+        &self,
+        ctx: &Context<'_>,
+        inputs: Vec<CreateScheduleSlotInput>,
+    ) -> async_graphql::Result<Vec<ScheduleSlotType>> {
+        let auth_user = require_admin(ctx)?;
+        let svc = ctx.data::<Arc<ScheduleService>>()?;
+        let audit_inputs = inputs.clone();
+
+        let payloads = inputs
+            .into_iter()
+            .map(|input| CreateScheduleSlot {
+                teacher_id: input.teacher_id,
+                subject_id: input.subject_id,
+                classroom_id: input.classroom_id,
+                group_id: input.group_id,
+                day_of_week: input.day_of_week,
+                start_time: input.start_time,
+                end_time: input.end_time,
+                subgroup: input.subgroup,
+                is_published: input.is_published.unwrap_or(false),
+                created_by_id: Some(auth_user.user_id),
+            })
+            .collect();
+
+        let result: async_graphql::Result<Vec<ScheduleSlotType>> = svc
+            .create_many(payloads)
+            .await
+            .map(|slots| slots.into_iter().map(ScheduleSlotType::from).collect())
+            .map_err(to_gql_error);
+
+        if let Ok(created_schedules) = &result {
+            for (schedule, input) in created_schedules.iter().zip(audit_inputs.iter()) {
+                record_admin_audit(
+                    ctx,
+                    &auth_user,
+                    "create_schedule_slot",
+                    "schedule_slot",
+                    Some(schedule.id.to_string()),
+                    json!({
+                        "teacher_id": input.teacher_id,
+                        "subject_id": input.subject_id,
+                        "classroom_id": input.classroom_id,
+                        "group_id": input.group_id,
+                        "day_of_week": input.day_of_week,
+                        "start_time": input.start_time,
+                        "end_time": input.end_time,
+                        "subgroup": input.subgroup,
+                        "is_published": input.is_published.unwrap_or(false)
+                    }),
+                )
+                .await;
+            }
+
+            if !created_schedules.is_empty() {
+                publish_realtime_event(ctx, &[RealtimeScope::Schedules]);
+            }
+        }
+
+        result
+    }
+
     #[graphql(name = "UpdateScheduleSlot")]
     async fn update_schedule_slot(
         &self,

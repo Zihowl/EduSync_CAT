@@ -10,6 +10,7 @@ pub trait ScheduleSlotRepository: Send + Sync {
     async fn find_all(&self, filter: ScheduleFilter) -> Result<Vec<ScheduleSlot>, DomainError>;
     async fn find_by_id(&self, id: i32) -> Result<Option<ScheduleSlot>, DomainError>;
     async fn create(&self, slot: ScheduleSlot) -> Result<ScheduleSlot, DomainError>;
+    async fn create_many(&self, slots: Vec<ScheduleSlot>) -> Result<Vec<ScheduleSlot>, DomainError>;
     async fn update(&self, slot: ScheduleSlot) -> Result<ScheduleSlot, DomainError>;
     async fn delete(&self, id: i32) -> Result<bool, DomainError>;
     async fn set_published(&self, ids: &[i32], is_published: bool) -> Result<i64, DomainError>;

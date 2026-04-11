@@ -2,8 +2,9 @@ import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angul
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
-import { map } from 'rxjs';
+import { firstValueFrom, map } from 'rxjs';
 import {
+    IonButton,
     IonContent,
     IonList, IonItem, IonLabel, IonSelect,
     IonSelectOption, IonIcon, IonFab, IonFabButton,
@@ -64,9 +65,9 @@ const GET_CATALOGS = gql`
     }
 `;
 
-const CREATE_SCHEDULE = gql`
-    mutation CreateScheduleSlot($input: CreateScheduleSlotInput!) {
-        CreateScheduleSlot(input: $input) {
+const CREATE_SCHEDULES = gql`
+    mutation CreateScheduleSlots($inputs: [CreateScheduleSlotInput!]!) {
+        CreateScheduleSlots(inputs: $inputs) {
             id
             dayOfWeek
             startTime
@@ -103,11 +104,26 @@ const SET_PUBLISHED = gql`
 const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const SCHEDULE_QUERY_LIMIT = 500;
 
+interface ScheduleFormData {
+    groupId: number | null;
+    subjectId: number | null;
+    teacherId: number | null;
+    classroomId: number | null;
+    subgroup: string;
+    isPublished: boolean;
+}
+
+interface ScheduleBlockForm {
+    dayOfWeek: number;
+    startTime: string;
+    endTime: string;
+}
+
 @Component({
     selector: 'app-schedules',
     standalone: true,
     imports: [
-        CommonModule, FormsModule, IonContent,
+        CommonModule, FormsModule, IonButton, IonContent,
         IonList, IonItem, IonLabel,
         IonSelect, IonSelectOption, IonIcon, IonFab, IonFabButton,
         IonSegment, IonSegmentButton, IonToggle,
@@ -207,106 +223,140 @@ const SCHEDULE_QUERY_LIMIT = 500;
                     [isOpen]="isModalOpen"
                     (isOpenChange)="SetOpen($event)"
                     [title]="(editingItem ? 'Editar' : 'Nuevo') + ' Horario'"
-                    subtitle="Completa los datos del horario y define su estado de publicación."
-                    helperText="Revisa que la hora de fin sea posterior a la de inicio antes de guardar."
-                    [saveLabel]="editingItem ? 'Actualizar' : 'Guardar'"
-                    [saveDisabled]="!canSave()"
+                    [subtitle]="editingItem ? 'Ajusta los datos del horario existente.' : 'Completa los datos base y agrega uno o más bloques para la misma clase.'"
+                    [helperText]="editingItem ? 'Revisa que la hora de fin sea posterior a la hora de inicio antes de guardar.' : 'Los bloques comparten grupo, materia, docente, aula y subgrupo. Puedes guardar varios a la vez.'"
+                    [saveLabel]="getSaveLabel()"
+                    [saveDisabled]="!canSave() || isSaving"
                     (save)="Save()">
                     <ng-template #modalBody>
-                        <ion-list>
-                            <ion-item fill="outline" class="schedule-form-item">
-                                <ion-label position="stacked">Grupo *</ion-label>
-                                <ion-select [(ngModel)]="formData.groupId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar grupo" [compareWith]="compareIds">
-                                    <ion-select-option *ngFor="let g of groups" [value]="g.id">
-                                        {{ getGroupLabel(g) }}
-                                    </ion-select-option>
-                                </ion-select>
-                                <ion-icon name="layers-outline" slot="start"></ion-icon>
-                            </ion-item>
+                        <div class="schedule-form">
+                            <ion-list class="schedule-form__fields">
+                                <ion-item fill="outline" class="schedule-form-item">
+                                    <ion-label position="stacked">Grupo *</ion-label>
+                                    <ion-select [(ngModel)]="formData.groupId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar grupo" [compareWith]="compareIds">
+                                        <ion-select-option *ngFor="let g of groups" [value]="g.id">
+                                            {{ getGroupLabel(g) }}
+                                        </ion-select-option>
+                                    </ion-select>
+                                    <ion-icon name="layers-outline" slot="start"></ion-icon>
+                                </ion-item>
 
-                            <ion-item fill="outline" class="schedule-form-item">
-                                <ion-label position="stacked">Subgrupo (opcional)</ion-label>
-                                <ion-input [(ngModel)]="formData.subgroup" type="text" placeholder="Ej. 1, Software, Principiantes"></ion-input>
-                                <ion-icon name="git-branch-outline" slot="start"></ion-icon>
-                            </ion-item>
+                                <ion-item fill="outline" class="schedule-form-item">
+                                    <ion-label position="stacked">Subgrupo (opcional)</ion-label>
+                                    <ion-input [(ngModel)]="formData.subgroup" type="text" placeholder="Ej. 1, Software, Principiantes"></ion-input>
+                                    <ion-icon name="git-branch-outline" slot="start"></ion-icon>
+                                </ion-item>
 
-                            <ion-item fill="outline" class="schedule-form-item">
-                                <ion-label position="stacked">Materia *</ion-label>
-                                <ion-select [(ngModel)]="formData.subjectId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar materia" [compareWith]="compareIds">
-                                    <ion-select-option *ngFor="let s of subjects" [value]="s.id">{{ getSubjectLabel(s) }}</ion-select-option>
-                                </ion-select>
-                                <ion-icon name="book-outline" slot="start"></ion-icon>
-                            </ion-item>
+                                <ion-item fill="outline" class="schedule-form-item">
+                                    <ion-label position="stacked">Materia *</ion-label>
+                                    <ion-select [(ngModel)]="formData.subjectId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar materia" [compareWith]="compareIds">
+                                        <ion-select-option *ngFor="let s of subjects" [value]="s.id">{{ getSubjectLabel(s) }}</ion-select-option>
+                                    </ion-select>
+                                    <ion-icon name="book-outline" slot="start"></ion-icon>
+                                </ion-item>
 
-                            <ion-item fill="outline" class="schedule-form-item">
-                                <ion-label position="stacked">Docente (opcional)</ion-label>
-                                <ion-select [(ngModel)]="formData.teacherId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar docente" [compareWith]="compareIds">
-                                    <ion-select-option [value]="null">Sin docente</ion-select-option>
-                                    <ion-select-option *ngFor="let t of teachers" [value]="t.id">{{ t.name }}</ion-select-option>
-                                </ion-select>
-                                <ion-icon name="person-outline" slot="start"></ion-icon>
-                            </ion-item>
+                                <ion-item fill="outline" class="schedule-form-item">
+                                    <ion-label position="stacked">Docente (opcional)</ion-label>
+                                    <ion-select [(ngModel)]="formData.teacherId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar docente" [compareWith]="compareIds">
+                                        <ion-select-option [value]="null">Sin docente</ion-select-option>
+                                        <ion-select-option *ngFor="let t of teachers" [value]="t.id">{{ t.name }}</ion-select-option>
+                                    </ion-select>
+                                    <ion-icon name="person-outline" slot="start"></ion-icon>
+                                </ion-item>
 
-                            <ion-item fill="outline" class="schedule-form-item">
-                                <ion-label position="stacked">Aula *</ion-label>
-                                <ion-select [(ngModel)]="formData.classroomId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar aula" [compareWith]="compareIds">
-                                    <ion-select-option *ngFor="let c of classrooms" [value]="c.id">{{ c.name }}</ion-select-option>
-                                </ion-select>
-                                <ion-icon name="business-outline" slot="start"></ion-icon>
-                            </ion-item>
+                                <ion-item fill="outline" class="schedule-form-item">
+                                    <ion-label position="stacked">Aula *</ion-label>
+                                    <ion-select [(ngModel)]="formData.classroomId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar aula" [compareWith]="compareIds">
+                                        <ion-select-option *ngFor="let c of classrooms" [value]="c.id">{{ c.name }}</ion-select-option>
+                                    </ion-select>
+                                    <ion-icon name="business-outline" slot="start"></ion-icon>
+                                </ion-item>
 
-                            <ion-item fill="outline" class="schedule-form-item">
-                                <ion-label position="stacked">Día de la semana *</ion-label>
-                                <ion-select [(ngModel)]="formData.dayOfWeek" interface="popover" [interfaceOptions]="{ animated: false }">
-                                    <ion-select-option *ngFor="let d of [1,2,3,4,5,6,7]" [value]="d">{{ getDayName(d) }}</ion-select-option>
-                                </ion-select>
-                                <ion-icon name="calendar-outline" slot="start"></ion-icon>
-                            </ion-item>
+                                <ion-item>
+                                    <ion-label>Publicar inmediatamente</ion-label>
+                                    <ion-toggle [(ngModel)]="formData.isPublished" slot="end"></ion-toggle>
+                                </ion-item>
+                            </ion-list>
 
-                            <ion-item fill="outline" class="schedule-form-item">
-                                <ion-label position="stacked">Hora de inicio *</ion-label>
-                                <ion-datetime-button datetime="startTimePicker"></ion-datetime-button>
-                                <ion-popover [keepContentsMounted]="true" [animated]="false">
-                                    <ng-template>
-                                        <ion-datetime
-                                            id="startTimePicker"
-                                            presentation="time"
-                                            [value]="getTimeAsISO(formData.startTime)"
-                                            (ionChange)="onStartTimeChange($event)"
-                                            hourCycle="h12"
-                                            minuteValues="0,5,10,15,20,25,30,35,40,45,50,55">
-                                        </ion-datetime>
-                                    </ng-template>
-                                </ion-popover>
-                                <ion-icon name="time-outline" slot="start"></ion-icon>
-                            </ion-item>
+                            <section class="schedule-blocks">
+                                <div class="schedule-blocks__header">
+                                    <div>
+                                        <p class="schedule-blocks__eyebrow">Bloques de horario</p>
+                                        <h3 class="schedule-blocks__title">{{ editingItem ? 'Bloque del horario' : 'Bloques para la misma clase' }}</h3>
+                                    </div>
 
-                            <ion-item fill="outline" class="schedule-form-item">
-                                <ion-label position="stacked">Hora de fin *</ion-label>
-                                <ion-datetime-button datetime="endTimePicker"></ion-datetime-button>
-                                <ion-popover [keepContentsMounted]="true" [animated]="false">
-                                    <ng-template>
-                                        <ion-datetime
-                                            id="endTimePicker"
-                                            presentation="time"
-                                            [value]="getTimeAsISO(formData.endTime)"
-                                            (ionChange)="onEndTimeChange($event)"
-                                            hourCycle="h12"
-                                            minuteValues="0,5,10,15,20,25,30,35,40,45,50,55">
-                                        </ion-datetime>
-                                    </ng-template>
-                                </ion-popover>
-                                <ion-icon name="time-outline" slot="start"></ion-icon>
-                            </ion-item>
+                                    <ion-button *ngIf="!editingItem" fill="clear" size="small" class="schedule-blocks__add" (click)="addScheduleBlock()">
+                                        <ion-icon name="add-outline" slot="start"></ion-icon>
+                                        Agregar bloque
+                                    </ion-button>
+                                </div>
 
-                            <ion-item>
-                                <ion-label>Publicar inmediatamente</ion-label>
-                                <ion-toggle [(ngModel)]="formData.isPublished" slot="end"></ion-toggle>
-                            </ion-item>
-                        </ion-list>
+                                <p class="schedule-blocks__hint">Cada bloque comparte los datos base y sólo cambia el día y el horario.</p>
 
-                        <div *ngIf="formData.startTime >= formData.endTime" class="schedule-time-error">
-                            <small>La hora de fin debe ser posterior a la hora de inicio</small>
+                                <div *ngFor="let block of scheduleBlocks; let i = index; trackBy: trackByBlockIndex" class="schedule-block" [class.schedule-block--invalid]="!isBlockValid(block)">
+                                    <div class="schedule-block__header">
+                                        <div>
+                                            <p class="schedule-block__kicker">Bloque {{ i + 1 }}</p>
+                                            <h4 class="schedule-block__title">{{ getDayName(block.dayOfWeek) || 'Sin día' }}</h4>
+                                        </div>
+
+                                        <ion-button *ngIf="!editingItem && scheduleBlocks.length > 1" fill="clear" size="small" color="danger" class="schedule-block__remove" (click)="removeScheduleBlock(i)">
+                                            <ion-icon name="trash-outline" slot="start"></ion-icon>
+                                            Quitar
+                                        </ion-button>
+                                    </div>
+
+                                    <ion-list class="schedule-block__fields">
+                                        <ion-item fill="outline" class="schedule-form-item">
+                                            <ion-label position="stacked">Día de la semana *</ion-label>
+                                            <ion-select [(ngModel)]="block.dayOfWeek" interface="popover" [interfaceOptions]="{ animated: false }">
+                                                <ion-select-option *ngFor="let d of [1,2,3,4,5,6,7]" [value]="d">{{ getDayName(d) }}</ion-select-option>
+                                            </ion-select>
+                                            <ion-icon name="calendar-outline" slot="start"></ion-icon>
+                                        </ion-item>
+
+                                        <ion-item fill="outline" class="schedule-form-item">
+                                            <ion-label position="stacked">Hora de inicio *</ion-label>
+                                            <ion-datetime-button [datetime]="getStartTimePickerId(i)"></ion-datetime-button>
+                                            <ion-popover [keepContentsMounted]="true" [animated]="false">
+                                                <ng-template>
+                                                    <ion-datetime
+                                                        [id]="getStartTimePickerId(i)"
+                                                        presentation="time"
+                                                        [value]="getTimeAsISO(block.startTime)"
+                                                        (ionChange)="onStartTimeChange(i, $event)"
+                                                        hourCycle="h12"
+                                                        minuteValues="0,5,10,15,20,25,30,35,40,45,50,55">
+                                                    </ion-datetime>
+                                                </ng-template>
+                                            </ion-popover>
+                                            <ion-icon name="time-outline" slot="start"></ion-icon>
+                                        </ion-item>
+
+                                        <ion-item fill="outline" class="schedule-form-item">
+                                            <ion-label position="stacked">Hora de fin *</ion-label>
+                                            <ion-datetime-button [datetime]="getEndTimePickerId(i)"></ion-datetime-button>
+                                            <ion-popover [keepContentsMounted]="true" [animated]="false">
+                                                <ng-template>
+                                                    <ion-datetime
+                                                        [id]="getEndTimePickerId(i)"
+                                                        presentation="time"
+                                                        [value]="getTimeAsISO(block.endTime)"
+                                                        (ionChange)="onEndTimeChange(i, $event)"
+                                                        hourCycle="h12"
+                                                        minuteValues="0,5,10,15,20,25,30,35,40,45,50,55">
+                                                    </ion-datetime>
+                                                </ng-template>
+                                            </ion-popover>
+                                            <ion-icon name="time-outline" slot="start"></ion-icon>
+                                        </ion-item>
+                                    </ion-list>
+
+                                    <div *ngIf="!isBlockValid(block)" class="schedule-time-error schedule-time-error--block">
+                                        <small>La hora de fin debe ser posterior a la hora de inicio.</small>
+                                    </div>
+                                </div>
+                            </section>
                         </div>
                     </ng-template>
                 </app-modal>
@@ -364,19 +414,19 @@ export class SchedulesComponent implements OnInit {
     editingItem: any = null;
     selectedSchedule: any | null = null;
     activeScheduleId: number | null = null;
-    originalFormData: string = '';
+    isSaving = false;
+    originalModalState = '';
 
-    formData = {
+    formData: ScheduleFormData = {
         groupId: null as number | null,
         subjectId: null as number | null,
         teacherId: null as number | null,
         classroomId: null as number | null,
-        dayOfWeek: 1,
-        startTime: '08:00',
-        endTime: '09:00',
         subgroup: '',
         isPublished: false
     };
+
+    scheduleBlocks: ScheduleBlockForm[] = [];
 
     ngOnInit() {
         addIcons({
@@ -746,20 +796,90 @@ export class SchedulesComponent implements OnInit {
         return `2024-01-01T${time}:00`;
     }
 
-    onStartTimeChange(event: any) {
-        const value = event.detail.value;
-        if (value) {
-            const date = new Date(value);
-            this.formData.startTime = date.toTimeString().substring(0, 5);
-        }
+    private createBlockDraft(seed: Partial<ScheduleBlockForm> = {}): ScheduleBlockForm {
+        return {
+            dayOfWeek: seed.dayOfWeek ?? this.calendarDays[0] ?? 1,
+            startTime: seed.startTime ?? '08:00',
+            endTime: seed.endTime ?? '09:00',
+        };
     }
 
-    onEndTimeChange(event: any) {
-        const value = event.detail.value;
-        if (value) {
-            const date = new Date(value);
-            this.formData.endTime = date.toTimeString().substring(0, 5);
+    private getModalSnapshot(): string {
+        return JSON.stringify({
+            formData: this.formData,
+            scheduleBlocks: this.scheduleBlocks,
+        });
+    }
+
+    private updateBlockTime(blockIndex: number, field: 'startTime' | 'endTime', event: any): void {
+        const value = event?.detail?.value;
+        if (!value) {
+            return;
         }
+
+        const date = new Date(value);
+        const nextValue = date.toTimeString().substring(0, 5);
+
+        this.scheduleBlocks = this.scheduleBlocks.map((block, index) => (
+            index === blockIndex ? { ...block, [field]: nextValue } : block
+        ));
+    }
+
+    trackByBlockIndex(index: number): number {
+        return index;
+    }
+
+    getStartTimePickerId(index: number): string {
+        return `schedule-start-${index}`;
+    }
+
+    getEndTimePickerId(index: number): string {
+        return `schedule-end-${index}`;
+    }
+
+    addScheduleBlock(seed: Partial<ScheduleBlockForm> = {}): void {
+        const lastBlock = this.scheduleBlocks[this.scheduleBlocks.length - 1];
+        const defaultSeed = lastBlock
+            ? {
+                dayOfWeek: lastBlock.dayOfWeek,
+                startTime: lastBlock.endTime,
+                endTime: this.addMinutesToTime(lastBlock.endTime, 60),
+            }
+            : {};
+
+        this.scheduleBlocks = [...this.scheduleBlocks, this.createBlockDraft({ ...defaultSeed, ...seed })];
+    }
+
+    removeScheduleBlock(index: number): void {
+        if (this.scheduleBlocks.length <= 1) {
+            return;
+        }
+
+        this.scheduleBlocks = this.scheduleBlocks.filter((_, currentIndex) => currentIndex !== index);
+    }
+
+    isBlockValid(block: ScheduleBlockForm): boolean {
+        return !!(block.dayOfWeek && block.startTime && block.endTime && block.startTime < block.endTime);
+    }
+
+    getSaveLabel(): string {
+        if (this.isSaving) {
+            return 'Guardando...';
+        }
+
+        if (this.editingItem) {
+            return 'Actualizar';
+        }
+
+        return this.scheduleBlocks.length > 1 ? 'Guardar bloques' : 'Guardar';
+    }
+
+    onStartTimeChange(blockIndex: number, event: any): void {
+        this.updateBlockTime(blockIndex, 'startTime', event);
+    }
+
+    onEndTimeChange(blockIndex: number, event: any): void {
+        this.updateBlockTime(blockIndex, 'endTime', event);
     }
 
     LoadCatalogs(forceRefresh = false) {
@@ -880,8 +1000,10 @@ export class SchedulesComponent implements OnInit {
         });
     }
 
-    OpenModal(item: any = null, seed: Partial<typeof this.formData> = {}) {
+    OpenModal(item: any = null, seed: Partial<ScheduleFormData & ScheduleBlockForm> = {}) {
         this.editingItem = item;
+        this.isSaving = false;
+
         if (item) {
             this.selectedSchedule = item;
             this.activeScheduleId = Number(item.id);
@@ -890,27 +1012,29 @@ export class SchedulesComponent implements OnInit {
                 subjectId: Number(item.subject.id),
                 teacherId: item.teacher ? Number(item.teacher.id) : null,
                 classroomId: Number(item.classroom.id),
-                dayOfWeek: item.dayOfWeek,
-                startTime: item.startTime.substring(0, 5),
-                endTime: item.endTime.substring(0, 5),
                 subgroup: item.subgroup || '',
                 isPublished: item.isPublished
             };
+            this.scheduleBlocks = [this.createBlockDraft({
+                dayOfWeek: item.dayOfWeek,
+                startTime: item.startTime.substring(0, 5),
+                endTime: item.endTime.substring(0, 5)
+            })];
         } else {
+            this.selectedSchedule = null;
+            this.activeScheduleId = null;
             this.formData = {
                 groupId: seed.groupId ?? null,
                 subjectId: seed.subjectId ?? null,
                 teacherId: seed.teacherId ?? null,
                 classroomId: seed.classroomId ?? null,
-                dayOfWeek: seed.dayOfWeek ?? this.calendarDays[0],
-                startTime: seed.startTime ?? '08:00',
-                endTime: seed.endTime ?? '09:00',
                 subgroup: seed.subgroup ?? '',
                 isPublished: seed.isPublished ?? false
             };
+            this.scheduleBlocks = [this.createBlockDraft(seed)];
         }
-        // Guardar estado original como JSON para comparar
-        this.originalFormData = JSON.stringify(this.formData);
+
+        this.originalModalState = this.getModalSnapshot();
         this.syncCalendarState();
         this.isModalOpen = true;
     }
@@ -920,6 +1044,7 @@ export class SchedulesComponent implements OnInit {
 
         if (!isOpen) {
             this.editingItem = null;
+            this.isSaving = false;
         }
     }
 
@@ -928,7 +1053,7 @@ export class SchedulesComponent implements OnInit {
     }
 
     hasChanges(): boolean {
-        return JSON.stringify(this.formData) !== this.originalFormData;
+        return this.getModalSnapshot() !== this.originalModalState;
     }
 
     isFormValid(): boolean {
@@ -936,10 +1061,8 @@ export class SchedulesComponent implements OnInit {
             this.formData.groupId &&
             this.formData.subjectId &&
             this.formData.classroomId &&
-            this.formData.dayOfWeek &&
-            this.formData.startTime &&
-            this.formData.endTime &&
-            this.formData.startTime < this.formData.endTime
+            this.scheduleBlocks.length > 0 &&
+            this.scheduleBlocks.every((block) => this.isBlockValid(block))
         );
     }
 
@@ -965,46 +1088,61 @@ export class SchedulesComponent implements OnInit {
         this.notifications.success(message, 'Horario');
     }
 
-    Save() {
-        if (!this.canSave()) return;
+    async Save() {
+        if (!this.canSave() || this.isSaving) return;
 
-        const input: any = {
+        this.isSaving = true;
+
+        const baseInput: any = {
             groupId: Number(this.formData.groupId),
             subjectId: Number(this.formData.subjectId),
             teacherId: this.formData.teacherId === null ? null : Number(this.formData.teacherId),
             classroomId: Number(this.formData.classroomId),
-            dayOfWeek: Number(this.formData.dayOfWeek),
-            startTime: this.formData.startTime,
-            endTime: this.formData.endTime,
             subgroup: this.formData.subgroup || null,
             isPublished: this.formData.isPublished
         };
 
-        if (this.editingItem) {
-            input.id = Number(this.editingItem.id);
-            this.apollo.mutate({
-                mutation: UPDATE_SCHEDULE,
-                variables: { input }
-            }).subscribe({
-                next: () => {
-                    this.CloseModal();
-                    this.LoadSchedules(true);
-                    this.showToast('Horario actualizado correctamente');
-                },
-                error: (err) => this.showToast('Error: ' + err.message, 'danger')
-            });
-        } else {
-            this.apollo.mutate({
-                mutation: CREATE_SCHEDULE,
-                variables: { input }
-            }).subscribe({
-                next: () => {
-                    this.CloseModal();
-                    this.LoadSchedules(true);
-                    this.showToast('Horario creado correctamente');
-                },
-                error: (err) => this.showToast('Error: ' + err.message, 'danger')
-            });
+        try {
+            if (this.editingItem) {
+                const block = this.scheduleBlocks[0];
+                const input = {
+                    ...baseInput,
+                    id: Number(this.editingItem.id),
+                    dayOfWeek: Number(block.dayOfWeek),
+                    startTime: block.startTime,
+                    endTime: block.endTime
+                };
+
+                await firstValueFrom(this.apollo.mutate({
+                    mutation: UPDATE_SCHEDULE,
+                    variables: { input }
+                }));
+
+                this.CloseModal();
+                this.LoadSchedules(true);
+                this.showToast('Horario actualizado correctamente');
+                return;
+            }
+
+            const inputs = this.scheduleBlocks.map((block) => ({
+                ...baseInput,
+                dayOfWeek: Number(block.dayOfWeek),
+                startTime: block.startTime,
+                endTime: block.endTime
+            }));
+
+            await firstValueFrom(this.apollo.mutate({
+                mutation: CREATE_SCHEDULES,
+                variables: { inputs }
+            }));
+
+            this.CloseModal();
+            this.LoadSchedules(true);
+            this.showToast(inputs.length > 1 ? `${inputs.length} bloques creados correctamente` : 'Horario creado correctamente');
+        } catch (err: any) {
+            this.showToast('Error: ' + (err?.message || 'No se pudo guardar el horario'), 'danger');
+        } finally {
+            this.isSaving = false;
         }
     }
 

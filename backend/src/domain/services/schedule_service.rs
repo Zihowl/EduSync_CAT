@@ -113,6 +113,65 @@ impl ScheduleService {
             .await
     }
 
+    pub async fn create_many(
+        &self,
+        inputs: Vec<CreateScheduleSlot>,
+    ) -> Result<Vec<ScheduleSlot>, DomainError> {
+        if inputs.is_empty() {
+            return Err(DomainError::BadRequest(
+                "Debes agregar al menos un bloque".to_string(),
+            ));
+        }
+
+        for input in &inputs {
+            self.validate_times(&input.start_time, &input.end_time)?;
+            self.ensure_dependencies(
+                input.teacher_id,
+                input.subject_id,
+                input.classroom_id,
+                input.group_id,
+            )
+            .await?;
+            self.ensure_collisions(
+                input.teacher_id,
+                input.classroom_id,
+                input.day_of_week,
+                &input.start_time,
+                &input.end_time,
+                None,
+            )
+            .await?;
+        }
+
+        for (index, current) in inputs.iter().enumerate() {
+            for previous in inputs.iter().take(index) {
+                self.ensure_batch_compatibility(previous, current)?;
+            }
+        }
+
+        let now = Utc::now();
+        let slots = inputs
+            .into_iter()
+            .map(|input| ScheduleSlot {
+                id: 0,
+                teacher_id: input.teacher_id,
+                subject_id: input.subject_id,
+                classroom_id: input.classroom_id,
+                group_id: input.group_id,
+                day_of_week: input.day_of_week,
+                start_time: input.start_time,
+                end_time: input.end_time,
+                subgroup: input.subgroup,
+                is_published: input.is_published,
+                created_by_id: input.created_by_id,
+                created_at: now.clone(),
+                updated_at: now.clone(),
+            })
+            .collect();
+
+        self.repo.create_many(slots).await
+    }
+
     pub async fn update(&self, input: UpdateScheduleSlot) -> Result<ScheduleSlot, DomainError> {
         let current = self
             .repo
@@ -165,26 +224,66 @@ impl ScheduleService {
         self.repo.set_published(ids, is_published).await
     }
 
-    fn validate_times(&self, start: &str, end: &str) -> Result<(), DomainError> {
-        let to_min = |v: &str| -> Result<i32, DomainError> {
-            let p: Vec<&str> = v.split(':').collect();
-            if p.len() < 2 {
-                return Err(DomainError::BadRequest(
-                    "Formato de hora inválido".to_string(),
-                ));
-            }
-            let h = p[0]
-                .parse::<i32>()
-                .map_err(|_| DomainError::BadRequest("Hora inválida".to_string()))?;
-            let m = p[1]
-                .parse::<i32>()
-                .map_err(|_| DomainError::BadRequest("Hora inválida".to_string()))?;
-            Ok(h * 60 + m)
-        };
+    fn time_to_minutes(value: &str) -> Result<i32, DomainError> {
+        let p: Vec<&str> = value.split(':').collect();
+        if p.len() < 2 {
+            return Err(DomainError::BadRequest(
+                "Formato de hora inválido".to_string(),
+            ));
+        }
+        let h = p[0]
+            .parse::<i32>()
+            .map_err(|_| DomainError::BadRequest("Hora inválida".to_string()))?;
+        let m = p[1]
+            .parse::<i32>()
+            .map_err(|_| DomainError::BadRequest("Hora inválida".to_string()))?;
+        Ok(h * 60 + m)
+    }
 
-        if to_min(start)? >= to_min(end)? {
+    fn validate_times(&self, start: &str, end: &str) -> Result<(), DomainError> {
+        if Self::time_to_minutes(start)? >= Self::time_to_minutes(end)? {
             return Err(DomainError::BadRequest(
                 "La hora de inicio debe ser menor que la hora de fin".to_string(),
+            ));
+        }
+
+        Ok(())
+    }
+
+    fn intervals_overlap(
+        start_a: &str,
+        end_a: &str,
+        start_b: &str,
+        end_b: &str,
+    ) -> Result<bool, DomainError> {
+        Ok(Self::time_to_minutes(start_a)? < Self::time_to_minutes(end_b)?
+            && Self::time_to_minutes(end_a)? > Self::time_to_minutes(start_b)?)
+    }
+
+    fn ensure_batch_compatibility(
+        &self,
+        left: &CreateScheduleSlot,
+        right: &CreateScheduleSlot,
+    ) -> Result<(), DomainError> {
+        if left.day_of_week != right.day_of_week {
+            return Ok(());
+        }
+
+        let teacher_conflict = left.teacher_id.is_some() && left.teacher_id == right.teacher_id;
+        let classroom_conflict = left.classroom_id == right.classroom_id;
+
+        if !(teacher_conflict || classroom_conflict) {
+            return Ok(());
+        }
+
+        if Self::intervals_overlap(
+            &left.start_time,
+            &left.end_time,
+            &right.start_time,
+            &right.end_time,
+        )? {
+            return Err(DomainError::Conflict(
+                "Los bloques del mismo envío no pueden traslaparse".to_string(),
             ));
         }
 

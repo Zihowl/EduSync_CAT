@@ -133,6 +133,39 @@ impl ScheduleSlotRepository for PgScheduleSlotRepository {
         Ok(row.into())
     }
 
+    async fn create_many(&self, slots: Vec<ScheduleSlot>) -> Result<Vec<ScheduleSlot>, DomainError> {
+        let mut tx = self.pool.begin().await.map_err(map_sqlx)?;
+        let mut created = Vec::with_capacity(slots.len());
+
+        for slot in slots {
+            let row = sqlx::query_as::<_, SlotRow>(
+                "INSERT INTO schedule_slots (teacher_id, subject_id, classroom_id, group_id, day_of_week, start_time, end_time, subgroup, is_published, created_by_id)
+                 VALUES ($1, $2, $3, $4, $5, $6::time, $7::time, $8, $9, $10)
+                 RETURNING id, teacher_id, subject_id, classroom_id, group_id, day_of_week,
+                           start_time::text AS start_time, end_time::text AS end_time,
+                           subgroup, is_published, created_by_id, created_at, updated_at",
+            )
+            .bind(slot.teacher_id)
+            .bind(slot.subject_id)
+            .bind(slot.classroom_id)
+            .bind(slot.group_id)
+            .bind(slot.day_of_week)
+            .bind(&slot.start_time)
+            .bind(&slot.end_time)
+            .bind(&slot.subgroup)
+            .bind(slot.is_published)
+            .bind(slot.created_by_id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(map_sqlx)?;
+
+            created.push(row.into());
+        }
+
+        tx.commit().await.map_err(map_sqlx)?;
+        Ok(created)
+    }
+
     async fn update(&self, slot: ScheduleSlot) -> Result<ScheduleSlot, DomainError> {
         let row = sqlx::query_as::<_, SlotRow>(
             "UPDATE schedule_slots

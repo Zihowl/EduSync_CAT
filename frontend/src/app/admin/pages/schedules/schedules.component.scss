@@ -1,6 +1,8 @@
 :host {
     display: block;
     width: 100%;
+    --cfm-modal-width: 34rem;
+    --cfm-modal-width-wide: 44rem;
     --cfg-surface-bg: rgba(15, 23, 42, 0.45);
     --cfg-border: rgba(148, 163, 184, 0.18);
     --cfg-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
@@ -214,10 +216,95 @@
     margin-bottom: 1rem;
 }
 
+.schedule-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.schedule-form__fields,
+.schedule-block__fields {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+}
+
+.schedule-blocks {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    padding: 0.95rem;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 1.05rem;
+    background: rgba(15, 23, 42, 0.32);
+}
+
+.schedule-blocks__header,
+.schedule-block__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.schedule-blocks__eyebrow,
+.schedule-block__kicker {
+    margin: 0;
+    color: var(--cfg-text-subtle);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.schedule-blocks__title,
+.schedule-block__title {
+    margin: 0.2rem 0 0;
+    color: var(--cfg-text);
+    font-size: 0.96rem;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.schedule-blocks__hint {
+    margin: 0;
+    color: var(--cfg-text-muted);
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.schedule-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 0.9rem;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 0.95rem;
+    background: rgba(15, 23, 42, 0.25);
+}
+
+.schedule-block--invalid {
+    border-color: rgba(248, 113, 113, 0.45);
+    box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.08);
+}
+
+.schedule-block__remove,
+.schedule-blocks__add {
+    align-self: flex-start;
+}
+
+.schedule-block__remove {
+    --padding-start: 0.55rem;
+    --padding-end: 0.55rem;
+}
+
 .schedule-time-error {
-    padding: 1rem;
-    text-align: center;
+    padding: 1rem 0.25rem 0;
+    text-align: left;
     color: var(--ion-color-danger);
+}
+
+.schedule-time-error--block {
+    padding-top: 0.15rem;
 }
 
 .schedule-content ion-fab {
@@ -241,6 +328,17 @@
 @media (max-width: 700px) {
     .schedule-shell {
         gap: 0.55rem;
+    }
+
+    .schedule-blocks,
+    .schedule-block {
+        padding-left: 0.8rem;
+        padding-right: 0.8rem;
+    }
+
+    .schedule-blocks__header,
+    .schedule-block__header {
+        flex-direction: column;
     }
 
     .schedule-content ion-fab {
