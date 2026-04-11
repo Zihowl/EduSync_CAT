@@ -116,24 +116,7 @@
   display: grid;
   grid-template-columns: var(--schedule-time-rail-width, 72px) minmax(0, 1fr);
   gap: 0.4rem;
-  min-height: 0;
-  height: 100%;
-  flex: 1 1 0%;
-}
-
-.schedule-calendar__time-rail {
-  position: relative;
-  height: 100%;
   min-height: var(--schedule-calendar-height, 100%);
-}
-
-.schedule-calendar__body--empty {
-  display: flex !important;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: stretch;
-  padding: 0;
-  flex: 1 1 0%;
   height: 100%;
 }
 
@@ -144,7 +127,17 @@
   border: 1px solid var(--schedule-border);
   box-shadow: var(--schedule-shadow);
   overflow: hidden;
-  min-height: var(--schedule-calendar-height, 840px);
+  height: 100%;
+}
+
+.schedule-calendar__body--empty {
+  display: flex !important;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
+  flex: 1 1 0%;
+  height: 100%;
 }
 
 .schedule-calendar__hour-label {
@@ -167,7 +160,6 @@
 }
 
 .schedule-calendar__hour-label--end {
-  top: calc(100% - 0.12rem) !important;
   transform: translateY(-100%);
 }
 
@@ -187,7 +179,7 @@
   border: 1px solid var(--schedule-border);
   box-shadow: var(--schedule-shadow);
   overflow: hidden;
-  min-height: var(--schedule-calendar-height, 100%);
+  height: 100%;
 }
 
 .schedule-calendar__day-column--today {
@@ -203,7 +195,6 @@
 .schedule-calendar__grid-lines {
   position: absolute;
   inset: 0;
-  height: 100%;
   pointer-events: none;
   background-image: linear-gradient(to bottom, rgba(148, 163, 184, 0.12) 1px, transparent 1px);
   background-size: 100% 24px;

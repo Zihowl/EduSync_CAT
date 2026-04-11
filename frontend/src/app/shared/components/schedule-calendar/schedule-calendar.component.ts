@@ -59,7 +59,7 @@ interface DayCluster {
         </div>
 
         <ng-template #calendarBody>
-          <div class="schedule-calendar__body" [style.--schedule-calendar-height.px]="calendarHeight">
+          <div class="schedule-calendar__body" [style.min-height.px]="calendarHeight">
             <div class="schedule-calendar__time-rail">
               <span
                 *ngFor="let hour of hourMarkers; trackBy: trackByHour"
