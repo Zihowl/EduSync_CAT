@@ -109,14 +109,14 @@ interface DayCluster {
                 <article
                   *ngFor="let event of getLayoutsForDay(day); trackBy: trackByLayoutEvent"
                   class="schedule-calendar__event"
-                  [class.schedule-calendar__event--selected]="event.selected"
+                  [class.schedule-calendar__event--selected]="event.originalEvent.selected"
                   [class.schedule-calendar__event--blocked]="event.blocked"
                   [class.schedule-calendar__event--today]="event.isToday"
                   [style.top.px]="event.top"
                   [style.height.px]="event.height"
                   [style.left.%]="event.left"
                   [style.width.%]="event.width"
-                  [style.zIndex]="event.selected ? 3 : 2"
+                  [style.zIndex]="event.originalEvent.selected ? 3 : 2"
                   [attr.data-tone]="event.statusTone || 'primary'"
                   (click)="emitEventClick(event, $event)">
 
@@ -138,7 +138,7 @@ interface DayCluster {
                                             </ion-badge>
                                         </div>
 
-                    <div *ngIf="event.selected && selectionMode" class="schedule-calendar__selection-indicator">
+                    <div *ngIf="event.originalEvent.selected && selectionMode" class="schedule-calendar__selection-indicator">
                       <ion-icon name="checkmark-circle-outline"></ion-icon>
                     </div>
                   </div>
@@ -295,7 +295,7 @@ export class ScheduleCalendarComponent implements OnChanges {
       }
 
       if (!this.editable) {
-          this.eventSelected.emit(event);
+          this.eventSelected.emit(event.originalEvent || event);
           return;
       }
 
@@ -318,7 +318,7 @@ export class ScheduleCalendarComponent implements OnChanges {
       buttons.push({
           text: 'Ver detalles',
           icon: 'information-circle-outline',
-          handler: () => this.eventSelected.emit(event)
+          handler: () => this.eventSelected.emit(event.originalEvent || event)
       });
 
       buttons.push({ text: 'Cancelar', icon: 'close', role: 'cancel' });
@@ -342,12 +342,12 @@ export class ScheduleCalendarComponent implements OnChanges {
 
   emitActionClick(event: ScheduleCalendarLayoutEvent, action: ScheduleCalendarAction, domEvent: MouseEvent): void {
       domEvent.stopPropagation();
-      this.actionSelected.emit({ event, action });
+      this.actionSelected.emit({ event: event.originalEvent || event, action });
   }
 
   toggleSelection(event: ScheduleCalendarLayoutEvent, domEvent: MouseEvent): void {
       domEvent.stopPropagation();
-      this.selectionToggled.emit(event);
+      this.selectionToggled.emit(event.originalEvent || event);
   }
 
   emitDayHeaderClick(dayOfWeek: number): void {
@@ -412,6 +412,7 @@ export class ScheduleCalendarComponent implements OnChanges {
               const width = 100 / laneCount;
               layouts.push({
                   ...assignment.event,
+                  originalEvent: assignment.event,
                   top: Math.max(0, (assignment.startMinute - this.startMinute) * this.minuteHeight),
                   height: Math.max(28, Math.max(assignment.durationMinutes, 1) * this.minuteHeight),
                   left: assignment.lane * width,

@@ -207,6 +207,7 @@ interface ScheduleBlockForm {
                                 (eventSelected)="onCalendarEventSelected($event)"
                                 (cellSelected)="onCalendarCellSelected($event)"
                                 (actionSelected)="onCalendarActionSelected($event)"
+                                (selectionModeChange)="onSelectionModeChange($event)"
                                 (selectionToggled)="toggleSelectedId($event.id)">
                             </app-schedule-calendar>
                         </div>
@@ -827,6 +828,16 @@ export class SchedulesComponent implements OnInit {
         }
     }
 
+    onSelectionModeChange(selectionMode: boolean): void {
+        if (!selectionMode) {
+            this.selectedIds.clear();
+        } else if (this.activeScheduleId != null) {
+            this.selectedSchedule = null;
+            this.activeScheduleId = null;
+        }
+        this.syncCalendarState();
+    }
+
     toggleSelectedId(id: number): void {
         const scheduleId = Number(id);
         if (this.selectedIds.has(scheduleId)) {
@@ -1189,6 +1200,11 @@ export class SchedulesComponent implements OnInit {
         if (!isOpen) {
             this.editingItem = null;
             this.isSaving = false;
+            if (this.activeScheduleId != null) {
+                this.selectedSchedule = null;
+                this.activeScheduleId = null;
+                this.syncCalendarState();
+            }
         }
     }
 

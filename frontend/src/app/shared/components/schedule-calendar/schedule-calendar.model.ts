@@ -29,6 +29,7 @@ export interface ScheduleCalendarEvent {
 }
 
 export interface ScheduleCalendarLayoutEvent extends ScheduleCalendarEvent {
+  originalEvent: ScheduleCalendarEvent;
   top: number;
   height: number;
   left: number;
