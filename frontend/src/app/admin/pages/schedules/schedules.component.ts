@@ -949,9 +949,9 @@ export class SchedulesComponent implements OnInit {
                 });
                 
                 this.subjects = [...catalogs.subjects].sort((a: any, b: any) => {
-                    const nameA = (a.name || '').trim();
-                    const nameB = (b.name || '').trim();
-                    return nameA.localeCompare(nameB, 'es', { sensitivity: 'base' });
+                    const labelA = this.getSubjectLabel(a);
+                    const labelB = this.getSubjectLabel(b);
+                    return labelA.localeCompare(labelB, 'es', { sensitivity: 'base', numeric: true });
                 });
 
                 this.buildings = catalogs.buildings;
