@@ -26,6 +26,7 @@ const GET_GROUPS = gql`
         GetGroups {
             id
             name
+            grade
             parent {
                 id
                 name
@@ -39,6 +40,7 @@ const CREATE_GROUP = gql`
         CreateGroup(input: $input) {
             id
             name
+            grade
             parent {
                 id
                 name
@@ -52,6 +54,7 @@ const UPDATE_GROUP = gql`
         UpdateGroup(input: $input) {
             id
             name
+            grade
             parent {
                 id
                 name
@@ -138,7 +141,11 @@ const REMOVE_GROUP = gql`
                             <ion-item fill="outline">
                                 <ion-label position="stacked"><ion-icon name="people-outline" class="label-icon"></ion-icon> {{ formData.parentId ? 'Nombre del Subgrupo *' : 'Nombre del Grupo *' }}</ion-label>
                                 <ion-input [(ngModel)]="formData.name" [placeholder]="formData.parentId ? 'Ej. 1, Software, Principiantes' : 'Ej. A, Ajedrez o Taller'"></ion-input>
-                                
+                            </ion-item>
+                            
+                            <ion-item fill="outline" class="ion-margin-top" *ngIf="!formData.parentId">
+                                <ion-label position="stacked"><ion-icon name="pencil-outline" class="label-icon"></ion-icon> Grado (Opcional)</ion-label>
+                                <ion-input type="number" [(ngModel)]="formData.grade" placeholder="Ej. 1, 2, 3 (dejar vacío para talleres)"></ion-input>
                             </ion-item>
 
                             <p *ngIf="formData.parentId" class="groups-preview-text">
@@ -193,7 +200,8 @@ export class GroupsComponent implements OnInit {
     editingItem: any = null;
     formData = {
         name: '',
-        parentId: null as number | null
+        parentId: null as number | null,
+        grade: null as number | null
     };
 
     hasChildren(groupId: any): boolean {
@@ -373,17 +381,18 @@ export class GroupsComponent implements OnInit {
         if (item) {
             this.formData = { 
                 name: item.name, 
-                parentId: item.parent ? Number(item.parent.id) : null 
+                parentId: item.parent ? Number(item.parent.id) : null,
+                grade: item.grade != null ? Number(item.grade) : null
             };
         } else {
-            this.formData = { name: '', parentId: null };
+            this.formData = { name: '', parentId: null, grade: null };
         }
         this.isModalOpen = true;
     }
 
     OpenNewGroup() {
         this.editingItem = null;
-        this.formData = { name: '', parentId: null };
+        this.formData = { name: '', parentId: null, grade: null };
         this.isModalOpen = true;
     }
 
@@ -391,7 +400,8 @@ export class GroupsComponent implements OnInit {
         this.editingItem = null;
         this.formData = {
             name: '',
-            parentId: Number(parent.id)
+            parentId: Number(parent.id),
+            grade: null
         };
         this.isModalOpen = true;
     }
@@ -413,8 +423,12 @@ export class GroupsComponent implements OnInit {
         // Solo enviar parentId si se seleccionó uno
         if (this.formData.parentId) {
             groupInput.parentId = Number(this.formData.parentId);
+            groupInput.grade = null; // subgroups don't have grade independently
         } else {
             groupInput.parentId = null;
+            groupInput.grade = this.formData.grade != null && String(this.formData.grade).trim() !== '' 
+                ? Number(this.formData.grade) 
+                : null;
         }
 
         if (this.editingItem) {

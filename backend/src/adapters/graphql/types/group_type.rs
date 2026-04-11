@@ -11,6 +11,7 @@ pub struct GroupType {
     pub id: ID,
     pub name: String,
     pub parent_id: Option<i32>,
+    pub grade: Option<i32>,
 }
 
 impl From<Group> for GroupType {
@@ -19,6 +20,7 @@ impl From<Group> for GroupType {
             id: ID(v.id.to_string()),
             name: v.name,
             parent_id: v.parent_id,
+            grade: v.grade,
         }
     }
 }

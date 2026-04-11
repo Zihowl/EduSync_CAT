@@ -29,7 +29,7 @@ impl GroupMutation {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<GroupService>>()?;
         let result = svc
-            .create(&input.name, input.parent_id)
+            .create(&input.name, input.parent_id, input.grade)
             .await
             .map(Into::into)
             .map_err(to_gql_error);
@@ -48,7 +48,7 @@ impl GroupMutation {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<GroupService>>()?;
         let result = svc
-            .update(input.id, input.name.as_deref(), Some(input.parent_id))
+            .update(input.id, input.name.as_deref(), Some(input.parent_id), Some(input.grade))
             .await
             .map(Into::into)
             .map_err(to_gql_error);

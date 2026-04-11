@@ -45,10 +45,15 @@ impl GroupService {
 
         self.validate_parent_link(None, parent_id).await?;
 
-        self.repo.create(&name, parent_id).await
+        self.repo.create(&name, parent_id, None).await
     }
 
-    pub async fn create(&self, name: &str, parent_id: Option<i32>) -> Result<Group, DomainError> {
+    pub async fn create(
+        &self,
+        name: &str,
+        parent_id: Option<i32>,
+        grade: Option<i32>,
+    ) -> Result<Group, DomainError> {
         let name = normalize_required_text("Nombre del grupo", name)?;
 
         if self
@@ -62,7 +67,7 @@ impl GroupService {
 
         self.validate_parent_link(None, parent_id).await?;
 
-        self.repo.create(&name, parent_id).await
+        self.repo.create(&name, parent_id, grade).await
     }
 
     pub async fn update(
@@ -70,6 +75,7 @@ impl GroupService {
         id: i32,
         name: Option<&str>,
         parent_id: Option<Option<i32>>,
+        grade: Option<Option<i32>>,
     ) -> Result<Group, DomainError> {
         let mut current = self
             .repo
@@ -104,7 +110,7 @@ impl GroupService {
         }
 
         self.repo
-            .update(id, Some(&new_name), Some(new_parent_id))
+            .update(id, Some(&new_name), Some(new_parent_id), grade)
             .await
     }
 

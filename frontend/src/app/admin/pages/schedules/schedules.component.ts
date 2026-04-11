@@ -50,7 +50,7 @@ const GET_SCHEDULES = gql`
             teacher { id name }
             subject { id name grade }
             classroom { id name }
-            group { id name parent { id name } }
+            group { id name grade parent { id name grade } }
             createdAt
         }
     }
@@ -62,7 +62,7 @@ const GET_CATALOGS = gql`
         GetSubjects { id name grade }
         GetBuildings { id name }
         GetClassrooms { id name building { id name } }
-        GetGroups { id name parent { id name } }
+        GetGroups { id name grade parent { id name grade } }
     }
 `;
 
@@ -262,8 +262,8 @@ interface ScheduleBlockForm {
 
                                 <ion-item fill="outline" class="schedule-form-item">
                                     <ion-label position="stacked"><ion-icon name="book-outline" class="label-icon"></ion-icon> Materia *</ion-label>
-                                    <ion-select [(ngModel)]="formData.subjectId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar materia" [compareWith]="compareIds">
-                                        <ion-select-option *ngFor="let s of subjects" [value]="s.id">{{ getSubjectLabel(s) }}</ion-select-option>
+                                    <ion-select [(ngModel)]="formData.subjectId" [disabled]="!formData.groupId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar materia" [compareWith]="compareIds">
+                                        <ion-select-option *ngFor="let s of getFilteredSubjects(formData.groupId)" [value]="s.id">{{ getSubjectLabel(s) }}</ion-select-option>
                                     </ion-select>
                                     
                                 </ion-item>
@@ -736,11 +736,39 @@ export class SchedulesComponent implements OnInit {
 
     onFormGroupChange(): void {
         this.formData.subgroup = '';
+
+        // Reset subject if it's no longer valid for the selected group's grade
+        if (this.formData.groupId && this.formData.subjectId) {
+            const validSubjects = this.getFilteredSubjects(this.formData.groupId);
+            const isValid = validSubjects.some(s => Number(s.id) === Number(this.formData.subjectId));
+            if (!isValid) {
+                this.formData.subjectId = null;
+            }
+        }
     }
 
     getSubgroupsForGroup(groupId: number | null): any[] {
         if (!groupId) return [];
         return this.groups.filter(g => g.parent && Number(g.parent.id) === Number(groupId));
+    }
+
+    getFilteredSubjects(groupId: number | null): any[] {
+        if (!groupId) return this.subjects;
+
+        const group = this.groups.find(g => Number(g.id) === Number(groupId));
+        if (!group) return this.subjects;
+        
+        let rootGroup = group;
+        if (group.parent) {
+            rootGroup = group.parent;
+        }
+
+        const groupGrade = rootGroup.grade != null ? Number(rootGroup.grade) : null;
+        
+        return this.subjects.filter(s => {
+            const subjectGrade = s.grade != null ? Number(s.grade) : null;
+            return subjectGrade === groupGrade; // works for both numbers and null matching null (talleres)
+        });
     }
 
     onFilterSelectClosed(event: Event): void {
