@@ -5,12 +5,12 @@
     "changeOrigin": true,
     "ws": true
   },
-  "/academic": {
+  "/api/academic": {
     "target": "http://localhost:3000",
     "secure": false,
     "changeOrigin": true
   },
-  "/public": {
+  "/api/public": {
     "target": "http://localhost:3000",
     "secure": false,
     "changeOrigin": true

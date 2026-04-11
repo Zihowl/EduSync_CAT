@@ -194,12 +194,12 @@ async fn main() -> anyhow::Result<()> {
             "/graphql/ws",
             get_service(GraphQLSubscription::new(state.schema.clone())),
         )
-        .route("/academic/upload-schedule", post(upload_schedule))
+        .route("/api/academic/upload-schedule", post(upload_schedule))
         .route(
-            "/academic/upload-schedule/preview",
+            "/api/academic/upload-schedule/preview",
             post(preview_schedule_upload),
         )
-        .route("/public/schedules", get(public_schedules))
+        .route("/api/public/schedules", get(public_schedules))
         .layer(Extension(config.clone()))
         .layer(cors)
         .with_state(state);

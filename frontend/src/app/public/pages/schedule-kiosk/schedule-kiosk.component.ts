@@ -319,7 +319,7 @@ export class ScheduleKioskComponent implements OnInit {
         this.queryCache.load(
             'public-schedule-groups',
             [RealtimeScope.Schedules, RealtimeScope.Groups],
-            () => this.http.get<ScheduleSlot[]>(`${this.apiUrl}/public/schedules`).pipe(
+            () => this.http.get<ScheduleSlot[]>(`${this.apiUrl}/api/public/schedules`).pipe(
                 map((schedules) => {
                     const groupMap = new Map<number, any>();
                     schedules.forEach(s => {
@@ -359,7 +359,7 @@ export class ScheduleKioskComponent implements OnInit {
             [RealtimeScope.Schedules, RealtimeScope.Groups],
             () => {
                 const dayQuery = effectiveDay ? `&dayOfWeek=${effectiveDay}` : '';
-                return this.http.get<ScheduleSlot[]>(`${this.apiUrl}/public/schedules?groupId=${this.selectedGroupId}${dayQuery}`);
+                return this.http.get<ScheduleSlot[]>(`${this.apiUrl}/api/public/schedules?groupId=${this.selectedGroupId}${dayQuery}`);
             }
         ).subscribe({
             next: (schedules: ScheduleSlot[]) => {

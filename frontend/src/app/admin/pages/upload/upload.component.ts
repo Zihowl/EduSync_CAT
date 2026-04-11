@@ -503,7 +503,7 @@ export class UploadComponent implements OnInit {
         formData.append('file', this.selectedFile);
 
         try {
-            const res = await firstValueFrom(this.http.post<UploadPreviewResponse>(`${this.apiUrl}/academic/upload-schedule/preview`, formData));
+            const res = await firstValueFrom(this.http.post<UploadPreviewResponse>(`${this.apiUrl}/api/academic/upload-schedule/preview`, formData));
 
             this.previewResult = res;
             this.previewRows = res.details.rows ?? [];
@@ -1022,7 +1022,7 @@ export class UploadComponent implements OnInit {
         const formData = new FormData();
         formData.append('file', file, file.name);
 
-        this.http.post(`${this.apiUrl}/academic/upload-schedule`, formData)
+        this.http.post(`${this.apiUrl}/api/academic/upload-schedule`, formData)
             .subscribe({
                 next: (res: any) => {
                     this.isConfirmLoading = false;
