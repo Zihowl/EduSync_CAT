@@ -2,14 +2,14 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { IonButton, IonCard, IonCardContent, IonIcon, IonSearchbar, IonSelect, IonSelectOption } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { refreshOutline } from 'ionicons/icons';
+import { refreshOutline, filterOutline } from 'ionicons/icons';
 import {
     CatalogToolbarFilterConfig,
     CatalogToolbarSortOption,
     CatalogToolbarState,
 } from '../../utils/catalog-query';
 
-addIcons({ refreshOutline });
+addIcons({ refreshOutline, filterOutline });
 
 @Component({
     selector: 'app-catalog-toolbar',
@@ -23,6 +23,7 @@ export class CatalogToolbarComponent {
     @Input() state: CatalogToolbarState = {
         searchQuery: '',
         sortValue: '',
+        sortDirection: 'asc',
         filters: {},
     };
 
@@ -49,6 +50,13 @@ export class CatalogToolbarComponent {
         });
     }
 
+    onSortDirectionChange(): void {
+        this.stateChange.emit({
+            ...this.state,
+            sortDirection: this.state.sortDirection === 'desc' ? 'asc' : 'desc',
+        });
+    }
+
     onFilterChange(filterKey: string, event: CustomEvent<{ value?: string | null }>): void {
         this.stateChange.emit({
             ...this.state,
@@ -72,6 +80,7 @@ export class CatalogToolbarComponent {
         this.stateChange.emit({
             searchQuery: '',
             sortValue: '',
+            sortDirection: 'asc',
             filters: clearedFilters,
         });
     }
@@ -82,6 +91,10 @@ export class CatalogToolbarComponent {
         }
 
         if (this.state.sortValue !== '') {
+            return true;
+        }
+
+        if (this.state.sortDirection === 'desc') {
             return true;
         }
 

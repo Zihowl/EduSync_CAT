@@ -162,6 +162,7 @@ export class ClassroomsComponent implements OnInit {
     catalogToolbarState: CatalogToolbarState = {
         searchQuery: '',
         sortValue: '',
+        sortDirection: 'asc',
         filters: {
             buildingId: '',
         },

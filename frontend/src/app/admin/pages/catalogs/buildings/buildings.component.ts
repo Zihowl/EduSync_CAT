@@ -150,6 +150,7 @@ export class BuildingsComponent implements OnInit {
     catalogToolbarState: CatalogToolbarState = {
         searchQuery: '',
         sortValue: '',
+        sortDirection: 'asc',
         filters: {},
     };
     readonly buildingSortOptions = [

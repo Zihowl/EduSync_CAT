@@ -38,6 +38,16 @@
                 </ion-select>
 
                 <ion-button
+                    *ngIf="sortOptions.length > 0"
+                    fill="clear"
+                    color="medium"
+                    class="catalog-toolbar__sort-direction"
+                    (click)="onSortDirectionChange()"
+                    [title]="state.sortDirection === 'desc' ? 'Descendente' : 'Ascendente'">
+                    <ion-icon name="filter-outline" [style.transform]="state.sortDirection === 'asc' ? 'rotate(180deg)' : 'none'" style="transition: transform 0.2s ease" slot="icon-only"></ion-icon>
+                </ion-button>
+
+                <ion-button
                     fill="outline"
                     color="medium"
                     class="catalog-toolbar__clear"

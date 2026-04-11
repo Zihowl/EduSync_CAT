@@ -160,6 +160,7 @@ export class SubjectsComponent implements OnInit {
     catalogToolbarState: CatalogToolbarState = {
         searchQuery: '',
         sortValue: '',
+        sortDirection: 'asc',
         filters: {
             grade: '',
         },

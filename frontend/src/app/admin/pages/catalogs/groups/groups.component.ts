@@ -166,6 +166,7 @@ export class GroupsComponent implements OnInit {
     catalogToolbarState: CatalogToolbarState = {
         searchQuery: '',
         sortValue: '',
+        sortDirection: 'asc',
         filters: {
             type: '',
         },

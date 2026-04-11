@@ -186,6 +186,7 @@ export class TeachersComponent implements OnInit {
     catalogToolbarState: CatalogToolbarState = {
         searchQuery: '',
         sortValue: '',
+        sortDirection: 'asc',
         filters: {},
     };
     readonly teacherSortOptions = [

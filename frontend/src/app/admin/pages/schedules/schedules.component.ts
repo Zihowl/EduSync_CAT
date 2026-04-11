@@ -934,8 +934,8 @@ export class SchedulesComponent implements OnInit {
         request$.subscribe({
             next: (catalogs: any) => {
                 this.teachers = [...catalogs.teachers].sort((a: any, b: any) => {
-                    const nameA = `${a.user?.name ?? ''} ${a.user?.lastName ?? ''}`.trim();
-                    const nameB = `${b.user?.name ?? ''} ${b.user?.lastName ?? ''}`.trim();
+                    const nameA = (a.name || '').trim();
+                    const nameB = (b.name || '').trim();
                     return nameA.localeCompare(nameB, 'es', { sensitivity: 'base' });
                 });
                 this.subjects = catalogs.subjects;

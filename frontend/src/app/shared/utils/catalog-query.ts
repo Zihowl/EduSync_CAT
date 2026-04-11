@@ -6,6 +6,7 @@ const CATALOG_TEXT_COLLATOR = new Intl.Collator('es', {
 export interface CatalogToolbarState {
     searchQuery: string;
     sortValue: string;
+    sortDirection?: 'asc' | 'desc';
     filters: Record<string, string>;
 }
 
@@ -109,13 +110,15 @@ export function applyCatalogQuery<T>(
         return filteredItems;
     }
 
+    const isDesc = state.sortDirection === 'desc';
+
     return filteredItems
         .map((item, index) => ({ item, index }))
         .sort((left, right) => {
             const comparison = sorter(left.item, right.item);
 
             if (comparison !== 0) {
-                return comparison;
+                return isDesc ? -comparison : comparison;
             }
 
             return left.index - right.index;
