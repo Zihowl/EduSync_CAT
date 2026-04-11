@@ -29,13 +29,23 @@
 .schedule-calendar__viewport {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  width: 100%;
   flex: 1 1 0%;
   min-height: 0;
-  min-width: 0;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
 }
+
+.schedule-calendar__viewport-inner {
+  display: flex;
+  flex-direction: column;
+  min-width: max-content;
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+
 
 .schedule-calendar__header {
   display: grid;
@@ -43,9 +53,7 @@
   gap: 0.4rem;
   align-items: stretch;
   flex: 0 0 auto;
-  position: sticky;
-  top: 0;
-  z-index: 20;
+  padding-bottom: 0.4rem;
 }
 
 .schedule-calendar__time-head,
@@ -65,9 +73,6 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  position: sticky;
-  left: 0;
-  z-index: 25;
 }
 
 .schedule-calendar__day-head {
@@ -126,7 +131,9 @@
   gap: 0.4rem;
   flex: 1 1 0%;
   min-height: 0;
-  overflow: visible;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .schedule-calendar__time-rail {

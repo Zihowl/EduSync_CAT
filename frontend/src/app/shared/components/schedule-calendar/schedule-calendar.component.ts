@@ -40,36 +40,37 @@ interface DayCluster {
                 </button>
             </div>
 
-      <div #scrollBody class="schedule-calendar__viewport">
-        <div *ngIf="showHeaders && !showEmptyState" class="schedule-calendar__header">
-          <div class="schedule-calendar__time-head">
-            <span>Hora</span>
+      <div class="schedule-calendar__viewport">
+        <div class="schedule-calendar__viewport-inner">
+          <div *ngIf="showHeaders && !showEmptyState" class="schedule-calendar__header">
+            <div class="schedule-calendar__time-head">
+              <span>Hora</span>
+            </div>
+
+            <button
+              *ngFor="let day of visibleDays; trackBy: trackByDay"
+              type="button"
+              class="schedule-calendar__day-head"
+              [class.schedule-calendar__day-head--today]="day === todayDayOfWeek"
+              [class.schedule-calendar__day-head--active]="day === highlightedDay"
+              (click)="emitDayHeaderClick(day)">
+              <span class="schedule-calendar__day-short">{{ getDayShortLabel(day) }}</span>
+              <strong class="schedule-calendar__day-name">{{ getDayLabel(day) }}</strong>
+              <span class="schedule-calendar__day-count">{{ getEventsForDay(day).length }} bloques</span>
+            </button>
           </div>
 
-          <button
-            *ngFor="let day of visibleDays; trackBy: trackByDay"
-            type="button"
-            class="schedule-calendar__day-head"
-            [class.schedule-calendar__day-head--today]="day === todayDayOfWeek"
-            [class.schedule-calendar__day-head--active]="day === highlightedDay"
-            (click)="emitDayHeaderClick(day)">
-            <span class="schedule-calendar__day-short">{{ getDayShortLabel(day) }}</span>
-            <strong class="schedule-calendar__day-name">{{ getDayLabel(day) }}</strong>
-            <span class="schedule-calendar__day-count">{{ getEventsForDay(day).length }} bloques</span>
-          </button>
-        </div>
-
-        <div *ngIf="showEmptyState; else calendarBodyTemplate" class="schedule-calendar__body schedule-calendar__body--empty">
-          <div class="schedule-calendar__empty-state" role="status" aria-live="polite">
-            <ion-icon [name]="emptyIcon" class="schedule-calendar__empty-state-icon"></ion-icon>
-            <h3>{{ emptyTitle }}</h3>
-            <p>{{ emptySubtitle }}</p>
+          <div *ngIf="showEmptyState; else calendarBodyTemplate" class="schedule-calendar__body schedule-calendar__body--empty">
+            <div class="schedule-calendar__empty-state" role="status" aria-live="polite">
+              <ion-icon [name]="emptyIcon" class="schedule-calendar__empty-state-icon"></ion-icon>
+              <h3>{{ emptyTitle }}</h3>
+              <p>{{ emptySubtitle }}</p>
+            </div>
           </div>
-        </div>
 
-        <ng-template #calendarBodyTemplate>
-          <div class="schedule-calendar__body" [style.--schedule-calendar-height.px]="calendarHeight">
-            <div class="schedule-calendar__time-rail">
+          <ng-template #calendarBodyTemplate>
+            <div #scrollBody class="schedule-calendar__body" [style.--schedule-calendar-height.px]="calendarHeight">
+              <div class="schedule-calendar__time-rail">
               <span
                 *ngFor="let hour of hourMarkers; trackBy: trackByHour"
                 class="schedule-calendar__hour-label"
@@ -148,6 +149,7 @@ interface DayCluster {
             </div>
           </div>
         </ng-template>
+        </div>
       </div>
     </div>
 
