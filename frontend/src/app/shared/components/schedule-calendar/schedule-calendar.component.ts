@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ActionSheetController } from '@ionic/angular/standalone';
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild, ElementRef, AfterViewChecked, HostListener } from '@angular/core';
 import { addIcons } from 'ionicons';
 import { calendarOutline, checkmarkCircleOutline, ellipseOutline, ellipsisVertical, listOutline, checkbox, informationCircleOutline, close, closeCircleOutline } from 'ionicons/icons';
 import { IonBadge, IonChip, IonIcon } from '@ionic/angular/standalone';
@@ -149,6 +149,18 @@ interface DayCluster {
         </ng-template>
       </div>
     </div>
+
+    <!-- Menú Contextual / Estilo coherente con la UI -->
+    <div *ngIf="contextMenu" class="schedule-calendar__context-menu" [style.top.px]="contextMenu.y" [style.left.px]="contextMenu.x">
+        <button *ngFor="let btn of contextMenu.buttons" 
+            type="button"
+            class="schedule-calendar__context-menu-item" 
+            [ngClass]="btn.cssClass" 
+            (click)="handleContextMenuClick(btn.handler, $event)">
+            <ion-icon [name]="btn.icon"></ion-icon>
+            <span>{{ btn.text }}</span>
+        </button>
+    </div>
   `,
     styleUrls: ['./schedule-calendar.component.scss'],
 })
@@ -160,6 +172,7 @@ export class ScheduleCalendarComponent implements OnChanges {
   @Input() minuteHeight = 1;
   @Input() slotMinutes = 30;
   @Input() editable = false;
+  contextMenu: { x: number, y: number, buttons: any[] } | null = null;
   @Input() selectionMode = false;
   @Input() highlightedDay: number | null = null;
   @Input() showCurrentTimeMarker = true;
@@ -178,7 +191,12 @@ export class ScheduleCalendarComponent implements OnChanges {
 
   @ViewChild('scrollBody', { static: false }) scrollBody?: ElementRef<HTMLElement>;
 
-  constructor(private actionSheetCtrl: ActionSheetController) {}
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+      this.closeContextMenu();
+  }
+
+  constructor(private actionSheetCtrl: ActionSheetController, private el: ElementRef) {}
 
   toggleSelectionMode(): void {
       this.selectionMode = !this.selectionMode;
@@ -286,8 +304,12 @@ export class ScheduleCalendarComponent implements OnChanges {
       return this.layoutsByDay.get(normalizeDayOfWeek(day)) ?? [];
   }
 
-  async emitEventClick(event: ScheduleCalendarLayoutEvent, domEvent: MouseEvent): Promise<void> {
+  emitEventClick(event: ScheduleCalendarLayoutEvent, domEvent: MouseEvent): void {
       domEvent.stopPropagation();
+
+      if (this.contextMenu) {
+          this.closeContextMenu();
+      }
 
       if (this.selectionMode) {
           this.toggleSelection(event, domEvent);
@@ -303,6 +325,7 @@ export class ScheduleCalendarComponent implements OnChanges {
           text: action.label,
           icon: action.icon,
           role: action.tone === 'danger' ? 'destructive' : undefined,
+          cssClass: action.tone ? `schedule-calendar__context-menu-item--${action.tone}` : '',
           handler: () => this.emitActionClick(event, action, domEvent)
       }));
 
@@ -321,15 +344,40 @@ export class ScheduleCalendarComponent implements OnChanges {
           handler: () => this.eventSelected.emit(event.originalEvent || event)
       });
 
-      buttons.push({ text: 'Cancelar', icon: 'close', role: 'cancel' });
+      // Calculate position local to the component instead of the viewport
+      const menuWidth = 200;
+      const menuHeight = buttons.length * 44 + 16;
+      
+      const componentRect = this.el.nativeElement.getBoundingClientRect();
+      
+      let x = (domEvent.clientX - componentRect.left) + 8;
+      let y = (domEvent.clientY - componentRect.top) - 20;
 
-      const actionSheet = await this.actionSheetCtrl.create({
-          header: event.title,
-          subHeader: event.subtitle || `${this.formatShortClock(event.startTime)} - ${this.formatShortClock(event.endTime)}`,
-          buttons
-      });
+      if (x + menuWidth > componentRect.width) {
+          x = componentRect.width - menuWidth - 12;
+      }
+      
+      if (y + menuHeight > componentRect.height) {
+          y = (domEvent.clientY - componentRect.top) - menuHeight - 8;
+      }
+      
+      if (y < 12) {
+          y = 12;
+      }
 
-      await actionSheet.present();
+      this.contextMenu = { x, y, buttons };
+  }
+
+  handleContextMenuClick(handler: any, event: MouseEvent): void {
+      event.stopPropagation();
+      this.closeContextMenu();
+      if (handler) {
+          handler();
+      }
+  }
+
+  closeContextMenu(): void {
+      this.contextMenu = null;
   }
 
   emitCellClick(dayOfWeek: number, minuteOfDay: number): void {
