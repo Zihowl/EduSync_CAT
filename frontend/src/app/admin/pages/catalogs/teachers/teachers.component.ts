@@ -136,21 +136,21 @@ const GET_ALLOWED_DOMAINS = gql`
                     <ng-template #modalBody>
                         <ion-list>
                             <ion-item fill="outline">
-                                <ion-label position="stacked">Nombre completo</ion-label>
+                                <ion-label position="stacked"><ion-icon name="person-outline" class="label-icon"></ion-icon> Nombre completo *</ion-label>
                                 <ion-input [(ngModel)]="formData.name" placeholder="Ej. Juan Pérez"></ion-input>
-                                <ion-icon name="person-outline" slot="start"></ion-icon>
+                                
                             </ion-item>
 
                             <ion-item fill="outline">
-                                <ion-label position="stacked">Número de empleado</ion-label>
+                                <ion-label position="stacked"><ion-icon name="card-outline" class="label-icon"></ion-icon> Número de empleado *</ion-label>
                                 <ion-input [(ngModel)]="formData.employeeNumber" placeholder="Ej. 123456"></ion-input>
-                                <ion-icon name="card-outline" slot="start"></ion-icon>
+                                
                             </ion-item>
 
                             <ion-item fill="outline">
-                                <ion-label position="stacked">Correo institucional</ion-label>
+                                <ion-label position="stacked"><ion-icon name="mail-outline" class="label-icon"></ion-icon> Correo institucional *</ion-label>
                                 <ion-input type="email" [(ngModel)]="formData.email" placeholder="ejemplo@correo.com"></ion-input>
-                                <ion-icon name="mail-outline" slot="start"></ion-icon>
+                                
                             </ion-item>
 
                             <ion-note

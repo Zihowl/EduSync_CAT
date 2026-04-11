@@ -127,17 +127,17 @@ const REMOVE_SUBJECT = gql`
                     <ng-template #modalBody>
                         <ion-list>
                             <ion-item fill="outline">
-                                <ion-label position="stacked">Clave de la materia</ion-label>
+                                <ion-label position="stacked">Clave de la materia *</ion-label>
                                 <ion-input [(ngModel)]="formData.code" placeholder="Ej. MAT101"></ion-input>
                             </ion-item>
 
                             <ion-item fill="outline">
-                                <ion-label position="stacked">Nombre de la materia</ion-label>
+                                <ion-label position="stacked">Nombre de la materia *</ion-label>
                                 <ion-input [(ngModel)]="formData.name" placeholder="Ej. Matemáticas I"></ion-input>
                             </ion-item>
 
                             <ion-item fill="outline">
-                                <ion-label position="stacked">Grado (opcional)</ion-label>
+                                <ion-label position="stacked">Grado</ion-label>
                                 <ion-input [(ngModel)]="formData.grade" type="number" inputmode="numeric" min="1" step="1" placeholder="Ej. 2"></ion-input>
                             </ion-item>
                         </ion-list>

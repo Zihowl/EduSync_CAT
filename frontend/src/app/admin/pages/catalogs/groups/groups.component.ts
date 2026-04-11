@@ -136,9 +136,9 @@ const REMOVE_GROUP = gql`
                     <ng-template #modalBody>
                         <ion-list>
                             <ion-item fill="outline">
-                                <ion-label position="stacked">{{ formData.parentId ? 'Nombre del Subgrupo' : 'Nombre del Grupo' }}</ion-label>
+                                <ion-label position="stacked"><ion-icon name="people-outline" class="label-icon"></ion-icon> {{ formData.parentId ? 'Nombre del Subgrupo *' : 'Nombre del Grupo *' }}</ion-label>
                                 <ion-input [(ngModel)]="formData.name" [placeholder]="formData.parentId ? 'Ej. 1, Software, Principiantes' : 'Ej. A, Ajedrez o Taller'"></ion-input>
-                                <ion-icon name="people-outline" slot="start"></ion-icon>
+                                
                             </ion-item>
 
                             <p *ngIf="formData.parentId" class="groups-preview-text">

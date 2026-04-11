@@ -201,23 +201,23 @@ const GET_ALLOWED_DOMAINS = gql`
                         <form [formGroup]="adminForm" class="users-modal-form">
                             <ion-list>
                                 <ion-item fill="outline">
-                                    <ion-label position="stacked">Nombre Completo</ion-label>
+                                    <ion-label position="stacked"><ion-icon name="person-outline" class="label-icon"></ion-icon> Nombre Completo *</ion-label>
                                     <ion-input
                                         formControlName="fullName"
                                         autocomplete="name">
                                     </ion-input>
-                                    <ion-icon name="person-outline" slot="start"></ion-icon>
+                                    
                                 </ion-item>
 
                                 <ion-item fill="outline">
-                                    <ion-label position="stacked">Correo Institucional</ion-label>
+                                    <ion-label position="stacked"><ion-icon name="mail-outline" class="label-icon"></ion-icon> Correo Institucional *</ion-label>
                                     <ion-input
                                         formControlName="email"
                                         type="email"
                                         autocomplete="email"
                                         placeholder="usuario@dominio.edu.mx">
                                     </ion-input>
-                                    <ion-icon name="mail-outline" slot="start"></ion-icon>
+                                    
                                 </ion-item>
                             </ion-list>
 

@@ -232,44 +232,44 @@ interface ScheduleBlockForm {
                         <div class="schedule-form">
                             <ion-list class="schedule-form__fields">
                                 <ion-item fill="outline" class="schedule-form-item">
-                                    <ion-label position="stacked">Grupo *</ion-label>
+                                    <ion-label position="stacked"><ion-icon name="layers-outline" class="label-icon"></ion-icon> Grupo *</ion-label>
                                     <ion-select [(ngModel)]="formData.groupId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar grupo" [compareWith]="compareIds">
                                         <ion-select-option *ngFor="let g of groups" [value]="g.id">
                                             {{ getGroupLabel(g) }}
                                         </ion-select-option>
                                     </ion-select>
-                                    <ion-icon name="layers-outline" slot="start"></ion-icon>
+                                    
                                 </ion-item>
 
                                 <ion-item fill="outline" class="schedule-form-item">
-                                    <ion-label position="stacked">Subgrupo (opcional)</ion-label>
+                                    <ion-label position="stacked"><ion-icon name="git-branch-outline" class="label-icon"></ion-icon> Subgrupo</ion-label>
                                     <ion-input [(ngModel)]="formData.subgroup" type="text" placeholder="Ej. 1, Software, Principiantes"></ion-input>
-                                    <ion-icon name="git-branch-outline" slot="start"></ion-icon>
+                                    
                                 </ion-item>
 
                                 <ion-item fill="outline" class="schedule-form-item">
-                                    <ion-label position="stacked">Materia *</ion-label>
+                                    <ion-label position="stacked"><ion-icon name="book-outline" class="label-icon"></ion-icon> Materia *</ion-label>
                                     <ion-select [(ngModel)]="formData.subjectId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar materia" [compareWith]="compareIds">
                                         <ion-select-option *ngFor="let s of subjects" [value]="s.id">{{ getSubjectLabel(s) }}</ion-select-option>
                                     </ion-select>
-                                    <ion-icon name="book-outline" slot="start"></ion-icon>
+                                    
                                 </ion-item>
 
                                 <ion-item fill="outline" class="schedule-form-item">
-                                    <ion-label position="stacked">Docente (opcional)</ion-label>
+                                    <ion-label position="stacked"><ion-icon name="person-outline" class="label-icon"></ion-icon> Docente</ion-label>
                                     <ion-select [(ngModel)]="formData.teacherId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar docente" [compareWith]="compareIds">
                                         <ion-select-option [value]="null">Sin docente</ion-select-option>
                                         <ion-select-option *ngFor="let t of teachers" [value]="t.id">{{ t.name }}</ion-select-option>
                                     </ion-select>
-                                    <ion-icon name="person-outline" slot="start"></ion-icon>
+                                    
                                 </ion-item>
 
                                 <ion-item fill="outline" class="schedule-form-item">
-                                    <ion-label position="stacked">Aula *</ion-label>
+                                    <ion-label position="stacked"><ion-icon name="business-outline" class="label-icon"></ion-icon> Aula *</ion-label>
                                     <ion-select [(ngModel)]="formData.classroomId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar aula" [compareWith]="compareIds">
                                         <ion-select-option *ngFor="let c of classrooms" [value]="c.id">{{ c.name }}</ion-select-option>
                                     </ion-select>
-                                    <ion-icon name="business-outline" slot="start"></ion-icon>
+                                    
                                 </ion-item>
 
                                 <ion-item>
@@ -308,15 +308,15 @@ interface ScheduleBlockForm {
 
                                     <ion-list class="schedule-block__fields">
                                         <ion-item fill="outline" class="schedule-form-item">
-                                            <ion-label position="stacked">Día de la semana *</ion-label>
+                                            <ion-label position="stacked"><ion-icon name="calendar-outline" class="label-icon"></ion-icon> Día de la semana *</ion-label>
                                             <ion-select [(ngModel)]="block.dayOfWeek" interface="popover" [interfaceOptions]="{ animated: false }">
                                                 <ion-select-option *ngFor="let d of [1,2,3,4,5,6,7]" [value]="d">{{ getDayName(d) }}</ion-select-option>
                                             </ion-select>
-                                            <ion-icon name="calendar-outline" slot="start"></ion-icon>
+                                            
                                         </ion-item>
 
                                         <ion-item fill="outline" class="schedule-form-item">
-                                            <ion-label position="stacked">Hora de inicio *</ion-label>
+                                            <ion-label position="stacked"><ion-icon name="time-outline" class="label-icon"></ion-icon> Hora de inicio *</ion-label>
                                             <ion-datetime-button [datetime]="getStartTimePickerId(i)"></ion-datetime-button>
                                             <ion-popover [keepContentsMounted]="true" [animated]="false">
                                                 <ng-template>
@@ -330,11 +330,11 @@ interface ScheduleBlockForm {
                                                     </ion-datetime>
                                                 </ng-template>
                                             </ion-popover>
-                                            <ion-icon name="time-outline" slot="start"></ion-icon>
+                                            
                                         </ion-item>
 
                                         <ion-item fill="outline" class="schedule-form-item">
-                                            <ion-label position="stacked">Hora de fin *</ion-label>
+                                            <ion-label position="stacked"><ion-icon name="time-outline" class="label-icon"></ion-icon> Hora de fin *</ion-label>
                                             <ion-datetime-button [datetime]="getEndTimePickerId(i)"></ion-datetime-button>
                                             <ion-popover [keepContentsMounted]="true" [animated]="false">
                                                 <ng-template>
@@ -348,7 +348,7 @@ interface ScheduleBlockForm {
                                                     </ion-datetime>
                                                 </ng-template>
                                             </ion-popover>
-                                            <ion-icon name="time-outline" slot="start"></ion-icon>
+                                            
                                         </ion-item>
                                     </ion-list>
 

@@ -129,12 +129,12 @@ const REMOVE_CLASSROOM = gql`
                     <ng-template #modalBody>
                         <ion-list>
                             <ion-item fill="outline">
-                                <ion-label position="stacked">Nombre del aula / Salón</ion-label>
+                                <ion-label position="stacked">Nombre del aula / Salón *</ion-label>
                                 <ion-input [(ngModel)]="formData.name" placeholder="Ej. Laboratorio 1"></ion-input>
                             </ion-item>
 
                             <ion-item fill="outline">
-                                <ion-label position="stacked">Edificio al que pertenece</ion-label>
+                                <ion-label position="stacked">Edificio al que pertenece *</ion-label>
                                 <ion-select interface="popover" [interfaceOptions]="{ animated: false }" [(ngModel)]="formData.buildingId" placeholder="Seleccionar edificio">
                                     <ion-select-option *ngFor="let b of buildings" [value]="b.id">
                                         {{ b.name }}

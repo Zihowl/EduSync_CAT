@@ -122,12 +122,12 @@ const REMOVE_BUILDING = gql`
                     <ng-template #modalBody>
                         <ion-list>
                             <ion-item fill="outline">
-                                <ion-label position="stacked">Nombre del edificio</ion-label>
+                                <ion-label position="stacked">Nombre del edificio *</ion-label>
                                 <ion-input [(ngModel)]="formData.name" placeholder="Ej. Edificio A"></ion-input>
                             </ion-item>
 
                             <ion-item fill="outline">
-                                <ion-label position="stacked">Descripción (opcional)</ion-label>
+                                <ion-label position="stacked">Descripción</ion-label>
                                 <ion-textarea [(ngModel)]="formData.description" placeholder="Detalles adicionales..." [rows]="4"></ion-textarea>
                             </ion-item>
                         </ion-list>

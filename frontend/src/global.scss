@@ -423,9 +423,21 @@ ion-modal.catalog-form-modal::part(backdrop) {
   font-size: 0.9rem;
   line-height: 1.25;
   --color: var(--cfm-text);
+  
+  /* Flex settings for icon next to text */
+  display: flex !important;
+  align-items: center;
+  gap: 0.35rem;
+
+  .label-icon {
+    color: var(--cfm-accent-from);
+    font-size: 1rem;
+    flex-shrink: 0;
+    margin-right: 0.1rem;
+  }
 }
 
-/* Icons in start slot */
+/* Fallback for any leftover icons in start slot */
 .catalog-form-modal__body ion-item ion-icon[slot='start'] {
   color: var(--cfm-accent-from);
   font-size: 1rem;
