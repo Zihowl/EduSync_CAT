@@ -33,8 +33,7 @@
   flex: 1 1 0%;
   min-height: 0;
   min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: auto;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -44,15 +43,16 @@
   gap: 0.4rem;
   align-items: stretch;
   flex: 0 0 auto;
-  overflow-y: hidden;
-  scrollbar-gutter: stable;
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 
 .schedule-calendar__time-head,
 .schedule-calendar__day-head {
   border-radius: 1rem;
   border: 1px solid var(--schedule-border);
-  background: var(--schedule-surface-bg);
+  background: var(--schedule-surface-deep);
   box-shadow: var(--schedule-shadow);
 }
 
@@ -65,6 +65,9 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  position: sticky;
+  left: 0;
+  z-index: 25;
 }
 
 .schedule-calendar__day-head {
@@ -123,15 +126,13 @@
   gap: 0.4rem;
   flex: 1 1 0%;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: visible;
-  scrollbar-gutter: stable;
+  overflow: visible;
 }
 
 .schedule-calendar__time-rail {
   position: sticky;
   left: 0;
-  z-index: 5;
+  z-index: 15;
   border-radius: 1rem;
   background: var(--schedule-surface-deep);
   border: 1px solid var(--schedule-border);
