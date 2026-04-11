@@ -14,7 +14,7 @@
 
 .schedule-content {
     --background: transparent;
-    --overflow: hidden;
+    --overflow: auto;
     --padding-top: 0.5rem;
     --padding-bottom: calc(1rem + var(--ion-safe-area-bottom, 0px));
     --padding-start: 0.5rem;
@@ -25,7 +25,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    overflow: hidden;
+    overflow: auto;
 }
 
 .schedule-shell {
@@ -84,14 +84,20 @@
 }
 
 .schedule-toolbar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(220px, 0.85fr);
-    gap: 0.55rem;
-    align-items: end;
-    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.7rem;
     border-radius: 0.95rem;
     border: 1px solid var(--cfg-border);
     background: rgba(8, 13, 23, 0.48);
+}
+
+.schedule-toolbar__filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 0.5rem;
+    align-items: end;
 }
 
 .schedule-toolbar ion-segment,
@@ -127,6 +133,10 @@
     font-size: 0.9rem;
 }
 
+.schedule-segment--published {
+    width: 100%;
+}
+
 .schedule-calendar-card app-schedule-calendar {
     flex: 1 1 auto;
     min-height: 0;
@@ -143,6 +153,8 @@
 }
 
 .schedule-content ion-fab {
+    position: fixed;
+    z-index: 1000;
     right: calc(1rem + var(--ion-safe-area-right, 0px));
     bottom: calc(1rem + var(--ion-safe-area-bottom, 0px));
 }
@@ -159,6 +171,7 @@
     }
 
     .schedule-content ion-fab {
+        position: fixed;
         right: calc(0.75rem + var(--ion-safe-area-right, 0px));
         bottom: calc(0.75rem + var(--ion-safe-area-bottom, 0px));
     }

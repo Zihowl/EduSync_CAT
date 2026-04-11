@@ -118,8 +118,9 @@ const REMOVE_GROUP = gql`
                         </ion-item>
                     </ng-template>
                 </app-data-list>
+            </div>
 
-                <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+            <ion-fab vertical="bottom" horizontal="end" slot="fixed">
                     <ion-fab-button (click)="OpenNewGroup()">
                         <ion-icon name="add-outline"></ion-icon>
                     </ion-fab-button>
@@ -147,7 +148,6 @@ const REMOVE_GROUP = gql`
                         </ion-list>
                     </ng-template>
                 </app-modal>
-            </div>
         </ion-content>
     `,
     styleUrls: ['./groups.component.scss']

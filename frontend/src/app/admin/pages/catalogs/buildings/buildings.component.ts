@@ -104,8 +104,9 @@ const REMOVE_BUILDING = gql`
                         </ion-item>
                     </ng-template>
                 </app-data-list>
+            </div>
 
-                <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+            <ion-fab vertical="bottom" horizontal="end" slot="fixed">
                     <ion-fab-button (click)="OpenModal()">
                         <ion-icon name="add-outline"></ion-icon>
                     </ion-fab-button>
@@ -132,7 +133,6 @@ const REMOVE_BUILDING = gql`
                         </ion-list>
                     </ng-template>
                 </app-modal>
-            </div>
         </ion-content>
     `,
     styleUrls: ['./buildings.component.scss']

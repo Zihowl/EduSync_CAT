@@ -133,24 +133,33 @@ const SCHEDULE_QUERY_LIMIT = 500;
                     <ion-card-content>
                         <div class="schedule-calendar-frame">
                             <div class="schedule-toolbar">
-                                <ion-segment [(ngModel)]="filterScope" (ionChange)="onFilterScopeChange()" class="schedule-segment">
-                                    <ion-segment-button value="group">Grupo</ion-segment-button>
-                                    <ion-segment-button value="teacher">Maestro</ion-segment-button>
-                                </ion-segment>
+                                <div class="schedule-toolbar__filters">
+                                    <ion-segment [(ngModel)]="filterScope" (ionChange)="onFilterScopeChange()" class="schedule-segment">
+                                        <ion-segment-button value="group">Grupo</ion-segment-button>
+                                        <ion-segment-button value="teacher">Maestro</ion-segment-button>
+                                    </ion-segment>
 
-                                <ion-select *ngIf="filterScope === 'group'" [(ngModel)]="filterGroupId" (ionChange)="LoadSchedules()" placeholder="Selecciona un grupo" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter">
-                                    <ion-select-option *ngFor="let g of groups" [value]="g.id">
-                                        {{ getGroupLabel(g) }}
-                                    </ion-select-option>
-                                </ion-select>
+                                    <ion-select *ngIf="filterScope === 'group'" [(ngModel)]="filterGroupId" (ionChange)="onGroupFilterChange()" placeholder="Selecciona un grupo" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter">
+                                        <ion-select-option *ngFor="let g of rootGroups" [value]="g.id">
+                                            {{ getGroupLabel(g) }}
+                                        </ion-select-option>
+                                    </ion-select>
 
-                                <ion-select *ngIf="filterScope === 'teacher'" [(ngModel)]="filterTeacherId" (ionChange)="LoadSchedules()" placeholder="Selecciona un maestro" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter">
-                                    <ion-select-option *ngFor="let teacher of teachers" [value]="teacher.id">
-                                        {{ teacher.name }}
-                                    </ion-select-option>
-                                </ion-select>
+                                    <ion-select *ngIf="filterScope === 'group'" [(ngModel)]="filterSubgroupValue" (ionChange)="onSubgroupFilterChange()" placeholder="Tronco común" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter">
+                                        <ion-select-option [value]="null">Tronco común</ion-select-option>
+                                        <ion-select-option *ngFor="let subgroup of availableSubgroups" [value]="subgroup">
+                                            {{ subgroup }}
+                                        </ion-select-option>
+                                    </ion-select>
 
-                                <ion-segment [(ngModel)]="filterPublished" (ionChange)="LoadSchedules()" class="schedule-segment">
+                                    <ion-select *ngIf="filterScope === 'teacher'" [(ngModel)]="filterTeacherId" (ionChange)="onTeacherFilterChange()" placeholder="Selecciona un maestro" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter">
+                                        <ion-select-option *ngFor="let teacher of teachers" [value]="teacher.id">
+                                            {{ teacher.name }}
+                                        </ion-select-option>
+                                    </ion-select>
+                                </div>
+
+                                <ion-segment [(ngModel)]="filterPublished" (ionChange)="onPublishedFilterChange()" class="schedule-segment schedule-segment--published">
                                     <ion-segment-button value="all">Todos</ion-segment-button>
                                     <ion-segment-button value="published">Publicados</ion-segment-button>
                                     <ion-segment-button value="draft">Borradores</ion-segment-button>
@@ -176,8 +185,9 @@ const SCHEDULE_QUERY_LIMIT = 500;
                         </div>
                     </ion-card-content>
                 </ion-card>
+            </div>
 
-                <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+            <ion-fab vertical="bottom" horizontal="end" slot="fixed">
                     <ion-fab-button (click)="OpenModal()">
                         <ion-icon name="add-outline"></ion-icon>
                     </ion-fab-button>
@@ -290,7 +300,6 @@ const SCHEDULE_QUERY_LIMIT = 500;
                         </div>
                     </ng-template>
                 </app-modal>
-            </div>
         </ion-content>
     `,
     styleUrls: ['./schedules.component.scss']
@@ -308,17 +317,21 @@ export class SchedulesComponent implements OnInit {
     calendarDays: number[] = [...SCHEDULE_DEFAULT_VISIBLE_DAYS];
     calendarStartMinute = SCHEDULE_DEFAULT_START_MINUTE;
     calendarEndMinute = SCHEDULE_DEFAULT_END_MINUTE;
-    calendarEmptyTitle = 'Sin horarios para este grupo';
-    calendarEmptySubtitle = 'Cambia grupo, maestro o estado para ver bloques.';
+    calendarEmptyTitle = 'Sin horarios para esta selección';
+    calendarEmptySubtitle = 'Cambia grupo, subgrupo, maestro o estado para ver bloques.';
+    allSchedules: any[] = [];
     teachers: any[] = [];
     subjects: any[] = [];
     classrooms: any[] = [];
     groups: any[] = [];
+    rootGroups: any[] = [];
+    availableSubgroups: string[] = [];
     isSchedulesLoaded = false;
 
     filterPublished: 'all' | 'published' | 'draft' = 'all';
     filterScope: 'group' | 'teacher' = 'group';
     filterGroupId: number | null = null;
+    filterSubgroupValue: string | null = null;
     filterTeacherId: number | null = null;
 
     selectedIds = new Set<number>();
@@ -401,11 +414,21 @@ export class SchedulesComponent implements OnInit {
         return this.updatingIds.includes(Number(id));
     }
 
+    private normalizeSubgroupValue(value: string | null | undefined): string | null {
+        const normalized = value?.trim();
+        return normalized ? normalized : null;
+    }
+
+    private getScheduleRootGroupId(schedule: any): number | null {
+        const groupId = schedule?.group?.parent?.id ?? schedule?.group?.id;
+        return groupId != null ? Number(groupId) : null;
+    }
+
     private ensureActiveFilterSelection(): void {
         if (this.filterScope === 'group') {
-            if (this.groups.length > 0) {
+            if (this.rootGroups.length > 0) {
                 const normalizedGroupId = this.getRootGroupId(this.filterGroupId);
-                const hasValidGroup = normalizedGroupId != null && this.groups.some((group) => Number(group.id) === Number(normalizedGroupId));
+                const hasValidGroup = normalizedGroupId != null && this.rootGroups.some((group) => Number(group.id) === Number(normalizedGroupId));
                 if (!hasValidGroup) {
                     this.filterGroupId = this.getDefaultGroupId();
                 } else {
@@ -414,18 +437,106 @@ export class SchedulesComponent implements OnInit {
             } else if (this.teachers.length > 0) {
                 this.filterScope = 'teacher';
                 this.filterTeacherId = Number(this.teachers[0].id);
+                this.filterSubgroupValue = null;
             }
         } else if (this.filterScope === 'teacher') {
+            this.filterSubgroupValue = null;
             if (this.teachers.length > 0) {
                 const hasValidTeacher = this.filterTeacherId != null && this.teachers.some((teacher) => Number(teacher.id) === Number(this.filterTeacherId));
                 if (!hasValidTeacher) {
                     this.filterTeacherId = Number(this.teachers[0].id);
                 }
-            } else if (this.groups.length > 0) {
+            } else if (this.rootGroups.length > 0) {
                 this.filterScope = 'group';
                 this.filterGroupId = this.getDefaultGroupId();
             }
         }
+    }
+
+    private syncAvailableSubgroups(): void {
+        if (this.filterScope !== 'group') {
+            this.availableSubgroups = [];
+            this.filterSubgroupValue = null;
+            return;
+        }
+
+        const selectedGroupId = this.getRootGroupId(this.filterGroupId);
+        if (selectedGroupId == null) {
+            this.availableSubgroups = [];
+            this.filterSubgroupValue = null;
+            return;
+        }
+
+        const subgroupValues = new Set<string>();
+        this.allSchedules.forEach((schedule) => {
+            if (this.getScheduleRootGroupId(schedule) !== selectedGroupId) {
+                return;
+            }
+
+            const subgroup = this.normalizeSubgroupValue(schedule.subgroup);
+            if (subgroup) {
+                subgroupValues.add(subgroup);
+            }
+        });
+
+        this.availableSubgroups = Array.from(subgroupValues).sort((left, right) => left.localeCompare(right, 'es', { numeric: true, sensitivity: 'base' }));
+
+        if (this.filterSubgroupValue != null && !this.availableSubgroups.includes(this.filterSubgroupValue)) {
+            this.filterSubgroupValue = null;
+        }
+    }
+
+    private matchesVisibleFilters(schedule: any): boolean {
+        if (this.filterPublished === 'published' && !schedule.isPublished) {
+            return false;
+        }
+
+        if (this.filterPublished === 'draft' && schedule.isPublished) {
+            return false;
+        }
+
+        if (this.filterScope === 'teacher') {
+            return this.filterTeacherId != null && Number(schedule.teacher?.id) === Number(this.filterTeacherId);
+        }
+
+        const selectedGroupId = this.getRootGroupId(this.filterGroupId);
+        if (selectedGroupId != null && this.getScheduleRootGroupId(schedule) !== selectedGroupId) {
+            return false;
+        }
+
+        const selectedSubgroup = this.normalizeSubgroupValue(this.filterSubgroupValue);
+        const scheduleSubgroup = this.normalizeSubgroupValue(schedule.subgroup);
+
+        if (selectedSubgroup == null) {
+            return scheduleSubgroup == null;
+        }
+
+        return scheduleSubgroup == null || scheduleSubgroup === selectedSubgroup;
+    }
+
+    private applyVisibleFilters(): void {
+        this.ensureActiveFilterSelection();
+
+        if (this.filterScope === 'group') {
+            this.syncAvailableSubgroups();
+        } else {
+            this.availableSubgroups = [];
+            this.filterSubgroupValue = null;
+        }
+
+        this.schedules = this.allSchedules.filter((schedule) => this.matchesVisibleFilters(schedule));
+
+        if (this.selectedSchedule) {
+            this.selectedSchedule = this.schedules.find((schedule) => Number(schedule.id) === Number(this.selectedSchedule.id)) ?? null;
+        }
+
+        this.refreshCalendarView();
+    }
+
+    private clearFilterSelection(): void {
+        this.selectedIds.clear();
+        this.selectedSchedule = null;
+        this.activeScheduleId = null;
     }
 
     private syncCalendarState(): void {
@@ -457,7 +568,7 @@ export class SchedulesComponent implements OnInit {
     }
 
     private getDefaultGroupId(): number | null {
-        const fallbackGroup = this.groups.find((group) => !group.parent) ?? this.groups[0];
+        const fallbackGroup = this.rootGroups.find((group) => !group.parent) ?? this.rootGroups[0] ?? this.groups.find((group) => !group.parent) ?? this.groups[0];
         return fallbackGroup ? this.getRootGroupId(Number(fallbackGroup.id)) : null;
     }
 
@@ -516,8 +627,28 @@ export class SchedulesComponent implements OnInit {
 
     onFilterScopeChange(): void {
         this.ensureActiveFilterSelection();
-        this.refreshCalendarView();
-        this.LoadSchedules();
+        this.clearFilterSelection();
+        this.applyVisibleFilters();
+    }
+
+    onGroupFilterChange(): void {
+        this.clearFilterSelection();
+        this.applyVisibleFilters();
+    }
+
+    onSubgroupFilterChange(): void {
+        this.clearFilterSelection();
+        this.applyVisibleFilters();
+    }
+
+    onTeacherFilterChange(): void {
+        this.clearFilterSelection();
+        this.applyVisibleFilters();
+    }
+
+    onPublishedFilterChange(): void {
+        this.clearFilterSelection();
+        this.applyVisibleFilters();
     }
 
     onCalendarEventSelected(event: ScheduleCalendarEvent): void {
@@ -634,6 +765,10 @@ export class SchedulesComponent implements OnInit {
                 this.subjects = catalogs.subjects;
                 this.classrooms = catalogs.classrooms;
                 this.groups = catalogs.groups;
+                this.rootGroups = catalogs.groups.filter((group: any) => !group.parent);
+                if (this.rootGroups.length === 0) {
+                    this.rootGroups = [...catalogs.groups];
+                }
                 this.ensureActiveFilterSelection();
                 this.LoadSchedules(forceRefresh);
                 this.cdr.detectChanges();
@@ -660,29 +795,14 @@ export class SchedulesComponent implements OnInit {
     }
 
     LoadSchedules(forceRefresh = false) {
-        const filter: any = {};
+        const filter: any = {
+            page: 1,
+            limit: SCHEDULE_QUERY_LIMIT,
+        };
         this.ensureActiveFilterSelection();
-
-        const effectiveGroupId = this.getRootGroupId(this.filterGroupId);
-
-        if (this.filterScope === 'group' && effectiveGroupId != null) {
-            filter.groupId = effectiveGroupId;
-        }
-
-        if (this.filterScope === 'teacher' && this.filterTeacherId != null) {
-            filter.teacherId = this.filterTeacherId;
-        }
-
-        if (this.filterPublished === 'published') filter.isPublished = true;
-        if (this.filterPublished === 'draft') filter.isPublished = false;
-        filter.page = 1;
-        filter.limit = SCHEDULE_QUERY_LIMIT;
 
         const scheduleKey = [
             'admin-schedules',
-            this.filterScope,
-            this.filterPublished,
-            this.filterScope === 'group' ? (effectiveGroupId ?? 'all') : (this.filterTeacherId ?? 'all'),
             SCHEDULE_QUERY_LIMIT
         ].join(':');
 
@@ -696,7 +816,7 @@ export class SchedulesComponent implements OnInit {
                 [RealtimeScope.Schedules, RealtimeScope.Teachers, RealtimeScope.Subjects, RealtimeScope.Classrooms, RealtimeScope.Groups],
                 () => this.apollo.query<any>({
                     query: GET_SCHEDULES,
-                    variables: { filter: Object.keys(filter).length > 0 ? filter : null },
+                    variables: { filter },
                     fetchPolicy: 'network-only'
                 }).pipe(
                     map((res: any) => res?.data?.GetSchedules ?? [])
@@ -707,7 +827,7 @@ export class SchedulesComponent implements OnInit {
                 [RealtimeScope.Schedules, RealtimeScope.Teachers, RealtimeScope.Subjects, RealtimeScope.Classrooms, RealtimeScope.Groups],
                 () => this.apollo.query<any>({
                     query: GET_SCHEDULES,
-                    variables: { filter: Object.keys(filter).length > 0 ? filter : null },
+                    variables: { filter },
                     fetchPolicy: 'network-only'
                 }).pipe(
                     map((res: any) => res?.data?.GetSchedules ?? [])
@@ -716,18 +836,15 @@ export class SchedulesComponent implements OnInit {
 
         request$.subscribe({
             next: (schedules: any[]) => {
-                this.schedules = schedules;
+                this.allSchedules = schedules;
                 this.isSchedulesLoaded = true;
-                this.selectedSchedule = this.selectedSchedule
-                    ? this.schedules.find((schedule) => Number(schedule.id) === Number(this.selectedSchedule.id)) ?? null
-                    : null;
-                this.refreshCalendarView();
+                this.applyVisibleFilters();
                 this.cdr.detectChanges();
             },
             error: (err) => {
                 console.error('Error al cargar horarios:', err);
                 this.isSchedulesLoaded = true;
-                this.refreshCalendarView();
+                this.applyVisibleFilters();
                 this.cdr.detectChanges();
             }
         });
