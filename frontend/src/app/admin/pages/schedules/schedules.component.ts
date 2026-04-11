@@ -58,9 +58,10 @@ const GET_SCHEDULES = gql`
 
 const GET_CATALOGS = gql`
     query GetCatalogs {
-        GetTeachers { id name }
+        GetTeachers { id name employeeNumber }
         GetSubjects { id name grade }
-        GetClassrooms { id name }
+        GetBuildings { id name }
+        GetClassrooms { id name building { id name } }
         GetGroups { id name parent { id name } }
     }
 `;
@@ -108,7 +109,6 @@ interface ScheduleFormData {
     groupId: number | null;
     subjectId: number | null;
     teacherId: number | null;
-    classroomId: number | null;
     subgroup: string;
     isPublished: boolean;
 }
@@ -117,6 +117,8 @@ interface ScheduleBlockForm {
     dayOfWeek: number;
     startTime: string;
     endTime: string;
+    buildingId: number | null;
+    classroomId: number | null;
 }
 
 @Component({
@@ -164,11 +166,9 @@ interface ScheduleBlockForm {
                                 </ion-select-option>
                             </ion-select>
 
-                            <ion-select [(ngModel)]="filterTeacherId" (ionChange)="onTeacherFilterChange()" (ionCancel)="onFilterSelectClosed($event)" (ionDismiss)="onFilterSelectClosed($event)" placeholder="Todos los maestros" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter glass-input" [compareWith]="compareIds">
+                            <ion-select [(ngModel)]="filterTeacherId" (ionChange)="onTeacherFilterChange()" (ionCancel)="onFilterSelectClosed($event)" (ionDismiss)="onFilterSelectClosed($event)" placeholder="Todos los maestros" interface="popover" [interfaceOptions]="{ animated: false, cssClass: 'teacher-select-popover' }" class="schedule-filter glass-input" [compareWith]="compareIds">
                                 <ion-select-option [value]="null">Todos los maestros</ion-select-option>
-                                <ion-select-option *ngFor="let teacher of teachers" [value]="teacher.id">
-                                    {{ teacher.name }}
-                                </ion-select-option>
+                                <ion-select-option *ngFor="let teacher of teachers" [value]="teacher.id">{{ teacher.name }}&#10;{{ teacher.employeeNumber }}</ion-select-option>
                             </ion-select>
                         </div>
                     </div>
@@ -224,7 +224,7 @@ interface ScheduleBlockForm {
                     (isOpenChange)="SetOpen($event)"
                     [title]="(editingItem ? 'Editar' : 'Nuevo') + ' Horario'"
                     [subtitle]="editingItem ? 'Ajusta los datos del horario existente.' : 'Completa los datos base y agrega uno o más bloques para la misma clase.'"
-                    [helperText]="editingItem ? 'Revisa que la hora de fin sea posterior a la hora de inicio antes de guardar.' : 'Los bloques comparten grupo, materia, docente, aula y subgrupo. Puedes guardar varios a la vez.'"
+                    [helperText]="editingItem ? 'Revisa que la hora de fin sea posterior a la hora de inicio antes de guardar.' : ''"
                     [saveLabel]="getSaveLabel()"
                     [saveDisabled]="!canSave() || isSaving"
                     (save)="Save()">
@@ -253,6 +253,14 @@ interface ScheduleBlockForm {
                                 </ion-item>
 
                                 <ion-item fill="outline" class="schedule-form-item">
+                                    <ion-label position="stacked"><ion-icon name="person-outline" class="label-icon"></ion-icon> Docente</ion-label>
+                                    <ion-select [(ngModel)]="formData.teacherId" interface="popover" [interfaceOptions]="{ animated: false, cssClass: 'teacher-select-popover' }" placeholder="Seleccionar docente" [compareWith]="compareIds">
+                                        <ion-select-option [value]="null">Sin docente</ion-select-option>
+                                        <ion-select-option *ngFor="let t of teachers" [value]="t.id">{{ t.name }}&#10;{{ t.employeeNumber }}</ion-select-option>
+                                    </ion-select>
+                                </ion-item>
+
+                                <ion-item fill="outline" class="schedule-form-item">
                                     <ion-label position="stacked"><ion-icon name="book-outline" class="label-icon"></ion-icon> Materia *</ion-label>
                                     <ion-select [(ngModel)]="formData.subjectId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar materia" [compareWith]="compareIds">
                                         <ion-select-option *ngFor="let s of subjects" [value]="s.id">{{ getSubjectLabel(s) }}</ion-select-option>
@@ -260,24 +268,7 @@ interface ScheduleBlockForm {
                                     
                                 </ion-item>
 
-                                <ion-item fill="outline" class="schedule-form-item">
-                                    <ion-label position="stacked"><ion-icon name="person-outline" class="label-icon"></ion-icon> Docente</ion-label>
-                                    <ion-select [(ngModel)]="formData.teacherId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar docente" [compareWith]="compareIds">
-                                        <ion-select-option [value]="null">Sin docente</ion-select-option>
-                                        <ion-select-option *ngFor="let t of teachers" [value]="t.id">{{ t.name }}</ion-select-option>
-                                    </ion-select>
-                                    
-                                </ion-item>
-
-                                <ion-item fill="outline" class="schedule-form-item">
-                                    <ion-label position="stacked"><ion-icon name="business-outline" class="label-icon"></ion-icon> Aula *</ion-label>
-                                    <ion-select [(ngModel)]="formData.classroomId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar aula" [compareWith]="compareIds">
-                                        <ion-select-option *ngFor="let c of classrooms" [value]="c.id">{{ c.name }}</ion-select-option>
-                                    </ion-select>
-                                    
-                                </ion-item>
-
-                                <ion-item>
+                                <ion-item class="col-span-2">
                                     <ion-label>Publicar inmediatamente</ion-label>
                                     <ion-toggle [(ngModel)]="formData.isPublished" slot="end"></ion-toggle>
                                 </ion-item>
@@ -287,7 +278,7 @@ interface ScheduleBlockForm {
                                 <div class="schedule-blocks__header">
                                     <div>
                                         <p class="schedule-blocks__eyebrow">Bloques de horario</p>
-                                        <h3 class="schedule-blocks__title">{{ editingItem ? 'Bloque del horario' : 'Bloques para la misma clase' }}</h3>
+                                        <h3 class="schedule-blocks__title" *ngIf="editingItem">Bloque del horario</h3>
                                     </div>
 
                                     <ion-button *ngIf="!editingItem" fill="clear" size="small" class="schedule-blocks__add" (click)="addScheduleBlock()">
@@ -296,13 +287,10 @@ interface ScheduleBlockForm {
                                     </ion-button>
                                 </div>
 
-                                <p class="schedule-blocks__hint">Cada bloque comparte los datos base y sólo cambia el día y el horario.</p>
-
-                                <div *ngFor="let block of scheduleBlocks; let i = index; trackBy: trackByBlockIndex" class="schedule-block" [class.schedule-block--invalid]="!isBlockValid(block)">
+                                <div *ngFor="let block of scheduleBlocks; let i = index; trackBy: trackByBlockIndex" class="schedule-block" [class.schedule-block--invalid]="block.startTime >= block.endTime">
                                     <div class="schedule-block__header">
                                         <div>
                                             <p class="schedule-block__kicker">Bloque {{ i + 1 }}</p>
-                                            <h4 class="schedule-block__title">{{ getDayName(block.dayOfWeek) || 'Sin día' }}</h4>
                                         </div>
 
                                         <ion-button *ngIf="!editingItem && scheduleBlocks.length > 1" fill="clear" size="small" color="danger" class="schedule-block__remove" (click)="removeScheduleBlock(i)">
@@ -312,7 +300,7 @@ interface ScheduleBlockForm {
                                     </div>
 
                                     <ion-list class="schedule-block__fields">
-                                        <ion-item fill="outline" class="schedule-form-item">
+                                        <ion-item fill="outline" class="schedule-form-item col-span-2">
                                             <ion-label position="stacked"><ion-icon name="calendar-outline" class="label-icon"></ion-icon> Día de la semana *</ion-label>
                                             <ion-select [(ngModel)]="block.dayOfWeek" interface="popover" [interfaceOptions]="{ animated: false }">
                                                 <ion-select-option *ngFor="let d of [1,2,3,4,5,6,7]" [value]="d">{{ getDayName(d) }}</ion-select-option>
@@ -355,9 +343,24 @@ interface ScheduleBlockForm {
                                             </ion-popover>
                                             
                                         </ion-item>
+
+                                        <ion-item fill="outline" class="schedule-form-item">
+                                            <ion-label position="stacked"><ion-icon name="location-outline" class="label-icon"></ion-icon> Edificio</ion-label>
+                                            <ion-select [(ngModel)]="block.buildingId" (ionChange)="onBlockBuildingChange(i)" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar edificio" [compareWith]="compareIds">
+                                                <ion-select-option [value]="null">Selecciona un edificio (Requerido)</ion-select-option>
+                                                <ion-select-option *ngFor="let b of buildings" [value]="b.id">{{ b.name }}</ion-select-option>
+                                            </ion-select>
+                                        </ion-item>
+
+                                        <ion-item fill="outline" class="schedule-form-item">
+                                            <ion-label position="stacked"><ion-icon name="business-outline" class="label-icon"></ion-icon> Aula *</ion-label>
+                                            <ion-select [(ngModel)]="block.classroomId" [disabled]="!block.buildingId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar aula" [compareWith]="compareIds">
+                                                <ion-select-option *ngFor="let c of getFilteredClassrooms(block.buildingId)" [value]="c.id">{{ c.name }}</ion-select-option>
+                                            </ion-select>
+                                        </ion-item>
                                     </ion-list>
 
-                                    <div *ngIf="!isBlockValid(block)" class="schedule-time-error schedule-time-error--block">
+                                    <div *ngIf="block.startTime >= block.endTime" class="schedule-time-error schedule-time-error--block">
                                         <small>La hora de fin debe ser posterior a la hora de inicio.</small>
                                     </div>
                                 </div>
@@ -405,10 +408,13 @@ export class SchedulesComponent implements OnInit {
     teachers: any[] = [];
     subjects: any[] = [];
     classrooms: any[] = [];
+    buildings: any[] = [];
     groups: any[] = [];
     rootGroups: any[] = [];
     availableSubgroups: string[] = [];
     isSchedulesLoaded = false;
+
+    
 
     filterPublished: 'all' | 'published' | 'draft' = 'all';
     filterGroupId: number | null = null;
@@ -428,7 +434,6 @@ export class SchedulesComponent implements OnInit {
         groupId: null as number | null,
         subjectId: null as number | null,
         teacherId: null as number | null,
-        classroomId: null as number | null,
         subgroup: '',
         isPublished: false
     };
@@ -818,11 +823,13 @@ export class SchedulesComponent implements OnInit {
         return `2024-01-01T${time}:00`;
     }
 
-    private createBlockDraft(seed: Partial<ScheduleBlockForm> = {}): ScheduleBlockForm {
+    private createBlockDraft(seed: Partial<ScheduleFormData & ScheduleBlockForm> = {}): ScheduleBlockForm {
         return {
             dayOfWeek: seed.dayOfWeek ?? this.calendarDays[0] ?? 1,
             startTime: seed.startTime ?? '08:00',
             endTime: seed.endTime ?? '09:00',
+            buildingId: seed.buildingId ?? null,
+            classroomId: seed.classroomId ?? null,
         };
     }
 
@@ -881,7 +888,7 @@ export class SchedulesComponent implements OnInit {
     }
 
     isBlockValid(block: ScheduleBlockForm): boolean {
-        return !!(block.dayOfWeek && block.startTime && block.endTime && block.startTime < block.endTime);
+        return !!(block.dayOfWeek && block.startTime && block.endTime && block.startTime < block.endTime && block.classroomId);
     }
 
     getSaveLabel(): string {
@@ -908,11 +915,12 @@ export class SchedulesComponent implements OnInit {
         const request$ = forceRefresh
             ? this.queryCache.refresh(
                 'admin-schedules-catalogs',
-                [RealtimeScope.Teachers, RealtimeScope.Subjects, RealtimeScope.Classrooms, RealtimeScope.Groups],
+                [RealtimeScope.Teachers, RealtimeScope.Subjects, RealtimeScope.Buildings, RealtimeScope.Classrooms, RealtimeScope.Groups],
                 () => this.apollo.query<any>({ query: GET_CATALOGS, fetchPolicy: 'network-only' }).pipe(
                     map((res: any) => ({
                         teachers: res?.data?.GetTeachers ?? [],
                         subjects: res?.data?.GetSubjects ?? [],
+                        buildings: res?.data?.GetBuildings ?? [],
                         classrooms: res?.data?.GetClassrooms ?? [],
                         groups: res?.data?.GetGroups ?? [],
                     }))
@@ -920,11 +928,12 @@ export class SchedulesComponent implements OnInit {
             )
             : this.queryCache.load(
                 'admin-schedules-catalogs',
-                [RealtimeScope.Teachers, RealtimeScope.Subjects, RealtimeScope.Classrooms, RealtimeScope.Groups],
+                [RealtimeScope.Teachers, RealtimeScope.Subjects, RealtimeScope.Buildings, RealtimeScope.Classrooms, RealtimeScope.Groups],
                 () => this.apollo.query<any>({ query: GET_CATALOGS, fetchPolicy: 'network-only' }).pipe(
                     map((res: any) => ({
                         teachers: res?.data?.GetTeachers ?? [],
                         subjects: res?.data?.GetSubjects ?? [],
+                        buildings: res?.data?.GetBuildings ?? [],
                         classrooms: res?.data?.GetClassrooms ?? [],
                         groups: res?.data?.GetGroups ?? [],
                     }))
@@ -938,7 +947,14 @@ export class SchedulesComponent implements OnInit {
                     const nameB = (b.name || '').trim();
                     return nameA.localeCompare(nameB, 'es', { sensitivity: 'base' });
                 });
-                this.subjects = catalogs.subjects;
+                
+                this.subjects = [...catalogs.subjects].sort((a: any, b: any) => {
+                    const nameA = (a.name || '').trim();
+                    const nameB = (b.name || '').trim();
+                    return nameA.localeCompare(nameB, 'es', { sensitivity: 'base' });
+                });
+
+                this.buildings = catalogs.buildings;
                 this.classrooms = catalogs.classrooms;
                 this.groups = catalogs.groups;
                 this.rootGroups = [...catalogs.groups]
@@ -1030,6 +1046,27 @@ export class SchedulesComponent implements OnInit {
         });
     }
 
+    getFilteredClassrooms(buildingId: number | null): any[] {
+        if (!buildingId) {
+            return this.classrooms;
+        }
+        return this.classrooms.filter(c => c.building?.id === String(buildingId) || c.building?.id === buildingId);
+    }
+
+    onBlockBuildingChange(blockIndex: number): void {
+        const block = this.scheduleBlocks[blockIndex];
+        if (block.classroomId) {
+            const selectedClassroom = this.classrooms.find(c => c.id === String(block.classroomId) || c.id === block.classroomId);
+            const selectedBuildingId = selectedClassroom?.building?.id;
+            
+            if (selectedBuildingId && 
+                String(selectedBuildingId) !== String(block.buildingId) && 
+                block.buildingId !== null) {
+                block.classroomId = null;
+            }
+        }
+    }
+
     OpenModal(item: any = null, seed: Partial<ScheduleFormData & ScheduleBlockForm> = {}) {
         this.editingItem = item;
         this.isSaving = false;
@@ -1042,32 +1079,52 @@ export class SchedulesComponent implements OnInit {
             const isChildGroup = item.group.parent != null;
             const rootGroupId = isChildGroup ? Number(item.group.parent.id) : itemGroupId;
             const childSubgroupName = isChildGroup ? item.group.name : item.subgroup;
+            
+            const classroom = this.classrooms.find(c => c.id === item.classroom?.id || c.id === Number(item.classroom?.id));
+            // this.modalBuildingId = classroom?.building?.id ? Number(classroom.building.id) : null;
 
             this.formData = {
                 groupId: rootGroupId,
                 subjectId: Number(item.subject.id),
                 teacherId: item.teacher ? Number(item.teacher.id) : null,
-                classroomId: Number(item.classroom.id),
                 subgroup: childSubgroupName || '',
                 isPublished: item.isPublished
             };
-            this.scheduleBlocks = [this.createBlockDraft({
-                dayOfWeek: item.dayOfWeek,
-                startTime: item.startTime.substring(0, 5),
-                endTime: item.endTime.substring(0, 5)
-            })];
+            if (item.classroom) {
+                const classroom = this.classrooms.find(c => c.id === item.classroom.id || c.id === Number(item.classroom.id));
+                const buildingId = classroom?.building?.id ? Number(classroom.building.id) : null;
+                this.scheduleBlocks = [this.createBlockDraft({
+                    dayOfWeek: item.dayOfWeek,
+                    startTime: item.startTime.substring(0, 5),
+                    endTime: item.endTime.substring(0, 5),
+                    classroomId: Number(item.classroom.id),
+                    buildingId: buildingId
+                })];
+            } else {
+                this.scheduleBlocks = [this.createBlockDraft({
+                    dayOfWeek: item.dayOfWeek,
+                    startTime: item.startTime.substring(0, 5),
+                    endTime: item.endTime.substring(0, 5)
+                })];
+            }
         } else {
             this.selectedSchedule = null;
             this.activeScheduleId = null;
+            
+            let initialBuildingId = null;
+            if (seed.classroomId) {
+                const classroom = this.classrooms.find(c => c.id === seed.classroomId || c.id === Number(seed.classroomId));
+                initialBuildingId = classroom?.building?.id ? Number(classroom.building.id) : null;
+            }
+
             this.formData = {
                 groupId: seed.groupId ?? null,
                 subjectId: seed.subjectId ?? null,
                 teacherId: seed.teacherId ?? null,
-                classroomId: seed.classroomId ?? null,
                 subgroup: seed.subgroup ?? '',
                 isPublished: seed.isPublished ?? false
             };
-            this.scheduleBlocks = [this.createBlockDraft(seed)];
+            this.scheduleBlocks = [this.createBlockDraft({ ...seed, buildingId: initialBuildingId })];
         }
 
         this.originalModalState = this.getModalSnapshot();
@@ -1096,7 +1153,6 @@ export class SchedulesComponent implements OnInit {
         return !!(
             this.formData.groupId &&
             this.formData.subjectId &&
-            this.formData.classroomId &&
             this.scheduleBlocks.length > 0 &&
             this.scheduleBlocks.every((block) => this.isBlockValid(block))
         );
@@ -1133,7 +1189,6 @@ export class SchedulesComponent implements OnInit {
             groupId: Number(this.formData.groupId),
             subjectId: Number(this.formData.subjectId),
             teacherId: this.formData.teacherId === null ? null : Number(this.formData.teacherId),
-            classroomId: Number(this.formData.classroomId),
             subgroup: this.formData.subgroup || null,
             isPublished: this.formData.isPublished
         };
@@ -1146,7 +1201,8 @@ export class SchedulesComponent implements OnInit {
                     id: Number(this.editingItem.id),
                     dayOfWeek: Number(block.dayOfWeek),
                     startTime: block.startTime,
-                    endTime: block.endTime
+                    endTime: block.endTime,
+                    classroomId: Number(block.classroomId)
                 };
 
                 await firstValueFrom(this.apollo.mutate({
@@ -1164,7 +1220,8 @@ export class SchedulesComponent implements OnInit {
                 ...baseInput,
                 dayOfWeek: Number(block.dayOfWeek),
                 startTime: block.startTime,
-                endTime: block.endTime
+                endTime: block.endTime,
+                classroomId: Number(block.classroomId)
             }));
 
             await firstValueFrom(this.apollo.mutate({

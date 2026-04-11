@@ -223,10 +223,18 @@
     gap: 0.9rem;
 }
 
-.schedule-form__fields,
+.schedule-form__fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+}
+
 .schedule-block__fields {
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
     margin: 0;
     padding: 0;
@@ -239,10 +247,8 @@
     margin-bottom: 0;
 }
 
-.schedule-form__fields ion-item:nth-child(1),
-.schedule-form__fields ion-item:nth-child(6),
-.schedule-block__fields ion-item:nth-child(1) {
-    grid-column: 1 / -1;
+.col-span-2 {
+    grid-column: span 2;
 }
 
 .schedule-blocks {
@@ -258,7 +264,7 @@
 .schedule-blocks__header,
 .schedule-block__header {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
 }
@@ -305,7 +311,7 @@
 
 .schedule-block__remove,
 .schedule-blocks__add {
-    align-self: flex-start;
+    align-self: center;
 }
 
 .schedule-block__remove {
@@ -355,6 +361,12 @@
     .schedule-blocks__header,
     .schedule-block__header {
         flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .schedule-block__remove,
+    .schedule-blocks__add {
+        align-self: flex-start;
     }
 
     .schedule-content ion-fab {
@@ -369,13 +381,31 @@
     .schedule-block__fields {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+}
 
-    .schedule-form__fields ion-item:nth-child(1),
-    .schedule-form__fields ion-item:nth-child(6) {
-        grid-column: 1 / -1;
-    }
-
-    .schedule-block__fields ion-item:nth-child(1) {
-        grid-column: 1 / -1;
-    }
+::ng-deep .teacher-select-popover {
+  ion-radio::part(label) {
+    white-space: pre-wrap !important;
+    line-height: 1.4;
+    font-size: 0.85em;
+    color: var(--ion-color-medium);
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  ion-radio::part(label)::first-line {
+    font-size: 1.15em;
+    color: var(--ion-text-color) !important;
+  }
+  
+  /* Apply also to checkboxes if used in multiple select */
+  ion-checkbox::part(label) {
+    white-space: pre-wrap !important;
+    line-height: 1.4;
+    font-size: 0.85em;
+    color: var(--ion-color-medium);
+  }
+  ion-checkbox::part(label)::first-line {
+    font-size: 1.15em;
+    color: var(--ion-text-color) !important;
+  }
 }
