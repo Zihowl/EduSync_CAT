@@ -243,7 +243,7 @@ ion-modal.catalog-form-modal::part(backdrop) {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100%;
+  min-height: 100dvh;
   padding: 0.85rem 0.75rem 1rem;
   box-sizing: border-box;
 }
@@ -252,7 +252,7 @@ ion-modal.catalog-form-modal::part(backdrop) {
 .catalog-form-modal__dialog {
   position: relative;
   width: min(100%, var(--cfm-modal-width));
-  max-height: calc(100vh - 1.5rem);
+  max-height: calc(100dvh - 1.5rem);
   display: flex;
   flex-direction: column;
   border: 1px solid var(--cfm-border);
@@ -462,6 +462,18 @@ ion-modal.catalog-form-modal::part(backdrop) {
 
   .catalog-form-modal__dialog {
     width: min(100%, var(--cfm-modal-width-wide));
+  }
+}
+
+@media (max-height: 880px) {
+  .catalog-form-modal__frame {
+    align-items: flex-start;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .catalog-form-modal__dialog {
+    max-height: calc(100dvh - 1rem);
   }
 }
 
