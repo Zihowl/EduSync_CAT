@@ -377,16 +377,8 @@
 .schedule-calendar__event-top {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.35rem;
-}
-
-.schedule-calendar__event-time {
-  color: var(--schedule-text-subtle);
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
 }
 
 .schedule-calendar__badge {
@@ -400,18 +392,19 @@
 }
 
 .schedule-calendar__event-title {
-  margin: 0.35rem 0 0;
+  margin: 0.25rem 0 0;
   color: var(--schedule-text);
-  font-size: 0.85rem;
-  font-weight: 700;
-  line-height: 1.15;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.1;
 }
 
 .schedule-calendar__event-subtitle {
-  margin: 0.2rem 0 0;
+  margin: 0.15rem 0 0;
   color: var(--schedule-text-muted);
-  font-size: 0.7rem;
-  line-height: 1.25;
+  font-size: 0.82rem;
+  line-height: 1.2;
+  font-weight: 600;
 }
 
 .schedule-calendar__meta {
