@@ -18,6 +18,7 @@ export interface ScheduleCalendarEvent {
   endTime: string;
   title: string;
   subtitle?: string;
+  description?: string;
   meta?: string[];
   statusLabel?: string;
   statusTone?: ScheduleCalendarTone;

@@ -125,6 +125,7 @@ interface DayCluster {
                     <h3 class="schedule-calendar__event-title">{{ event.title }}</h3>
 
                     <p *ngIf="event.subtitle" class="schedule-calendar__event-subtitle">{{ event.subtitle }}</p>
+                    <p *ngIf="event.description" class="schedule-calendar__event-description">{{ event.description }}</p>
 
                     <div *ngIf="event.meta?.length" class="schedule-calendar__meta">
                       <ion-chip *ngFor="let item of event.meta" [outline]="true" class="schedule-calendar__meta-chip">
