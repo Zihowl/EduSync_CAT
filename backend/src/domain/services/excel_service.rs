@@ -50,6 +50,7 @@ pub struct SchedulePreviewRow {
     pub hora_inicio: String,
     pub hora_fin: String,
     pub errors: Vec<String>,
+    pub warnings: Vec<String>,
 }
 
 #[derive(Clone, Serialize)]
@@ -84,6 +85,7 @@ struct ParsedScheduleRow {
 struct RowAnalysis {
     parsed: ParsedScheduleRow,
     errors: Vec<String>,
+    warnings: Vec<String>,
 }
 
 impl ExcelService {
@@ -164,6 +166,7 @@ impl ExcelService {
                 hora_inicio: analysis.parsed.hora_inicio,
                 hora_fin: analysis.parsed.hora_fin,
                 errors: analysis.errors,
+                warnings: analysis.warnings,
             });
         }
 
@@ -210,8 +213,9 @@ impl ExcelService {
                     hora_inicio: normalize_time(&value(&["HoraInicio"])),
                     hora_fin: normalize_time(&value(&["HoraFin"])),
                 };
-                self.append_row_errors(&parsed, &mut errors).await?;
-                return Ok(RowAnalysis { parsed, errors });
+                let mut warnings = Vec::new();
+                self.append_row_analysis(&parsed, &mut errors, &mut warnings).await?;
+                return Ok(RowAnalysis { parsed, errors, warnings });
             }
         };
 
@@ -232,16 +236,20 @@ impl ExcelService {
         };
 
         let mut errors = Vec::new();
-        self.append_row_errors(&parsed, &mut errors).await?;
+        let mut warnings = Vec::new();
+        self.append_row_analysis(&parsed, &mut errors, &mut warnings).await?;
 
-        Ok(RowAnalysis { parsed, errors })
+        Ok(RowAnalysis { parsed, errors, warnings })
     }
 
-    async fn append_row_errors(
+    async fn append_row_analysis(
         &self,
         parsed: &ParsedScheduleRow,
         errors: &mut Vec<String>,
+        warnings: &mut Vec<String>,
     ) -> Result<(), DomainError> {
+        let mut has_time_error = false;
+        
         if parsed.clave_materia.is_empty() {
             errors.push("Se requiere ClaveMateria".to_string());
         }
@@ -268,23 +276,27 @@ impl ExcelService {
 
         if parsed.dia.is_empty() {
             errors.push("Se requiere Dia".to_string());
+            has_time_error = true;
         } else if parsed.day_of_week == 0 {
             errors.push(format!("Día inválido: {}", parsed.dia));
+            has_time_error = true;
         }
 
         if parsed.hora_inicio.is_empty() {
             errors.push("Se requiere HoraInicio".to_string());
+            has_time_error = true;
         }
 
         if parsed.hora_fin.is_empty() {
             errors.push("Se requiere HoraFin".to_string());
+            has_time_error = true;
         }
 
-        if !parsed.hora_inicio.is_empty()
-            && !parsed.hora_fin.is_empty()
+        if !has_time_error
             && parse_time_minutes(&parsed.hora_inicio) >= parse_time_minutes(&parsed.hora_fin)
         {
             errors.push("La hora de inicio debe ser menor que la hora de fin".to_string());
+            has_time_error = true;
         }
 
         if !parsed.clave_materia.is_empty() {
@@ -294,19 +306,21 @@ impl ExcelService {
             }
         }
 
+        let mut teacher_id = None;
         if !parsed.no_empleado.is_empty() {
             match self.find_teacher_id(&parsed.no_empleado).await? {
-                Some(_) => {}
+                Some(id) => teacher_id = Some(id),
                 None => errors.push(format!("Docente no encontrado: {}", parsed.no_empleado)),
             }
         }
 
+        let mut classroom_id = None;
         if !parsed.edificio.is_empty() {
             match self.find_building_id(&parsed.edificio).await? {
                 Some(building_id) => {
                     if !parsed.aula.is_empty() {
                         match self.find_classroom_id(&parsed.aula, building_id).await? {
-                            Some(_) => {}
+                            Some(id) => classroom_id = Some(id),
                             None => errors.push(format!(
                                 "Salón no encontrado: {} en {}",
                                 parsed.aula, parsed.edificio
@@ -315,6 +329,24 @@ impl ExcelService {
                     }
                 }
                 None => errors.push(format!("Edificio no encontrado: {}", parsed.edificio)),
+            }
+        }
+        
+        if !has_time_error {
+            if let Some(c_id) = classroom_id {
+                let collision_res = self.schedule_service.handle_collisions(
+                    teacher_id,
+                    c_id,
+                    parsed.day_of_week,
+                    &parsed.hora_inicio,
+                    &parsed.hora_fin,
+                    None,
+                    false
+                ).await;
+                
+                if let Err(DomainError::Conflict(msg)) = collision_res {
+                    warnings.push(format!("{}, se sobreescribirá.", msg));
+                }
             }
         }
 
@@ -423,6 +455,7 @@ impl ExcelService {
                 subgroup,
                 is_published: false,
                 created_by_id: uploaded_by,
+                overwrite: true,
             })
             .await?;
 

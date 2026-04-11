@@ -418,3 +418,13 @@
     }
 }
 
+
+.upload-row--warning {
+    background: rgba(180, 83, 9, 0.15); /* amber hue */
+}
+.upload-row-warnings {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.45rem;
+}

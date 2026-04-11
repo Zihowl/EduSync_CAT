@@ -37,6 +37,7 @@ interface UploadPreviewRow {
     horaInicio: string;
     horaFin: string;
     errors: string[];
+    warnings?: string[];
 }
 
 interface UploadPreviewResponse {
@@ -314,7 +315,9 @@ const CREATE_CLASSROOM = gql`
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr *ngFor="let row of previewRows; trackBy: trackByRow" [class.upload-row--error]="row.errors.length > 0">
+                                    <tr *ngFor="let row of previewRows; trackBy: trackByRow" 
+                                        [class.upload-row--error]="row.errors.length > 0"
+                                        [class.upload-row--warning]="row.warnings && row.warnings.length > 0 && row.errors.length === 0">
                                         <td class="upload-row__index">{{ row.rowNumber }}</td>
                                         <td>
                                             <strong>{{ row.claveMateria }}</strong>
@@ -338,11 +341,14 @@ const CREATE_CLASSROOM = gql`
                                             <small>{{ row.edificio }}</small>
                                         </td>
                                         <td>
-                                            <ion-badge [color]="row.errors.length ? 'danger' : 'success'">
-                                                {{ row.errors.length ? 'Con error' : 'Lista' }}
+                                            <ion-badge [color]="row.errors.length ? 'danger' : (row.warnings && row.warnings.length ? 'warning' : 'success')">
+                                                {{ row.errors.length ? 'Con error' : (row.warnings && row.warnings.length ? 'Se sobreescribirá' : 'Lista') }}
                                             </ion-badge>
                                             <div *ngIf="row.errors.length" class="upload-row-errors">
                                                 <ion-chip *ngFor="let error of row.errors" color="danger">{{ error }}</ion-chip>
+                                            </div>
+                                            <div *ngIf="!row.errors.length && row.warnings && row.warnings.length" class="upload-row-warnings">
+                                                <ion-chip *ngFor="let warning of row.warnings" color="warning">{{ warning }}</ion-chip>
                                             </div>
                                         </td>
                                     </tr>

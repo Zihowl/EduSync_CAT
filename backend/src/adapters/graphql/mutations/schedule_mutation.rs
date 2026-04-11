@@ -52,6 +52,7 @@ impl ScheduleMutation {
                 subgroup: subgroup.clone(),
                 is_published,
                 created_by_id: Some(auth_user.user_id),
+                overwrite: input.overwrite.unwrap_or(false),
             })
             .await
             .map(ScheduleSlotType::from)
@@ -107,6 +108,7 @@ impl ScheduleMutation {
                 subgroup: input.subgroup,
                 is_published: input.is_published.unwrap_or(false),
                 created_by_id: Some(auth_user.user_id),
+                overwrite: input.overwrite.unwrap_or(false),
             })
             .collect();
 

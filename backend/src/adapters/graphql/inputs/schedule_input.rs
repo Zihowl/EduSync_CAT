@@ -11,6 +11,7 @@ pub struct CreateScheduleSlotInput {
     pub end_time: String,
     pub subgroup: Option<String>,
     pub is_published: Option<bool>,
+    pub overwrite: Option<bool>,
 }
 
 #[derive(InputObject, Clone)]

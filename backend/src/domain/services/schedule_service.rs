@@ -33,6 +33,7 @@ pub struct CreateScheduleSlot {
     pub subgroup: Option<String>,
     pub is_published: bool,
     pub created_by_id: Option<uuid::Uuid>,
+    pub overwrite: bool,
 }
 
 #[derive(Clone)]
@@ -83,13 +84,14 @@ impl ScheduleService {
             input.group_id,
         )
         .await?;
-        self.ensure_collisions(
+        self.handle_collisions(
             input.teacher_id,
             input.classroom_id,
             input.day_of_week,
             &input.start_time,
             &input.end_time,
             None,
+            input.overwrite,
         )
         .await?;
 
@@ -132,13 +134,14 @@ impl ScheduleService {
                 input.group_id,
             )
             .await?;
-            self.ensure_collisions(
+            self.handle_collisions(
                 input.teacher_id,
                 input.classroom_id,
                 input.day_of_week,
                 &input.start_time,
                 &input.end_time,
                 None,
+                input.overwrite,
             )
             .await?;
         }
@@ -203,13 +206,14 @@ impl ScheduleService {
             merged.group_id,
         )
         .await?;
-        self.ensure_collisions(
+        self.handle_collisions(
             merged.teacher_id,
             merged.classroom_id,
             merged.day_of_week,
             &merged.start_time,
             &merged.end_time,
             Some(merged.id),
+            false,
         )
         .await?;
 
@@ -319,7 +323,7 @@ impl ScheduleService {
         Ok(())
     }
 
-    async fn ensure_collisions(
+    pub async fn handle_collisions(
         &self,
         teacher_id: Option<i32>,
         classroom_id: i32,
@@ -327,9 +331,10 @@ impl ScheduleService {
         start_time: &str,
         end_time: &str,
         exclude_id: Option<i32>,
+        overwrite: bool,
     ) -> Result<(), DomainError> {
         if let Some(teacher_id) = teacher_id {
-            if let Some(conflict) = self
+            while let Some(conflict) = self
                 .repo
                 .find_conflict_for_teacher(
                     teacher_id,
@@ -340,14 +345,18 @@ impl ScheduleService {
                 )
                 .await?
             {
-                return Err(DomainError::Conflict(format!(
-                    "El profesor ya tiene horario de {} a {}",
-                    conflict.start_time, conflict.end_time
-                )));
+                if overwrite {
+                    self.repo.delete(conflict.id).await?;
+                } else {
+                    return Err(DomainError::Conflict(format!(
+                        "El profesor ya tiene horario de {} a {}",
+                        conflict.start_time, conflict.end_time
+                    )));
+                }
             }
         }
 
-        if let Some(conflict) = self
+        while let Some(conflict) = self
             .repo
             .find_conflict_for_classroom(
                 classroom_id,
@@ -358,10 +367,14 @@ impl ScheduleService {
             )
             .await?
         {
-            return Err(DomainError::Conflict(format!(
-                "El salón ya está ocupado de {} a {}",
-                conflict.start_time, conflict.end_time
-            )));
+            if overwrite {
+                self.repo.delete(conflict.id).await?;
+            } else {
+                return Err(DomainError::Conflict(format!(
+                    "El salón ya está ocupado de {} a {}",
+                    conflict.start_time, conflict.end_time
+                )));
+            }
         }
 
         Ok(())
