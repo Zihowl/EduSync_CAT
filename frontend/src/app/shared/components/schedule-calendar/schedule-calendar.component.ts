@@ -32,7 +32,7 @@ interface DayCluster {
     template: `
     <div class="schedule-calendar" [style.--schedule-day-count]="visibleDays.length">
       <div class="schedule-calendar__viewport">
-        <div class="schedule-calendar__header">
+        <div *ngIf="showHeaders" class="schedule-calendar__header">
           <div class="schedule-calendar__time-head">
             <span>Hora</span>
           </div>
@@ -178,6 +178,7 @@ export class ScheduleCalendarComponent implements OnChanges {
   @Input() editable = false;
   @Input() highlightedDay: number | null = null;
   @Input() showCurrentTimeMarker = true;
+  @Input() showHeaders = true;
   @Input() loaded = true;
   @Input() emptyTitle = 'No hay horarios para mostrar';
   @Input() emptySubtitle = 'Ajusta los filtros para mostrar bloques en este calendario.';

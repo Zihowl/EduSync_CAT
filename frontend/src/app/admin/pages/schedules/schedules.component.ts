@@ -181,6 +181,7 @@ const SCHEDULE_QUERY_LIMIT = 500;
                                 [endMinute]="calendarEndMinute"
                                 [minuteHeight]="0.72"
                                 [editable]="true"
+                                [showHeaders]="showCalendarHeaders"
                                 [loaded]="isSchedulesLoaded"
                                 [emptyTitle]="calendarEmptyTitle"
                                 [emptySubtitle]="calendarEmptySubtitle"
@@ -337,6 +338,10 @@ export class SchedulesComponent implements OnInit {
             return 'Selecciona un Grupo o Maestro en la parte superior para visualizar sus horarios.';
         }
         return 'No hay bloques disponibles con los filtros actuales. Ajusta tu selección para ver más resultados.';
+    }
+    
+    get showCalendarHeaders(): boolean {
+        return this.filterGroupId != null || this.filterTeacherId != null;
     }
     allSchedules: any[] = [];
     teachers: any[] = [];
