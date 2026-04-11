@@ -133,21 +133,21 @@ const SCHEDULE_QUERY_LIMIT = 500;
                 <div class="schedule-controls">
                     <div class="schedule-controls__group">
                         <div class="schedule-dropdowns">
-                            <ion-select [(ngModel)]="filterGroupId" (ionChange)="onGroupFilterChange()" placeholder="Ninguno" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter glass-input">
+                            <ion-select [(ngModel)]="filterGroupId" (ionChange)="onGroupFilterChange()" (ionCancel)="onFilterSelectClosed($event)" (ionDismiss)="onFilterSelectClosed($event)" placeholder="Ninguno" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter glass-input">
                                 <ion-select-option [value]="null">Ninguno</ion-select-option>
                                 <ion-select-option *ngFor="let g of rootGroups" [value]="g.id">
                                     {{ getGroupLabel(g) }}
                                 </ion-select-option>
                             </ion-select>
 
-                            <ion-select [disabled]="filterGroupId == null" [(ngModel)]="filterSubgroupValue" (ionChange)="onSubgroupFilterChange()" placeholder="Tronco común" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter glass-input">
+                            <ion-select [disabled]="filterGroupId == null" [(ngModel)]="filterSubgroupValue" (ionChange)="onSubgroupFilterChange()" (ionCancel)="onFilterSelectClosed($event)" (ionDismiss)="onFilterSelectClosed($event)" placeholder="Tronco común" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter glass-input">
                                 <ion-select-option [value]="null">Tronco común</ion-select-option>
                                 <ion-select-option *ngFor="let subgroup of availableSubgroups" [value]="subgroup">
                                     {{ subgroup }}
                                 </ion-select-option>
                             </ion-select>
 
-                            <ion-select [(ngModel)]="filterTeacherId" (ionChange)="onTeacherFilterChange()" placeholder="Todos los maestros" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter glass-input">
+                            <ion-select [(ngModel)]="filterTeacherId" (ionChange)="onTeacherFilterChange()" (ionCancel)="onFilterSelectClosed($event)" (ionDismiss)="onFilterSelectClosed($event)" placeholder="Todos los maestros" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter glass-input">
                                 <ion-select-option [value]="null">Todos los maestros</ion-select-option>
                                 <ion-select-option *ngFor="let teacher of teachers" [value]="teacher.id">
                                     {{ teacher.name }}
@@ -657,6 +657,16 @@ export class SchedulesComponent implements OnInit {
     onTeacherFilterChange(): void {
         this.clearFilterSelection();
         this.applyVisibleFilters();
+    }
+
+    onFilterSelectClosed(event: Event): void {
+        const select = event.target as HTMLIonSelectElement | null;
+
+        if (!select) {
+            return;
+        }
+
+        globalThis.setTimeout(() => select.blur(), 0);
     }
 
     onPublishedFilterChange(): void {
