@@ -1,5 +1,0 @@
-CREATE TABLE IF NOT EXISTS classrooms (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE,
-    building_id INT REFERENCES buildings(id) ON DELETE SET NULL
-);

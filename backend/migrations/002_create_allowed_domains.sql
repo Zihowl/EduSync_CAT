@@ -1,4 +1,0 @@
-CREATE TABLE IF NOT EXISTS allowed_domains (
-    id SERIAL PRIMARY KEY,
-    domain VARCHAR(255) NOT NULL UNIQUE
-);
