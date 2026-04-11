@@ -33,14 +33,14 @@ interface DayCluster {
     providers: [],
     template: `
     <div class="schedule-calendar" [style.--schedule-day-count]="visibleDays.length">
-      <div class="schedule-calendar__viewport">
-        <div class="schedule-calendar__toolbar" *ngIf="editable && events.length > 0">
-          <button type="button" class="schedule-calendar__selection-mode-btn" [class.schedule-calendar__selection-mode-btn--active]="selectionMode" (click)="toggleSelectionMode()">
-            <ion-icon [name]="selectionMode ? 'checkbox' : 'list-outline'"></ion-icon>
-            <span>{{ selectionMode ? 'Finalizar selección' : 'Selección Múltiple' }}</span>
-          </button>
-        </div>
+            <div class="schedule-calendar__toolbar" *ngIf="editable && events.length > 0">
+                <button type="button" class="schedule-calendar__selection-mode-btn" [class.schedule-calendar__selection-mode-btn--active]="selectionMode" (click)="toggleSelectionMode()">
+                    <ion-icon [name]="selectionMode ? 'checkbox' : 'list-outline'"></ion-icon>
+                    <span>{{ selectionMode ? 'Finalizar selección' : 'Selección Múltiple' }}</span>
+                </button>
+            </div>
 
+      <div class="schedule-calendar__viewport">
         <div *ngIf="showHeaders && !showEmptyState" class="schedule-calendar__header">
           <div class="schedule-calendar__time-head">
             <span>Hora</span>

@@ -34,6 +34,7 @@
   min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .schedule-calendar__header {
@@ -120,7 +121,7 @@
   flex: 1 1 0%;
   min-height: 0;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: visible;
 }
 
 .schedule-calendar__time-rail {
@@ -177,6 +178,7 @@
   padding-bottom: 0.25rem;
   height: var(--schedule-calendar-height, max-content);
   min-height: 100%;
+  min-width: max-content;
 }
 
 .schedule-calendar__day-column {
@@ -596,5 +598,38 @@
   
   ion-icon {
     font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 768px) {
+  :host {
+    --schedule-time-rail-width: 60px;
+    --schedule-day-column-min: 140px;
+  }
+
+  .schedule-calendar__toolbar {
+    padding: 0.35rem 0.75rem 0;
+    margin-bottom: 0.35rem;
+  }
+
+  .schedule-calendar__selection-mode-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .schedule-calendar__header,
+  .schedule-calendar__body {
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .schedule-calendar__body {
+    gap: 0.35rem;
+    grid-template-columns: var(--schedule-time-rail-width, 72px) max-content;
+  }
+
+  .schedule-calendar__days {
+    gap: 0.35rem;
+    width: max-content;
   }
 }
