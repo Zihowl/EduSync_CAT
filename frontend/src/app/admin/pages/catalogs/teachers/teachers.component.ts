@@ -148,7 +148,7 @@ const GET_ALLOWED_DOMAINS = gql`
                             </ion-item>
 
                             <ion-item fill="outline">
-                                <ion-label position="stacked"><ion-icon name="mail-outline" class="label-icon"></ion-icon> Correo institucional *</ion-label>
+                                <ion-label position="stacked"><ion-icon name="mail-outline" class="label-icon"></ion-icon> Correo institucional</ion-label>
                                 <ion-input type="email" [(ngModel)]="formData.email" placeholder="ejemplo@correo.com"></ion-input>
                                 
                             </ion-item>
