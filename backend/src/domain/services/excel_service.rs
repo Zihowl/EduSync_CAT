@@ -450,6 +450,9 @@ fn parse_day(day: &str) -> i32 {
     if d.contains("sab") || d.contains("sáb") {
         return 6;
     }
+    if d.starts_with("dom") {
+        return 7;
+    }
     0
 }
 
