@@ -1,8 +1,8 @@
 export type ScheduleCalendarTone = 'primary' | 'success' | 'warning' | 'danger' | 'medium' | 'tertiary';
 
 export const SCHEDULE_DEFAULT_VISIBLE_DAYS: number[] = [1, 2, 3, 4, 5];
-export const SCHEDULE_DEFAULT_START_MINUTE = 7 * 60;
-export const SCHEDULE_DEFAULT_END_MINUTE = 21 * 60;
+export const SCHEDULE_DEFAULT_START_MINUTE = 0 * 60;
+export const SCHEDULE_DEFAULT_END_MINUTE = 24 * 60;
 
 export interface ScheduleCalendarAction {
   id: string;

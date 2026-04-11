@@ -196,7 +196,7 @@ interface ScheduleBlockForm {
                                 [visibleDays]="calendarDays"
                                 [startMinute]="calendarStartMinute"
                                 [endMinute]="calendarEndMinute"
-                                [minuteHeight]="0.72"
+                                [minuteHeight]="1.2"
                                 [editable]="true"
                                 [showHeaders]="showCalendarHeaders"
                                 [loaded]="isSchedulesLoaded"

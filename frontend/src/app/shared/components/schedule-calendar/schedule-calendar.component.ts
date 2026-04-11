@@ -50,7 +50,7 @@ interface DayCluster {
           </button>
         </div>
 
-        <div *ngIf="showEmptyState; else calendarBody" class="schedule-calendar__body schedule-calendar__body--empty" [style.--schedule-calendar-height.px]="calendarHeight">
+        <div *ngIf="showEmptyState; else calendarBody" class="schedule-calendar__body schedule-calendar__body--empty">
           <div class="schedule-calendar__empty-state" role="status" aria-live="polite">
             <ion-icon [name]="emptyIcon" class="schedule-calendar__empty-state-icon"></ion-icon>
             <h3>{{ emptyTitle }}</h3>
@@ -59,7 +59,7 @@ interface DayCluster {
         </div>
 
         <ng-template #calendarBody>
-          <div class="schedule-calendar__body" [style.min-height.px]="calendarHeight">
+          <div class="schedule-calendar__body" [style.--schedule-calendar-height.px]="calendarHeight">
             <div class="schedule-calendar__time-rail">
               <span
                 *ngFor="let hour of hourMarkers; trackBy: trackByHour"
