@@ -233,8 +233,8 @@ interface ScheduleBlockForm {
                             <ion-list class="schedule-form__fields">
                                 <ion-item fill="outline" class="schedule-form-item">
                                     <ion-label position="stacked"><ion-icon name="layers-outline" class="label-icon"></ion-icon> Grupo *</ion-label>
-                                    <ion-select [(ngModel)]="formData.groupId" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar grupo" [compareWith]="compareIds">
-                                        <ion-select-option *ngFor="let g of groups" [value]="g.id">
+                                    <ion-select [(ngModel)]="formData.groupId" (ionChange)="onFormGroupChange()" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Seleccionar grupo" [compareWith]="compareIds">
+                                        <ion-select-option *ngFor="let g of rootGroups" [value]="g.id">
                                             {{ getGroupLabel(g) }}
                                         </ion-select-option>
                                     </ion-select>
@@ -243,7 +243,12 @@ interface ScheduleBlockForm {
 
                                 <ion-item fill="outline" class="schedule-form-item">
                                     <ion-label position="stacked"><ion-icon name="git-branch-outline" class="label-icon"></ion-icon> Subgrupo</ion-label>
-                                    <ion-input [(ngModel)]="formData.subgroup" type="text" placeholder="Ej. 1, Software, Principiantes"></ion-input>
+                                    <ion-select [(ngModel)]="formData.subgroup" [disabled]="!formData.groupId || getSubgroupsForGroup(formData.groupId).length === 0" interface="popover" [interfaceOptions]="{ animated: false }" placeholder="Tronco común">
+                                        <ion-select-option [value]="''">Tronco común</ion-select-option>
+                                        <ion-select-option *ngFor="let sg of getSubgroupsForGroup(formData.groupId)" [value]="sg.name">
+                                            {{ sg.name }}
+                                        </ion-select-option>
+                                    </ion-select>
                                     
                                 </ion-item>
 
@@ -724,6 +729,15 @@ export class SchedulesComponent implements OnInit {
         this.applyVisibleFilters();
     }
 
+    onFormGroupChange(): void {
+        this.formData.subgroup = '';
+    }
+
+    getSubgroupsForGroup(groupId: number | null): any[] {
+        if (!groupId) return [];
+        return this.groups.filter(g => g.parent && Number(g.parent.id) === Number(groupId));
+    }
+
     onFilterSelectClosed(event: Event): void {
         const select = event.target as HTMLIonSelectElement | null;
 
@@ -1015,12 +1029,18 @@ export class SchedulesComponent implements OnInit {
         if (item) {
             this.selectedSchedule = item;
             this.activeScheduleId = Number(item.id);
+            
+            const itemGroupId = Number(item.group.id);
+            const isChildGroup = item.group.parent != null;
+            const rootGroupId = isChildGroup ? Number(item.group.parent.id) : itemGroupId;
+            const childSubgroupName = isChildGroup ? item.group.name : item.subgroup;
+
             this.formData = {
-                groupId: Number(item.group.id),
+                groupId: rootGroupId,
                 subjectId: Number(item.subject.id),
                 teacherId: item.teacher ? Number(item.teacher.id) : null,
                 classroomId: Number(item.classroom.id),
-                subgroup: item.subgroup || '',
+                subgroup: childSubgroupName || '',
                 isPublished: item.isPublished
             };
             this.scheduleBlocks = [this.createBlockDraft({
