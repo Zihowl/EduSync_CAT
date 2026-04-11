@@ -152,6 +152,9 @@ interface DayCluster {
 
     <!-- Menú Contextual / Estilo coherente con la UI -->
     <div *ngIf="contextMenu" class="schedule-calendar__context-menu" [style.top.px]="contextMenu.y" [style.left.px]="contextMenu.x">
+        <button type="button" class="schedule-calendar__context-menu-close" aria-label="Cerrar menú" (click)="closeContextMenu($event)">
+            <ion-icon name="close"></ion-icon>
+        </button>
         <button *ngFor="let btn of contextMenu.buttons" 
             type="button"
             class="schedule-calendar__context-menu-item" 
@@ -376,7 +379,10 @@ export class ScheduleCalendarComponent implements OnChanges {
       }
   }
 
-  closeContextMenu(): void {
+  closeContextMenu(event?: Event): void {
+      if (event) {
+          event.stopPropagation();
+      }
       this.contextMenu = null;
   }
 

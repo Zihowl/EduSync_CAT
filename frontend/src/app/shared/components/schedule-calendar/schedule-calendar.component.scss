@@ -710,3 +710,50 @@
 .schedule-calendar__context-menu-item--warning ion-icon {
   color: #f59e0b;
 }
+
+.schedule-calendar__context-menu-item--cancel {
+  margin-top: 0.2rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0 0 0.4rem 0.4rem;
+  color: var(--schedule-text-subtle);
+  justify-content: center;
+}
+.schedule-calendar__context-menu-item--cancel ion-icon {
+  font-size: 1.2rem;
+  color: var(--schedule-text-subtle);
+}
+
+
+/* Botón de cerrar discreto */
+.schedule-calendar__context-menu {
+  padding-top: 1.6rem !important; /* Espacio para el botón de cerrar */
+}
+
+.schedule-calendar__context-menu-close {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--schedule-text-subtle, #94a3b8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.15s, color 0.15s;
+  padding: 0;
+  
+  ion-icon {
+    font-size: 14px;
+  }
+}
+
+.schedule-calendar__context-menu-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--schedule-text, #fff);
+}
