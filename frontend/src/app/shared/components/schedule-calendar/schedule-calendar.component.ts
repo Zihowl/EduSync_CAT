@@ -329,28 +329,21 @@ export class ScheduleCalendarComponent implements OnChanges {
           text: action.label,
           icon: action.icon,
           role: action.tone === 'danger' ? 'destructive' : undefined,
-          cssClass: action.tone ? `schedule-calendar__context-menu-item--${action.tone}` : '',
-          handler: () => this.emitActionClick(event, action, domEvent)
-      }));
+                cssClass: '',
+                handler: () => this.emitActionClick(event, action, domEvent)
+            }));
 
-      buttons.push({
-          text: 'Seleccionar bloque',
-          icon: 'checkmark-circle-outline',
-          handler: () => {
-              this.toggleSelectionMode();
-              this.toggleSelection(event, domEvent);
-          }
-      });
+            buttons.push({
+                text: 'Seleccionar bloque',
+                icon: 'checkmark-circle-outline',
+                handler: () => {
+                    this.toggleSelectionMode();
+                    this.toggleSelection(event, domEvent);
+                      }
+                  });
 
-      buttons.push({
-          text: 'Ver detalles',
-          icon: 'information-circle-outline',
-          handler: () => this.eventSelected.emit(event.originalEvent || event)
-      });
-
-      // Calculate position local to the component instead of the viewport
-      const menuWidth = 200;
-      const menuHeight = buttons.length * 44 + 16;
+            const menuWidth = 200;
+            const menuHeight = buttons.length * 44 + 16;
       
       const componentRect = this.el.nativeElement.getBoundingClientRect();
       
