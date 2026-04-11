@@ -294,8 +294,13 @@
 }
 
 .schedule-calendar__event[data-tone='success'] .schedule-calendar__event-shell {
-  background: linear-gradient(180deg, rgba(220, 252, 231, 0.98), rgba(187, 247, 208, 0.95));
-  border-color: rgba(34, 197, 94, 0.22);
+  background: linear-gradient(180deg, rgba(219, 234, 254, 0.98), rgba(191, 219, 254, 0.95));
+  border-color: rgba(59, 130, 246, 0.22);
+}
+
+.schedule-calendar__event[data-tone='success'] .schedule-calendar__badge {
+  --background: rgba(37, 99, 235, 0.95);
+  --color: #ffffff;
 }
 
 .schedule-calendar__event[data-tone='warning'] .schedule-calendar__event-shell {
@@ -431,7 +436,7 @@
 }
 
 .schedule-calendar__action--success {
-  color: #15803d;
+  color: #2563eb;
 }
 
 .schedule-calendar__action--warning {

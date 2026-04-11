@@ -177,7 +177,9 @@
     --placeholder-color: rgba(203, 213, 225, 0.6);
     --border-style: none; /* remove ionic's inner border */
     --inner-border-width: 0;
-    --highlight-color-focused: transparent !important;
+    --highlight-color: rgba(56, 189, 248, 0.9);
+    --highlight-color-focused: rgba(96, 165, 250, 1);
+    --border-color-focused: rgba(96, 165, 250, 1);
     --background-focused: transparent !important;
     --ripple-color: transparent !important;
     outline: none !important;
