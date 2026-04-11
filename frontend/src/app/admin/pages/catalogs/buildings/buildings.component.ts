@@ -149,7 +149,7 @@ export class BuildingsComponent implements OnInit {
     filteredBuildings: any[] = [];
     catalogToolbarState: CatalogToolbarState = {
         searchQuery: '',
-        sortValue: 'name',
+        sortValue: '',
         filters: {},
     };
     readonly buildingSortOptions = [

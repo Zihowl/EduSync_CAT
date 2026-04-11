@@ -159,7 +159,7 @@ export class SubjectsComponent implements OnInit {
     filteredSubjects: any[] = [];
     catalogToolbarState: CatalogToolbarState = {
         searchQuery: '',
-        sortValue: 'name',
+        sortValue: '',
         filters: {
             grade: '',
         },
@@ -171,7 +171,7 @@ export class SubjectsComponent implements OnInit {
             placeholder: 'Filtrar por grado',
             defaultValue: '',
             options: [
-                { value: '', label: 'Todos' },
+                { value: '__all__', label: 'Todos' },
                 { value: '__none__', label: 'Sin grado' },
             ],
         },
@@ -304,7 +304,7 @@ export class SubjectsComponent implements OnInit {
         )).sort((left, right) => compareCatalogText(left, right));
 
         const options = [
-            { value: '', label: 'Todos' },
+            { value: '__all__', label: 'Todos' },
             { value: '__none__', label: 'Sin grado' },
             ...gradeValues.map((grade) => ({ value: grade, label: `Grado ${grade}` })),
         ];

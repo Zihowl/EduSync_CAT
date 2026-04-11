@@ -90,7 +90,7 @@ export function applyCatalogQuery<T>(
         for (const [filterKey, predicate] of Object.entries(filterPredicates)) {
             const filterValue = state.filters?.[filterKey];
 
-            if (filterValue == null || String(filterValue).trim() === '') {
+            if (filterValue == null || String(filterValue).trim() === '' || String(filterValue).trim() === '__all__') {
                 continue;
             }
 

@@ -185,7 +185,7 @@ export class TeachersComponent implements OnInit {
     filteredTeachers: any[] = [];
     catalogToolbarState: CatalogToolbarState = {
         searchQuery: '',
-        sortValue: 'name',
+        sortValue: '',
         filters: {},
     };
     readonly teacherSortOptions = [

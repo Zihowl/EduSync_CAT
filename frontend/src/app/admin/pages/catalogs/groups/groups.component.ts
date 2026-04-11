@@ -165,7 +165,7 @@ export class GroupsComponent implements OnInit {
     filteredGroups: any[] = [];
     catalogToolbarState: CatalogToolbarState = {
         searchQuery: '',
-        sortValue: 'nameAsc',
+        sortValue: '',
         filters: {
             type: '',
         },
@@ -177,7 +177,7 @@ export class GroupsComponent implements OnInit {
             placeholder: 'Tipo de grupo',
             defaultValue: '',
             options: [
-                { value: '', label: 'Todos' },
+                { value: '__all__', label: 'Todos' },
                 { value: 'root', label: 'Solo grupos principales' },
                 { value: 'subgroup', label: 'Solo subgrupos' },
             ],

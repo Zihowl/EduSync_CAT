@@ -161,7 +161,7 @@ export class ClassroomsComponent implements OnInit {
     filteredClassrooms: any[] = [];
     catalogToolbarState: CatalogToolbarState = {
         searchQuery: '',
-        sortValue: 'buildingThenName',
+        sortValue: '',
         filters: {
             buildingId: '',
         },
@@ -173,7 +173,7 @@ export class ClassroomsComponent implements OnInit {
             placeholder: 'Filtrar por edificio',
             defaultValue: '',
             options: [
-                { value: '', label: 'Todos' },
+                { value: '__all__', label: 'Todos' },
             ],
         },
     ];
@@ -223,7 +223,7 @@ export class ClassroomsComponent implements OnInit {
 
         request$.subscribe({
             next: (buildings: any[]) => {
-                this.buildings = buildings.sort((a, b) => 
+                this.buildings = [...buildings].sort((a, b) => 
                     (a?.name || '').localeCompare(b?.name || '', 'es', { sensitivity: 'base' })
                 );
                 this.refreshClassroomToolbarFilters();
@@ -332,7 +332,7 @@ export class ClassroomsComponent implements OnInit {
     private refreshClassroomToolbarFilters(): void {
         const hasUnassignedClassrooms = this.classrooms.some((classroom: any) => !classroom?.building);
         const options = [
-            { value: '', label: 'Todos' },
+            { value: '__all__', label: 'Todos' },
             ...this.buildings.map((building: any) => ({
                 value: String(building?.id ?? ''),
                 label: String(building?.name ?? 'Edificio'),

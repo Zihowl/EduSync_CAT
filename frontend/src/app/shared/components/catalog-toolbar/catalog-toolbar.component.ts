@@ -71,7 +71,7 @@ export class CatalogToolbarComponent {
 
         this.stateChange.emit({
             searchQuery: '',
-            sortValue: this.sortOptions[0]?.value ?? '',
+            sortValue: '',
             filters: clearedFilters,
         });
     }
@@ -81,7 +81,7 @@ export class CatalogToolbarComponent {
             return true;
         }
 
-        if (this.sortOptions.length > 0 && this.state.sortValue !== this.sortOptions[0].value) {
+        if (this.state.sortValue !== '') {
             return true;
         }
 

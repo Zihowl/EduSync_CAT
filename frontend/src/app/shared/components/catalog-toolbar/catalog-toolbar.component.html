@@ -27,7 +27,7 @@
                 <ion-select
                     *ngIf="sortOptions.length > 0"
                     class="catalog-toolbar__select catalog-toolbar__sort"
-                    [value]="state.sortValue || sortOptions[0].value"
+                    [value]="state.sortValue"
                     [placeholder]="sortPlaceholder"
                     interface="popover"
                     [interfaceOptions]="selectInterfaceOptions"
