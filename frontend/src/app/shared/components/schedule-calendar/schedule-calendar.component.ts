@@ -76,8 +76,7 @@ interface DayCluster {
                 *ngFor="let day of visibleDays; trackBy: trackByDay"
                 class="schedule-calendar__day-column"
                 [class.schedule-calendar__day-column--today]="day === todayDayOfWeek"
-                [class.schedule-calendar__day-column--active]="day === highlightedDay"
-                [style.height.px]="calendarHeight">
+                [class.schedule-calendar__day-column--active]="day === highlightedDay">
 
                 <div class="schedule-calendar__grid-lines"></div>
 
