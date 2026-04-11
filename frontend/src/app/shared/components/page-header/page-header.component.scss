@@ -34,9 +34,9 @@
   --hdr-badge-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
 
   /* Action button */
-  --hdr-action-bg: rgba(255, 255, 255, 0.1);
-  --hdr-action-hover: rgba(255, 255, 255, 0.16);
-  --hdr-action-border: rgba(255, 255, 255, 0.14);
+  --hdr-action-bg: #ffffff;
+  --hdr-action-hover: #f8fafc;
+  --hdr-action-border: rgba(255, 255, 255, 0.9);
 
   /* Menu panel */
   --hdr-menu-bg: rgba(15, 23, 42, 0.98);
@@ -199,17 +199,25 @@
   white-space: nowrap;
 }
 
-/* ── Action button ─────────────────────────────────────────────────── */
 .page-header__action-button {
-  --padding-start: 0.55rem;
-  --padding-end: 0.55rem;
+  --padding-start: 0.85rem;
+  --padding-end: 0.85rem;
   --border-radius: 999px;
-  --background: var(--hdr-action-bg);
-  --background-hover: var(--hdr-action-hover);
-  --color: var(--hdr-text);
-  --ripple-color: rgba(255, 255, 255, 0.3);
-  height: 2.15rem;
-  border: 1px solid var(--hdr-action-border);
+  --background: transparent !important;
+  --background-hover: rgba(255, 255, 255, 0.1) !important;
+  --color: #ffffff !important;
+  color: #ffffff !important;
+  --ripple-color: rgba(255, 255, 255, 0.2) !important;
+  height: 1.95rem;
+  border: none !important;
+  font-weight: 500 !important;
+}
+
+/* Force outline style inside Ionic's inner shadow DOM for clear buttons to match dark theme */
+.page-header__action-button::part(native) {
+  background: transparent !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
 }
 
 .page-header__action-icon {

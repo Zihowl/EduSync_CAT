@@ -133,14 +133,14 @@ const SCHEDULE_QUERY_LIMIT = 500;
                 <div class="schedule-controls">
                     <div class="schedule-controls__group">
                         <div class="schedule-dropdowns">
-                            <ion-select [(ngModel)]="filterGroupId" (ionChange)="onGroupFilterChange()" placeholder="Todos los grupos" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter glass-input">
-                                <ion-select-option [value]="null">Todos los grupos</ion-select-option>
+                            <ion-select [(ngModel)]="filterGroupId" (ionChange)="onGroupFilterChange()" placeholder="Ninguno" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter glass-input">
+                                <ion-select-option [value]="null">Ninguno</ion-select-option>
                                 <ion-select-option *ngFor="let g of rootGroups" [value]="g.id">
                                     {{ getGroupLabel(g) }}
                                 </ion-select-option>
                             </ion-select>
 
-                            <ion-select *ngIf="filterGroupId != null" [(ngModel)]="filterSubgroupValue" (ionChange)="onSubgroupFilterChange()" placeholder="Tronco común" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter glass-input">
+                            <ion-select [disabled]="filterGroupId == null" [(ngModel)]="filterSubgroupValue" (ionChange)="onSubgroupFilterChange()" placeholder="Tronco común" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter glass-input">
                                 <ion-select-option [value]="null">Tronco común</ion-select-option>
                                 <ion-select-option *ngFor="let subgroup of availableSubgroups" [value]="subgroup">
                                     {{ subgroup }}
@@ -157,7 +157,7 @@ const SCHEDULE_QUERY_LIMIT = 500;
                     </div>
 
                     <div class="schedule-controls__status">
-                        <ion-segment [(ngModel)]="filterPublished" (ionChange)="onPublishedFilterChange()" class="schedule-segment glass-segment" mode="ios">
+                        <ion-segment [(ngModel)]="filterPublished" (ionChange)="onPublishedFilterChange()" class="schedule-segment glass-segment" mode="md">
                             <ion-segment-button value="all">
                                 <ion-label>Todos</ion-label>
                             </ion-segment-button>
@@ -325,8 +325,19 @@ export class SchedulesComponent implements OnInit {
     calendarDays: number[] = [...SCHEDULE_DEFAULT_VISIBLE_DAYS];
     calendarStartMinute = SCHEDULE_DEFAULT_START_MINUTE;
     calendarEndMinute = SCHEDULE_DEFAULT_END_MINUTE;
-    calendarEmptyTitle = 'Sin horarios para esta selección';
-    calendarEmptySubtitle = 'Cambia grupo, subgrupo, maestro o estado para ver bloques.';
+    get calendarEmptyTitle(): string {
+        if (this.filterGroupId == null && this.filterTeacherId == null) {
+            return 'Elige un filtro para comenzar';
+        }
+        return 'No se encontraron horarios';
+    }
+
+    get calendarEmptySubtitle(): string {
+        if (this.filterGroupId == null && this.filterTeacherId == null) {
+            return 'Selecciona un Grupo o Maestro en la parte superior para visualizar sus horarios.';
+        }
+        return 'No hay bloques disponibles con los filtros actuales. Ajusta tu selección para ver más resultados.';
+    }
     allSchedules: any[] = [];
     teachers: any[] = [];
     subjects: any[] = [];
@@ -340,7 +351,6 @@ export class SchedulesComponent implements OnInit {
     filterGroupId: number | null = null;
     filterSubgroupValue: string | null = null;
     filterTeacherId: number | null = null;
-    private hasInitializedFilters = false;
 
     selectedIds = new Set<number>();
     updatingIds: number[] = [];
@@ -433,28 +443,20 @@ export class SchedulesComponent implements OnInit {
     }
 
     private ensureActiveFilterSelection(): void {
-        if (!this.hasInitializedFilters) {
-            if (this.rootGroups.length > 0) {
-                this.filterGroupId = this.getDefaultGroupId();
+        if (this.filterGroupId != null) {
+            const normalizedGroupId = this.getRootGroupId(this.filterGroupId);
+            const hasValidGroup = normalizedGroupId != null && this.rootGroups.some((group) => Number(group.id) === Number(normalizedGroupId));
+            if (!hasValidGroup) {
+                this.filterGroupId = null;
+            } else {
+                this.filterGroupId = normalizedGroupId;
             }
-            this.hasInitializedFilters = true;
-        } else {
-            // After initialization, allow the user to select 'null' for both.
-            if (this.filterGroupId != null) {
-                const normalizedGroupId = this.getRootGroupId(this.filterGroupId);
-                const hasValidGroup = normalizedGroupId != null && this.rootGroups.some((group) => Number(group.id) === Number(normalizedGroupId));
-                if (!hasValidGroup) {
-                    this.filterGroupId = null;
-                } else {
-                    this.filterGroupId = normalizedGroupId;
-                }
-            }
-            
-            if (this.filterTeacherId != null) {
-                const hasValidTeacher = this.teachers.some((teacher) => Number(teacher.id) === Number(this.filterTeacherId));
-                if (!hasValidTeacher) {
-                    this.filterTeacherId = null;
-                }
+        }
+
+        if (this.filterTeacherId != null) {
+            const hasValidTeacher = this.teachers.some((teacher) => Number(teacher.id) === Number(this.filterTeacherId));
+            if (!hasValidTeacher) {
+                this.filterTeacherId = null;
             }
         }
     }
@@ -493,6 +495,11 @@ export class SchedulesComponent implements OnInit {
     }
 
     private matchesVisibleFilters(schedule: any): boolean {
+        // If neither a group nor a teacher is explicitly selected, display NOTHING to prevent massive clutter.
+        if (this.filterGroupId == null && this.filterTeacherId == null) {
+            return false;
+        }
+
         if (this.filterPublished === 'published' && !schedule.isPublished) {
             return false;
         }
@@ -638,9 +645,6 @@ export class SchedulesComponent implements OnInit {
     }
 
     onGroupFilterChange(): void {
-        if (this.filterGroupId == null) {
-            this.filterSubgroupValue = null;
-        }
         this.clearFilterSelection();
         this.applyVisibleFilters();
     }

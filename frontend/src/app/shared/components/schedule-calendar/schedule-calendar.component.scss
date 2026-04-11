@@ -208,9 +208,11 @@
 }
 
 .schedule-calendar__empty-state {
-  display: grid;
-  place-items: center;
-  gap: 0.3rem;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.8rem;
   width: 100%;
   min-height: var(--schedule-calendar-height, 840px);
   padding: 1.1rem 1rem;
