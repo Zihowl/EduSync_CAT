@@ -32,7 +32,7 @@ interface DayCluster {
     template: `
     <div class="schedule-calendar" [style.--schedule-day-count]="visibleDays.length">
       <div class="schedule-calendar__viewport">
-        <div *ngIf="showHeaders" class="schedule-calendar__header">
+        <div *ngIf="showHeaders && !showEmptyState" class="schedule-calendar__header">
           <div class="schedule-calendar__time-head">
             <span>Hora</span>
           </div>
