@@ -62,7 +62,7 @@
 
 .schedule-calendar__day-head {
   position: relative;
-  padding: 0.58rem 0.7rem;
+  padding: 0.45rem 0.65rem;
   text-align: left;
   cursor: pointer;
   color: var(--schedule-text);
@@ -98,6 +98,7 @@
   margin-top: 0.08rem;
   font-size: 0.86rem;
   font-weight: 800;
+  line-height: 1.05;
 }
 
 .schedule-calendar__day-count {
@@ -105,6 +106,7 @@
   margin-top: 0.12rem;
   color: var(--schedule-text-subtle);
   font-size: 0.62rem;
+  line-height: 1;
 }
 
 .schedule-calendar__body {
@@ -113,6 +115,13 @@
   grid-template-columns: var(--schedule-time-rail-width, 72px) minmax(0, 1fr);
   gap: 0.4rem;
   min-height: 0;
+}
+
+.schedule-calendar__body--empty {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0.1rem;
 }
 
 .schedule-calendar__time-rail {
@@ -135,7 +144,18 @@
   color: var(--schedule-text-subtle);
   font-size: 0.62rem;
   font-weight: 700;
+  line-height: 1;
   letter-spacing: 0.04em;
+}
+
+.schedule-calendar__hour-label--start {
+  top: 0.12rem !important;
+  transform: none;
+}
+
+.schedule-calendar__hour-label--end {
+  top: calc(100% - 0.12rem) !important;
+  transform: translateY(-100%);
 }
 
 .schedule-calendar__days {
@@ -185,6 +205,40 @@
 
 .schedule-calendar__cell:hover {
   background: rgba(59, 130, 246, 0.08);
+}
+
+.schedule-calendar__empty-state {
+  display: grid;
+  place-items: center;
+  gap: 0.3rem;
+  width: 100%;
+  min-height: var(--schedule-calendar-height, 840px);
+  padding: 1.1rem 1rem;
+  border-radius: 1rem;
+  border: 1px dashed var(--schedule-border);
+  background: var(--schedule-surface-deep);
+  color: var(--schedule-text-subtle);
+  text-align: center;
+}
+
+.schedule-calendar__empty-state-icon {
+  font-size: 2.4rem;
+  color: var(--schedule-accent);
+}
+
+.schedule-calendar__empty-state h3 {
+  margin: 0;
+  color: var(--schedule-text);
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.schedule-calendar__empty-state p {
+  margin: 0;
+  max-width: 26rem;
+  font-size: 0.84rem;
+  line-height: 1.5;
 }
 
 .schedule-calendar__current-time {

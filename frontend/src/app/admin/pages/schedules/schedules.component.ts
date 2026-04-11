@@ -28,6 +28,9 @@ import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realt
 import { ScheduleCalendarComponent } from '../../../shared/components/schedule-calendar/schedule-calendar.component';
 import {
     formatClockTime,
+    SCHEDULE_DEFAULT_END_MINUTE,
+    SCHEDULE_DEFAULT_START_MINUTE,
+    SCHEDULE_DEFAULT_VISIBLE_DAYS,
     ScheduleCalendarActionClick,
     ScheduleCalendarCellClick,
     ScheduleCalendarEvent,
@@ -97,6 +100,7 @@ const SET_PUBLISHED = gql`
 `;
 
 const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const SCHEDULE_QUERY_LIMIT = 500;
 
 @Component({
     selector: 'app-schedules',
@@ -156,8 +160,13 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                             <app-schedule-calendar
                                 [events]="calendarEvents"
                                 [visibleDays]="calendarDays"
+                                [startMinute]="calendarStartMinute"
+                                [endMinute]="calendarEndMinute"
                                 [minuteHeight]="0.72"
                                 [editable]="true"
+                                [loaded]="isSchedulesLoaded"
+                                [emptyTitle]="calendarEmptyTitle"
+                                [emptySubtitle]="calendarEmptySubtitle"
                                 [showCurrentTimeMarker]="true"
                                 (eventSelected)="onCalendarEventSelected($event)"
                                 (cellSelected)="onCalendarCellSelected($event)"
@@ -296,7 +305,11 @@ export class SchedulesComponent implements OnInit {
 
     schedules: any[] = [];
     calendarEvents: ScheduleCalendarEvent[] = [];
-    calendarDays: number[] = [1, 2, 3, 4, 5, 6];
+    calendarDays: number[] = [...SCHEDULE_DEFAULT_VISIBLE_DAYS];
+    calendarStartMinute = SCHEDULE_DEFAULT_START_MINUTE;
+    calendarEndMinute = SCHEDULE_DEFAULT_END_MINUTE;
+    calendarEmptyTitle = 'Sin horarios para este grupo';
+    calendarEmptySubtitle = 'Cambia grupo, maestro o estado para ver bloques.';
     teachers: any[] = [];
     subjects: any[] = [];
     classrooms: any[] = [];
@@ -391,9 +404,12 @@ export class SchedulesComponent implements OnInit {
     private ensureActiveFilterSelection(): void {
         if (this.filterScope === 'group') {
             if (this.groups.length > 0) {
-                const hasValidGroup = this.filterGroupId != null && this.groups.some((group) => Number(group.id) === Number(this.filterGroupId));
+                const normalizedGroupId = this.getRootGroupId(this.filterGroupId);
+                const hasValidGroup = normalizedGroupId != null && this.groups.some((group) => Number(group.id) === Number(normalizedGroupId));
                 if (!hasValidGroup) {
-                    this.filterGroupId = Number(this.groups[0].id);
+                    this.filterGroupId = this.getDefaultGroupId();
+                } else {
+                    this.filterGroupId = normalizedGroupId;
                 }
             } else if (this.teachers.length > 0) {
                 this.filterScope = 'teacher';
@@ -407,7 +423,7 @@ export class SchedulesComponent implements OnInit {
                 }
             } else if (this.groups.length > 0) {
                 this.filterScope = 'group';
-                this.filterGroupId = Number(this.groups[0].id);
+                this.filterGroupId = this.getDefaultGroupId();
             }
         }
     }
@@ -415,6 +431,34 @@ export class SchedulesComponent implements OnInit {
     private syncCalendarState(): void {
         this.activeScheduleId = this.selectedSchedule ? Number(this.selectedSchedule.id) : null;
         this.calendarEvents = this.schedules.map((schedule) => this.toCalendarEvent(schedule));
+    }
+
+    private getRootGroupId(groupId: number | null): number | null {
+        if (groupId == null) {
+            return null;
+        }
+
+        let currentGroupId = Number(groupId);
+        const visited = new Set<number>();
+
+        while (!visited.has(currentGroupId)) {
+            visited.add(currentGroupId);
+            const currentGroup = this.groups.find((group) => Number(group.id) === currentGroupId);
+            const parentId = currentGroup?.parent?.id != null ? Number(currentGroup.parent.id) : null;
+
+            if (parentId == null) {
+                return currentGroupId;
+            }
+
+            currentGroupId = parentId;
+        }
+
+        return currentGroupId;
+    }
+
+    private getDefaultGroupId(): number | null {
+        const fallbackGroup = this.groups.find((group) => !group.parent) ?? this.groups[0];
+        return fallbackGroup ? this.getRootGroupId(Number(fallbackGroup.id)) : null;
     }
 
     private toCalendarEvent(schedule: any): ScheduleCalendarEvent {
@@ -619,8 +663,10 @@ export class SchedulesComponent implements OnInit {
         const filter: any = {};
         this.ensureActiveFilterSelection();
 
-        if (this.filterScope === 'group' && this.filterGroupId != null) {
-            filter.groupId = this.filterGroupId;
+        const effectiveGroupId = this.getRootGroupId(this.filterGroupId);
+
+        if (this.filterScope === 'group' && effectiveGroupId != null) {
+            filter.groupId = effectiveGroupId;
         }
 
         if (this.filterScope === 'teacher' && this.filterTeacherId != null) {
@@ -629,12 +675,15 @@ export class SchedulesComponent implements OnInit {
 
         if (this.filterPublished === 'published') filter.isPublished = true;
         if (this.filterPublished === 'draft') filter.isPublished = false;
+        filter.page = 1;
+        filter.limit = SCHEDULE_QUERY_LIMIT;
 
         const scheduleKey = [
             'admin-schedules',
             this.filterScope,
             this.filterPublished,
-            this.filterScope === 'group' ? (this.filterGroupId ?? 'all') : (this.filterTeacherId ?? 'all')
+            this.filterScope === 'group' ? (effectiveGroupId ?? 'all') : (this.filterTeacherId ?? 'all'),
+            SCHEDULE_QUERY_LIMIT
         ].join(':');
 
         if (forceRefresh) {

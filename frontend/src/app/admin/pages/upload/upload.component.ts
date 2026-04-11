@@ -181,16 +181,18 @@ const CREATE_CLASSROOM = gql`
                     <ion-card-content>
                         <div class="upload-hero">
                             <div class="upload-hero__copy">
-                                <div class="upload-hero__icon">
-                                    <ion-icon name="cloud-upload-outline" class="upload-icon"></ion-icon>
-                                </div>
+                                <div class="upload-hero__header">
+                                    <div class="upload-hero__icon">
+                                        <ion-icon name="cloud-upload-outline" class="upload-icon"></ion-icon>
+                                    </div>
 
-                                <div>
-                                    <p class="upload-kicker">Importación</p>
-                                    <h2>Verifica el archivo antes de confirmar</h2>
-                                    <p class="upload-description">
-                                        Primero analizamos cada fila, mostramos los errores y solo entonces habilitamos la carga final.
-                                    </p>
+                                    <div>
+                                        <p class="upload-kicker">Importación</p>
+                                        <h2>Verifica el archivo antes de confirmar</h2>
+                                        <p class="upload-description">
+                                            Primero analizamos cada fila, mostramos los errores y solo entonces habilitamos la carga final.
+                                        </p>
+                                    </div>
                                 </div>
 
                                 <div class="upload-status-bar">
@@ -292,13 +294,13 @@ const CREATE_CLASSROOM = gql`
                             <p>Analizando archivo...</p>
                         </div>
 
-                        <div *ngIf="!isPreviewLoading && !hasPreview" class="upload-empty-state">
+                        <div *ngIf="!isPreviewLoading && !hasPreview()" class="upload-empty-state">
                             <ion-icon name="document-text-outline" class="upload-empty-icon"></ion-icon>
                             <h3>Sin previsualización</h3>
                             <p>Selecciona un archivo .xlsx o .csv para revisar sus registros antes de confirmar la carga.</p>
                         </div>
 
-                        <div *ngIf="hasPreview" class="upload-table-wrap">
+                        <div *ngIf="hasPreview()" class="upload-table-wrap">
                             <table class="upload-table">
                                 <thead>
                                     <tr>

@@ -16,9 +16,9 @@
     --background: transparent;
     --overflow: hidden;
     --padding-top: 0.5rem;
-    --padding-bottom: 0.5rem;
+    --padding-bottom: calc(1rem + var(--ion-safe-area-bottom, 0px));
     --padding-start: 0.5rem;
-    --padding-end: 0.5rem;
+    --padding-end: calc(0.5rem + var(--ion-safe-area-right, 0px));
 }
 
 .schedule-content::part(scroll) {
@@ -142,6 +142,11 @@
     color: var(--ion-color-danger);
 }
 
+.schedule-content ion-fab {
+    right: calc(1rem + var(--ion-safe-area-right, 0px));
+    bottom: calc(1rem + var(--ion-safe-area-bottom, 0px));
+}
+
 @media (max-width: 1024px) {
     .schedule-toolbar {
         grid-template-columns: 1fr;
@@ -151,5 +156,10 @@
 @media (max-width: 700px) {
     .schedule-shell {
         gap: 0.55rem;
+    }
+
+    .schedule-content ion-fab {
+        right: calc(0.75rem + var(--ion-safe-area-right, 0px));
+        bottom: calc(0.75rem + var(--ion-safe-area-bottom, 0px));
     }
 }

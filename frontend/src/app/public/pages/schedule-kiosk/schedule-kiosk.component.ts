@@ -22,6 +22,9 @@ import { RealtimeQueryCacheService } from '../../../core/services/realtime-query
 import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realtime-sync.service';
 import { ScheduleCalendarComponent } from '../../../shared/components/schedule-calendar/schedule-calendar.component';
 import {
+    SCHEDULE_DEFAULT_END_MINUTE,
+    SCHEDULE_DEFAULT_START_MINUTE,
+    SCHEDULE_DEFAULT_VISIBLE_DAYS,
     normalizeDayOfWeek,
     ScheduleCalendarEvent,
 } from '../../../shared/components/schedule-calendar/schedule-calendar.model';
@@ -112,8 +115,13 @@ const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado
                             <app-schedule-calendar
                                 [events]="calendarEvents"
                                 [visibleDays]="calendarDays"
+                                [startMinute]="calendarStartMinute"
+                                [endMinute]="calendarEndMinute"
                                 [highlightedDay]="viewMode === 'day' ? selectedDay : null"
                                 [showCurrentTimeMarker]="true"
+                                [loaded]="!loading"
+                                [emptyTitle]="calendarEmptyTitle"
+                                [emptySubtitle]="calendarEmptySubtitle"
                                 (eventSelected)="onCalendarEventSelected($event)">
                             </app-schedule-calendar>
                         </ion-card-content>
@@ -197,7 +205,11 @@ export class ScheduleKioskComponent implements OnInit {
     groups: any[] = [];
     schedules: ScheduleSlot[] = [];
     calendarEvents: ScheduleCalendarEvent[] = [];
-    calendarDays: number[] = [1, 2, 3, 4, 5, 6];
+    calendarDays: number[] = [...SCHEDULE_DEFAULT_VISIBLE_DAYS];
+    calendarStartMinute = SCHEDULE_DEFAULT_START_MINUTE;
+    calendarEndMinute = SCHEDULE_DEFAULT_END_MINUTE;
+    calendarEmptyTitle = 'No hay bloques para este grupo';
+    calendarEmptySubtitle = 'Prueba con otro grupo o revisa que el horario publicado tenga bloques disponibles.';
     selectedGroupId: number | null = null;
     selectedDay: number = 1;
     viewMode: 'week' | 'day' = 'week';

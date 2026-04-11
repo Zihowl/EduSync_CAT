@@ -16,7 +16,8 @@
 }
 
 .upload-shell {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 1rem;
     max-width: 1280px;
     margin: 0 auto;
@@ -39,27 +40,38 @@
 .upload-hero-card ion-card-content,
 .upload-preview-card ion-card-content {
     color: var(--upload-text);
+    padding-bottom: 1.1rem;
 }
 
 .upload-hero {
     display: grid;
     grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
     gap: 1rem;
-    align-items: start;
+    align-items: stretch;
 }
 
 .upload-hero__copy {
+    display: flex;
+    flex-direction: column;
+    row-gap: 0.75rem;
+    height: 100%;
+}
+
+.upload-hero__header {
     display: grid;
     grid-template-columns: auto 1fr;
     align-items: start;
     column-gap: 0.9rem;
-    row-gap: 0.75rem;
 }
 
 .upload-status-bar,
-.upload-actions,
 .upload-progress {
-    grid-column: 1 / -1;
+    width: 100%;
+}
+
+.upload-actions {
+    width: 100%;
+    margin-top: auto;
 }
 
 .upload-hero__guide {
@@ -134,6 +146,7 @@
 .upload-actions ion-button {
     --border-radius: 999px;
     font-weight: 700;
+    margin: 0;
 }
 
 .upload-progress {
@@ -244,6 +257,7 @@
     min-width: 12rem;
     --border-radius: 999px;
     font-weight: 700;
+    margin: 0;
 }
 
 .upload-missing-card__chips {
@@ -257,7 +271,7 @@
     display: grid;
     place-items: center;
     gap: 0.65rem;
-    min-height: 240px;
+    min-height: 10rem;
     text-align: center;
     color: var(--upload-text-muted);
 }
@@ -366,6 +380,10 @@
 }
 
 @media (max-width: 1024px) {
+    .upload-shell {
+        padding-bottom: 3rem;
+    }
+
     .upload-hero {
         grid-template-columns: 1fr;
     }
@@ -387,7 +405,7 @@
         grid-template-columns: 1fr;
     }
 
-    .upload-hero__copy {
+    .upload-hero__header {
         grid-template-columns: 1fr;
     }
 
