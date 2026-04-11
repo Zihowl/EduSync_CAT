@@ -423,6 +423,8 @@ export class SchedulesComponent implements OnInit {
     filterSubgroupValue: string | null = null;
     filterTeacherId: number | null = null;
 
+    private readonly STORAGE_KEY = 'admin-schedules-filters';
+
     selectedIds = new Set<number>();
     updatingIds: number[] = [];
     isModalOpen = false;
@@ -450,7 +452,33 @@ export class SchedulesComponent implements OnInit {
             layersOutline, checkmarkCircleOutline, closeCircleOutline,
             eyeOutline, eyeOffOutline, gitBranchOutline
         });
+        this.loadFiltersState();
         this.setupRealtimeRefresh();
+    }
+
+    private loadFiltersState(): void {
+        try {
+            const savedState = localStorage.getItem(this.STORAGE_KEY);
+            if (savedState) {
+                const parsed = JSON.parse(savedState);
+                if (parsed.filterGroupId !== undefined) this.filterGroupId = parsed.filterGroupId;
+                if (parsed.filterSubgroupValue !== undefined) this.filterSubgroupValue = parsed.filterSubgroupValue;
+                if (parsed.filterTeacherId !== undefined) this.filterTeacherId = parsed.filterTeacherId;
+                if (parsed.filterPublished !== undefined) this.filterPublished = parsed.filterPublished;
+            }
+        } catch (e) {
+            console.error('Error loading schedule filters state:', e);
+        }
+    }
+
+    private saveFiltersState(): void {
+        const state = {
+            filterGroupId: this.filterGroupId,
+            filterSubgroupValue: this.filterSubgroupValue,
+            filterTeacherId: this.filterTeacherId,
+            filterPublished: this.filterPublished
+        };
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
     }
 
     ionViewWillEnter(): void {
@@ -608,6 +636,8 @@ export class SchedulesComponent implements OnInit {
     private applyVisibleFilters(): void {
         this.ensureActiveFilterSelection();
         this.syncAvailableSubgroups();
+
+        this.saveFiltersState();
 
         this.schedules = this.allSchedules.filter((schedule) => this.matchesVisibleFilters(schedule));
 

@@ -219,6 +219,8 @@ export class ScheduleKioskComponent implements OnInit {
     selectedSchedule: ScheduleSlot | null = null;
     loading = false;
 
+    private readonly STORAGE_KEY = 'public-schedules-filters';
+
     private apiUrl = (environment.apiUrl || '').replace(/\/+$/, '');
 
     ngOnInit() {
@@ -226,7 +228,31 @@ export class ScheduleKioskComponent implements OnInit {
             calendarOutline, timeOutline, personOutline, bookOutline,
             businessOutline, layersOutline, schoolOutline
         });
+        this.loadFiltersState();
         this.setupRealtimeRefresh();
+    }
+
+    private loadFiltersState(): void {
+        try {
+            const savedState = localStorage.getItem(this.STORAGE_KEY);
+            if (savedState) {
+                const parsed = JSON.parse(savedState);
+                if (parsed.selectedGroupId !== undefined) this.selectedGroupId = parsed.selectedGroupId;
+                if (parsed.viewMode !== undefined) this.viewMode = parsed.viewMode;
+                if (parsed.selectedDay !== undefined) this.selectedDay = parsed.selectedDay;
+            }
+        } catch (e) {
+            console.error('Error loading schedule kiosk filters state:', e);
+        }
+    }
+
+    private saveFiltersState(): void {
+        const state = {
+            selectedGroupId: this.selectedGroupId,
+            viewMode: this.viewMode,
+            selectedDay: this.selectedDay
+        };
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
     }
 
     ionViewWillEnter(): void {
@@ -297,6 +323,7 @@ export class ScheduleKioskComponent implements OnInit {
         }
 
         this.syncCalendarState();
+        this.saveFiltersState();
 
         if (this.selectedGroupId) {
             this.LoadSchedules();
@@ -307,6 +334,7 @@ export class ScheduleKioskComponent implements OnInit {
         this.selectedDay = normalizeDayOfWeek(day);
         this.viewMode = 'day';
         this.syncCalendarState();
+        this.saveFiltersState();
 
         if (this.selectedGroupId) {
             this.LoadSchedules();
@@ -356,6 +384,7 @@ export class ScheduleKioskComponent implements OnInit {
                     this.schedules = [];
                     this.selectedSchedule = null;
                     this.syncCalendarState();
+                    this.saveFiltersState();
                 }
             },
             error: (err) => console.error('Error al cargar grupos:', err)
@@ -364,6 +393,8 @@ export class ScheduleKioskComponent implements OnInit {
 
     LoadSchedules() {
         if (!this.selectedGroupId) return;
+
+        this.saveFiltersState();
 
         this.loading = true;
         const effectiveDay = this.viewMode === 'day' ? this.selectedDay : null;
