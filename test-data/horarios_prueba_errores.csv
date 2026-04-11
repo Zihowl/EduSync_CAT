@@ -1,0 +1,7 @@
+ClaveMateria,Materia,Grado,NoEmpleado,Docente,Grupo,Subgrupo,Aula,Edificio,Dia,HoraInicio,HoraFin
+FDS101,Fundamentos de desarrollo de software,1,EMP-2001,Javier Medina Soto,1A,1,C-101,L,Lunes,07:00,08:40
+,Fundamentos de desarrollo de software,1,EMP-2001,Javier Medina Soto,1A,1,C-101,L,Lunes,07:00,08:40
+PM101,Pensamiento matematico I,1,EMP-2002,Laura Chavez Martinez,,,S-101,B,Martes,07:50,09:30
+LCI101,Lengua y comunicacion I,1,EMP-2003,Elena Gomez Rivera,1A,,S-102,G,Domingo,09:30,11:10
+PES201,Programacion estructurada,2,EMP-2004,Carlos Herrera Lopez,2A,1,C-102,L,Lunes,14:30,13:40
+ZZZ999,Materia inexistente,1,EMP-9999,Docente inexistente,9Z,,X-999,L,Lunes,07:00,08:40
