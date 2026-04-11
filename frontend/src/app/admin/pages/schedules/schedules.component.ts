@@ -479,7 +479,7 @@ export class SchedulesComponent implements OnInit {
 
     getSubjectLabel(subject: any): string {
         if (!subject) return '';
-        return subject.grade != null ? `Grado ${subject.grade} - ${subject.name}` : subject.name;
+        return subject.name;
     }
 
     formatTime(time: string): string {
