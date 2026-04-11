@@ -276,16 +276,17 @@ export class ScheduleKioskComponent implements OnInit {
     }
 
     private toCalendarEvent(schedule: ScheduleSlot): ScheduleCalendarEvent {
+        const classroomName = schedule.classroom?.name || 'Sin aula';
+        
         return {
             id: Number(schedule.id),
             dayOfWeek: schedule.dayOfWeek,
             startTime: this.formatTime(schedule.startTime),
             endTime: this.formatTime(schedule.endTime),
             title: this.getSubjectLabel(schedule.subject),
-            subtitle: `${this.getDayName(schedule.dayOfWeek)} · ${this.formatTime(schedule.startTime)} - ${this.formatTime(schedule.endTime)}`,
+            subtitle: `${this.getDayName(schedule.dayOfWeek)} · ${this.formatTime(schedule.startTime)} - ${this.formatTime(schedule.endTime)} · ${classroomName}`,
             meta: [
-                schedule.teacher?.name || 'Sin docente',
-                schedule.classroom?.name || 'Sin aula'
+                schedule.teacher?.name || 'Sin docente'
             ].filter((value): value is string => Boolean(value)),
             selected: this.selectedSchedule != null && Number(this.selectedSchedule.id) === Number(schedule.id),
             payload: schedule,

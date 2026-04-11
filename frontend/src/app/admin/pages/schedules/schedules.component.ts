@@ -665,6 +665,7 @@ export class SchedulesComponent implements OnInit {
     private toCalendarEvent(schedule: any): ScheduleCalendarEvent {
         const scheduleId = Number(schedule.id);
         const selected = this.selectedIds.has(scheduleId) || this.activeScheduleId === scheduleId;
+        const classroomName = schedule.classroom?.name || 'Sin aula';
 
         return {
             id: scheduleId,
@@ -672,10 +673,9 @@ export class SchedulesComponent implements OnInit {
             startTime: this.formatTime(schedule.startTime),
             endTime: this.formatTime(schedule.endTime),
             title: this.getSubjectLabel(schedule.subject),
-            subtitle: `${this.getDayName(schedule.dayOfWeek)} · ${this.formatTime(schedule.startTime)} - ${this.formatTime(schedule.endTime)}`,
+            subtitle: `${this.getDayName(schedule.dayOfWeek)} · ${this.formatTime(schedule.startTime)} - ${this.formatTime(schedule.endTime)} · ${classroomName}`,
             meta: [
-                schedule.teacher?.name || 'Sin docente',
-                schedule.classroom?.name || 'Sin aula'
+                schedule.teacher?.name || 'Sin docente'
             ].filter((value): value is string => Boolean(value)),
             statusLabel: schedule.isPublished ? 'Publicado' : 'Borrador',
             statusTone: schedule.isPublished ? 'success' : 'warning',
