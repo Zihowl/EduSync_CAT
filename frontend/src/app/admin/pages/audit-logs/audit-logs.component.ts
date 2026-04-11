@@ -262,27 +262,27 @@ export class AuditLogsComponent implements OnInit {
     readonly pageSizeOptions = [10, 20, 50];
     readonly actionOptions = [
         { value: 'create_admin', label: 'Alta de administrador' },
+        { value: 'create_allowed_domain', label: 'Alta de dominio' },
+        { value: 'create_schedule_slot', label: 'Alta de horario' },
+        { value: 'set_current_school_year', label: 'Cambio de ciclo escolar' },
+        { value: 'update_schedule_slot', label: 'Edición de horario' },
+        { value: 'remove_allowed_domain', label: 'Eliminación de dominio' },
+        { value: 'remove_schedule_slot', label: 'Eliminación de horario' },
         { value: 'disable_admin_access', label: 'Inhabilitación de acceso' },
+        { value: 'set_schedules_published', label: 'Publicación de horarios' },
         { value: 'reactivate_admin_access', label: 'Reactivación de acceso' },
         { value: 'force_reset_admin_password', label: 'Restablecimiento forzado' },
-        { value: 'create_allowed_domain', label: 'Alta de dominio' },
-        { value: 'remove_allowed_domain', label: 'Eliminación de dominio' },
-        { value: 'set_current_school_year', label: 'Cambio de ciclo escolar' },
-        { value: 'create_schedule_slot', label: 'Alta de horario' },
-        { value: 'update_schedule_slot', label: 'Edición de horario' },
-        { value: 'remove_schedule_slot', label: 'Eliminación de horario' },
-        { value: 'set_schedules_published', label: 'Publicación de horarios' },
     ];
     readonly resourceOptions = [
-        { value: 'user', label: 'Usuarios' },
-        { value: 'allowed_domain', label: 'Dominios permitidos' },
         { value: 'school_year', label: 'Ciclo escolar' },
+        { value: 'allowed_domain', label: 'Dominios permitidos' },
         { value: 'schedule_slot', label: 'Horario' },
         { value: 'schedule_batch', label: 'Publicación' },
+        { value: 'user', label: 'Usuarios' },
     ];
     readonly actorRoleOptions = [
-        { value: 'SUPER_ADMIN', label: 'Súper Administrador' },
         { value: 'ADMIN_HORARIOS', label: 'Administrador de Horarios' },
+        { value: 'SUPER_ADMIN', label: 'Súper Administrador' },
     ];
 
     ngOnInit(): void {

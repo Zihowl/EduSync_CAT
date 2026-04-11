@@ -933,13 +933,21 @@ export class SchedulesComponent implements OnInit {
 
         request$.subscribe({
             next: (catalogs: any) => {
-                this.teachers = catalogs.teachers;
+                this.teachers = catalogs.teachers.sort((a: any, b: any) => {
+                    const nameA = `${a.user?.name ?? ''} ${a.user?.lastName ?? ''}`.trim();
+                    const nameB = `${b.user?.name ?? ''} ${b.user?.lastName ?? ''}`.trim();
+                    return nameA.localeCompare(nameB, 'es', { sensitivity: 'base' });
+                });
                 this.subjects = catalogs.subjects;
                 this.classrooms = catalogs.classrooms;
                 this.groups = catalogs.groups;
-                this.rootGroups = catalogs.groups.filter((group: any) => !group.parent);
+                this.rootGroups = catalogs.groups
+                    .filter((group: any) => !group.parent)
+                    .sort((a: any, b: any) => (a?.name || '').localeCompare(b?.name || '', 'es', { sensitivity: 'base' }));
                 if (this.rootGroups.length === 0) {
-                    this.rootGroups = [...catalogs.groups];
+                    this.rootGroups = [...catalogs.groups].sort((a: any, b: any) => 
+                        (a?.name || '').localeCompare(b?.name || '', 'es', { sensitivity: 'base' })
+                    );
                 }
                 this.ensureActiveFilterSelection();
                 this.LoadSchedules(forceRefresh);

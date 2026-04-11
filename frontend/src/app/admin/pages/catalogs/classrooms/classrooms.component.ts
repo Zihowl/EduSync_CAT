@@ -223,7 +223,9 @@ export class ClassroomsComponent implements OnInit {
 
         request$.subscribe({
             next: (buildings: any[]) => {
-                this.buildings = buildings;
+                this.buildings = buildings.sort((a, b) => 
+                    (a?.name || '').localeCompare(b?.name || '', 'es', { sensitivity: 'base' })
+                );
                 this.refreshClassroomToolbarFilters();
                 this.ApplyFilter();
                 this.cdr.detectChanges();
