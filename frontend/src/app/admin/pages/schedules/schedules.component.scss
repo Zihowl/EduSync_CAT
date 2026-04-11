@@ -123,8 +123,8 @@
 /* Base styles for the glass inputs & segments */
 .glass-segment {
     --indicator-color: #0ea5e9 !important; /* The beautiful Bright Sky Blue line */
-    --background: rgba(15, 23, 42, 0.5);
-    background: var(--background);
+    --background: transparent;
+    background: rgba(15, 23, 42, 0.5);
     border: 1px solid rgba(148, 163, 184, 0.18);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -158,8 +158,8 @@
 }
 
 .glass-input {
-    --background: rgba(15, 23, 42, 0.5);
-    background: var(--background); /* Fallback for elements without shadow dom */
+    --background: transparent;
+    background: rgba(15, 23, 42, 0.5);
     border: 1px solid rgba(148, 163, 184, 0.18);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -188,8 +188,8 @@
 
 .glass-input:hover,
 .glass-input:focus-within {
-    --background: rgba(15, 23, 42, 0.7);
-    background: var(--background);
+    --background: transparent;
+    background: rgba(15, 23, 42, 0.7);
     border-color: rgba(56, 189, 248, 0.4);
 }
 
