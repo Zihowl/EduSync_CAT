@@ -28,6 +28,7 @@ import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realt
 import { ScheduleCalendarComponent } from '../../../shared/components/schedule-calendar/schedule-calendar.component';
 import {
     formatClockTime,
+    buildVisibleScheduleDays,
     SCHEDULE_DEFAULT_END_MINUTE,
     SCHEDULE_DEFAULT_START_MINUTE,
     SCHEDULE_DEFAULT_VISIBLE_DAYS,
@@ -559,6 +560,7 @@ export class SchedulesComponent implements OnInit {
 
     private syncCalendarState(): void {
         this.activeScheduleId = this.selectedSchedule ? Number(this.selectedSchedule.id) : null;
+        this.calendarDays = buildVisibleScheduleDays(this.schedules.map((schedule) => schedule.dayOfWeek));
         this.calendarEvents = this.schedules.map((schedule) => this.toCalendarEvent(schedule));
     }
 

@@ -22,6 +22,7 @@ import { RealtimeQueryCacheService } from '../../../core/services/realtime-query
 import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realtime-sync.service';
 import { ScheduleCalendarComponent } from '../../../shared/components/schedule-calendar/schedule-calendar.component';
 import {
+    buildVisibleScheduleDays,
     SCHEDULE_DEFAULT_END_MINUTE,
     SCHEDULE_DEFAULT_START_MINUTE,
     SCHEDULE_DEFAULT_VISIBLE_DAYS,
@@ -42,6 +43,7 @@ interface ScheduleSlot {
 }
 
 const DAYS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+const ALL_DAYS = [1, 2, 3, 4, 5, 6, 7];
 
 @Component({
     selector: 'app-schedule-kiosk',
@@ -213,7 +215,7 @@ export class ScheduleKioskComponent implements OnInit {
     selectedGroupId: number | null = null;
     selectedDay: number = 1;
     viewMode: 'week' | 'day' = 'week';
-    calendarWeekDays = [1, 2, 3, 4, 5, 6];
+    calendarWeekDays = [...SCHEDULE_DEFAULT_VISIBLE_DAYS];
     selectedSchedule: ScheduleSlot | null = null;
     loading = false;
 
@@ -265,6 +267,7 @@ export class ScheduleKioskComponent implements OnInit {
     }
 
     private syncCalendarState(): void {
+        this.calendarWeekDays = buildVisibleScheduleDays(this.schedules.map((schedule) => schedule.dayOfWeek));
         this.calendarDays = this.viewMode === 'day'
             ? [this.selectedDay || this.getDefaultDay()]
             : [...this.calendarWeekDays];
@@ -397,7 +400,7 @@ export class ScheduleKioskComponent implements OnInit {
     }
 
     private getFirstDayWithClasses(): number | null {
-        for (const day of this.calendarWeekDays) {
+        for (const day of ALL_DAYS) {
             if (this.schedules.some(schedule => schedule.dayOfWeek === day)) {
                 return day;
             }

@@ -1,6 +1,6 @@
 export type ScheduleCalendarTone = 'primary' | 'success' | 'warning' | 'danger' | 'medium' | 'tertiary';
 
-export const SCHEDULE_DEFAULT_VISIBLE_DAYS: number[] = [1, 2, 3, 4, 5, 6];
+export const SCHEDULE_DEFAULT_VISIBLE_DAYS: number[] = [1, 2, 3, 4, 5];
 export const SCHEDULE_DEFAULT_START_MINUTE = 7 * 60;
 export const SCHEDULE_DEFAULT_END_MINUTE = 21 * 60;
 
@@ -103,4 +103,23 @@ export function formatClockTime(totalMinutes: number): string {
     const minute = normalizedMinutes % 60;
 
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+}
+
+export function buildVisibleScheduleDays(dayOfWeekValues: Array<number | null | undefined>): number[] {
+  const weekendDays = new Set(
+    dayOfWeekValues
+      .map((day) => (day == null ? null : normalizeDayOfWeek(Number(day))))
+      .filter((day): day is number => day === 6 || day === 7)
+  );
+  const visibleDays = [...SCHEDULE_DEFAULT_VISIBLE_DAYS];
+
+  if (weekendDays.has(6)) {
+    visibleDays.push(6);
+  }
+
+  if (weekendDays.has(7)) {
+    visibleDays.push(7);
+  }
+
+  return visibleDays;
 }
