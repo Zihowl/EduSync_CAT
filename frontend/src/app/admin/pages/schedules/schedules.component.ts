@@ -150,7 +150,7 @@ interface ScheduleBlockForm {
                 <div class="schedule-controls">
                     <div class="schedule-controls__group">
                         <div class="schedule-dropdowns">
-                            <ion-select [(ngModel)]="filterGroupId" (ionChange)="onGroupFilterChange()" (ionCancel)="onFilterSelectClosed($event)" (ionDismiss)="onFilterSelectClosed($event)" placeholder="Ninguno" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter glass-input">
+                            <ion-select [(ngModel)]="filterGroupId" (ionChange)="onGroupFilterChange()" (ionCancel)="onFilterSelectClosed($event)" (ionDismiss)="onFilterSelectClosed($event)" placeholder="Ninguno" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter glass-input" [compareWith]="compareIds">
                                 <ion-select-option [value]="null">Ninguno</ion-select-option>
                                 <ion-select-option *ngFor="let g of rootGroups" [value]="g.id">
                                     {{ getGroupLabel(g) }}
@@ -164,7 +164,7 @@ interface ScheduleBlockForm {
                                 </ion-select-option>
                             </ion-select>
 
-                            <ion-select [(ngModel)]="filterTeacherId" (ionChange)="onTeacherFilterChange()" (ionCancel)="onFilterSelectClosed($event)" (ionDismiss)="onFilterSelectClosed($event)" placeholder="Todos los maestros" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter glass-input">
+                            <ion-select [(ngModel)]="filterTeacherId" (ionChange)="onTeacherFilterChange()" (ionCancel)="onFilterSelectClosed($event)" (ionDismiss)="onFilterSelectClosed($event)" placeholder="Todos los maestros" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter glass-input" [compareWith]="compareIds">
                                 <ion-select-option [value]="null">Todos los maestros</ion-select-option>
                                 <ion-select-option *ngFor="let teacher of teachers" [value]="teacher.id">
                                     {{ teacher.name }}
@@ -477,6 +477,7 @@ export class SchedulesComponent implements OnInit {
     }
 
     compareIds(o1: any, o2: any): boolean {
+        if (o1 == null && o2 == null) return true;
         return o1 != null && o2 != null && Number(o1) === Number(o2);
     }
 
