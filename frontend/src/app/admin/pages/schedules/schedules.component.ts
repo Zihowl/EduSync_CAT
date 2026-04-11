@@ -114,6 +114,7 @@ interface ScheduleFormData {
 }
 
 interface ScheduleBlockForm {
+    id?: number | null;
     dayOfWeek: number;
     startTime: string;
     endTime: string;
@@ -278,10 +279,10 @@ interface ScheduleBlockForm {
                                 <div class="schedule-blocks__header">
                                     <div>
                                         <p class="schedule-blocks__eyebrow">Bloques de horario</p>
-                                        <h3 class="schedule-blocks__title" *ngIf="editingItem">Bloque del horario</h3>
+                                        <h3 class="schedule-blocks__title" *ngIf="editingItem">Bloques de la materia</h3>
                                     </div>
 
-                                    <ion-button *ngIf="!editingItem" fill="clear" size="small" class="schedule-blocks__add" (click)="addScheduleBlock()">
+                                    <ion-button fill="clear" size="small" class="schedule-blocks__add" (click)="addScheduleBlock()">
                                         <ion-icon name="add-outline" slot="start"></ion-icon>
                                         Agregar bloque
                                     </ion-button>
@@ -293,7 +294,7 @@ interface ScheduleBlockForm {
                                             <p class="schedule-block__kicker">Bloque {{ i + 1 }}</p>
                                         </div>
 
-                                        <ion-button *ngIf="!editingItem && scheduleBlocks.length > 1" fill="clear" size="small" color="danger" class="schedule-block__remove" (click)="removeScheduleBlock(i)">
+                                        <ion-button *ngIf="scheduleBlocks.length > 1" fill="clear" size="small" color="danger" class="schedule-block__remove" (click)="removeScheduleBlock(i)">
                                             <ion-icon name="trash-outline" slot="start"></ion-icon>
                                             Quitar
                                         </ion-button>
@@ -439,6 +440,7 @@ export class SchedulesComponent implements OnInit {
     };
 
     scheduleBlocks: ScheduleBlockForm[] = [];
+    deletedBlockIds: number[] = [];
 
     ngOnInit() {
         addIcons({
@@ -852,19 +854,26 @@ export class SchedulesComponent implements OnInit {
     }
 
     private createBlockDraft(seed: Partial<ScheduleFormData & ScheduleBlockForm> = {}): ScheduleBlockForm {
-        return {
+        const draft: ScheduleBlockForm = {
             dayOfWeek: seed.dayOfWeek ?? this.calendarDays[0] ?? 1,
             startTime: seed.startTime ?? '08:00',
             endTime: seed.endTime ?? '09:00',
             buildingId: seed.buildingId ?? null,
             classroomId: seed.classroomId ?? null,
         };
+        
+        if (seed.id != null) {
+            draft.id = seed.id;
+        }
+        
+        return draft;
     }
 
     private getModalSnapshot(): string {
         return JSON.stringify({
             formData: this.formData,
             scheduleBlocks: this.scheduleBlocks,
+            deletedBlockIds: this.deletedBlockIds,
         });
     }
 
@@ -910,6 +919,11 @@ export class SchedulesComponent implements OnInit {
     removeScheduleBlock(index: number): void {
         if (this.scheduleBlocks.length <= 1) {
             return;
+        }
+
+        const block = this.scheduleBlocks[index];
+        if (block.id != null) {
+            this.deletedBlockIds.push(block.id);
         }
 
         this.scheduleBlocks = this.scheduleBlocks.filter((_, currentIndex) => currentIndex !== index);
@@ -1098,6 +1112,7 @@ export class SchedulesComponent implements OnInit {
     OpenModal(item: any = null, seed: Partial<ScheduleFormData & ScheduleBlockForm> = {}) {
         this.editingItem = item;
         this.isSaving = false;
+        this.deletedBlockIds = [];
 
         if (item) {
             this.selectedSchedule = item;
@@ -1108,33 +1123,42 @@ export class SchedulesComponent implements OnInit {
             const rootGroupId = isChildGroup ? Number(item.group.parent.id) : itemGroupId;
             const childSubgroupName = isChildGroup ? item.group.name : item.subgroup;
             
-            const classroom = this.classrooms.find(c => c.id === item.classroom?.id || c.id === Number(item.classroom?.id));
-            // this.modalBuildingId = classroom?.building?.id ? Number(classroom.building.id) : null;
-
+            const targetSubjectId = Number(item.subject.id);
+            const targetTeacherId = item.teacher ? Number(item.teacher.id) : null;
+            
             this.formData = {
                 groupId: rootGroupId,
-                subjectId: Number(item.subject.id),
-                teacherId: item.teacher ? Number(item.teacher.id) : null,
+                subjectId: targetSubjectId,
+                teacherId: targetTeacherId,
                 subgroup: childSubgroupName || '',
                 isPublished: item.isPublished
             };
-            if (item.classroom) {
-                const classroom = this.classrooms.find(c => c.id === item.classroom.id || c.id === Number(item.classroom.id));
+
+            const matchingBlocks = this.schedules.filter(schedule => {
+                const scheduleRootGroupId = this.getScheduleRootGroupId(schedule);
+                const scheduleSubgroupName = this.normalizeSubgroupValue(schedule.group.parent != null ? schedule.group.name : schedule.subgroup);
+                const scheduleSubjectId = Number(schedule.subject.id);
+                const scheduleTeacherId = schedule.teacher ? Number(schedule.teacher.id) : null;
+
+                return scheduleRootGroupId === rootGroupId &&
+                       scheduleSubgroupName === this.normalizeSubgroupValue(childSubgroupName) &&
+                       scheduleSubjectId === targetSubjectId &&
+                       scheduleTeacherId === targetTeacherId;
+            });
+
+            this.scheduleBlocks = matchingBlocks.map(match => {
+                const classroom = this.classrooms.find(c => c.id === match.classroom?.id || c.id === Number(match.classroom?.id));
                 const buildingId = classroom?.building?.id ? Number(classroom.building.id) : null;
-                this.scheduleBlocks = [this.createBlockDraft({
-                    dayOfWeek: item.dayOfWeek,
-                    startTime: item.startTime.substring(0, 5),
-                    endTime: item.endTime.substring(0, 5),
-                    classroomId: Number(item.classroom.id),
+                
+                return this.createBlockDraft({
+                    id: Number(match.id),
+                    dayOfWeek: match.dayOfWeek,
+                    startTime: match.startTime.substring(0, 5),
+                    endTime: match.endTime.substring(0, 5),
+                    classroomId: match.classroom ? Number(match.classroom.id) : null,
                     buildingId: buildingId
-                })];
-            } else {
-                this.scheduleBlocks = [this.createBlockDraft({
-                    dayOfWeek: item.dayOfWeek,
-                    startTime: item.startTime.substring(0, 5),
-                    endTime: item.endTime.substring(0, 5)
-                })];
-            }
+                });
+            });
         } else {
             this.selectedSchedule = null;
             this.activeScheduleId = null;
@@ -1223,24 +1247,52 @@ export class SchedulesComponent implements OnInit {
 
         try {
             if (this.editingItem) {
-                const block = this.scheduleBlocks[0];
-                const input = {
-                    ...baseInput,
-                    id: Number(this.editingItem.id),
-                    dayOfWeek: Number(block.dayOfWeek),
-                    startTime: block.startTime,
-                    endTime: block.endTime,
-                    classroomId: Number(block.classroomId)
-                };
+                // Delete removed blocks
+                for (const id of this.deletedBlockIds) {
+                    await firstValueFrom(this.apollo.mutate({
+                        mutation: REMOVE_SCHEDULE,
+                        variables: { id: Number(id) }
+                    }));
+                }
 
-                await firstValueFrom(this.apollo.mutate({
-                    mutation: UPDATE_SCHEDULE,
-                    variables: { input }
-                }));
+                // Update existing blocks
+                const existingBlocks = this.scheduleBlocks.filter(b => b.id != null);
+                for (const block of existingBlocks) {
+                    const input = {
+                        ...baseInput,
+                        id: Number(block.id),
+                        dayOfWeek: Number(block.dayOfWeek),
+                        startTime: block.startTime,
+                        endTime: block.endTime,
+                        classroomId: block.classroomId ? Number(block.classroomId) : null
+                    };
+
+                    await firstValueFrom(this.apollo.mutate({
+                        mutation: UPDATE_SCHEDULE,
+                        variables: { input }
+                    }));
+                }
+
+                // Create new blocks added during editing
+                const newBlocks = this.scheduleBlocks.filter(b => b.id == null);
+                if (newBlocks.length > 0) {
+                    const inputs = newBlocks.map((block) => ({
+                        ...baseInput,
+                        dayOfWeek: Number(block.dayOfWeek),
+                        startTime: block.startTime,
+                        endTime: block.endTime,
+                        classroomId: block.classroomId ? Number(block.classroomId) : null
+                    }));
+
+                    await firstValueFrom(this.apollo.mutate({
+                        mutation: CREATE_SCHEDULES,
+                        variables: { inputs }
+                    }));
+                }
 
                 this.CloseModal();
                 this.LoadSchedules(true);
-                this.showToast('Horario actualizado correctamente');
+                this.showToast('Horarios actualizados correctamente');
                 return;
             }
 
