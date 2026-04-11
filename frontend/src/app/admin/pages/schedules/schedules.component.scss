@@ -1,5 +1,6 @@
 :host {
-    display: block;
+    display: flex;
+    flex-direction: column;
     width: 100%;
     height: 100%;
     --cfm-modal-width: 34rem;
@@ -16,19 +17,20 @@
 }
 
 .schedule-content {
+    flex: 1 1 auto;
+    min-height: 0;
     --background: transparent;
     --overflow: auto;
     --padding-top: 0.5rem;
-    --padding-bottom: calc(1rem + var(--ion-safe-area-bottom, 0px));
-    --padding-start: 0.5rem;
-    --padding-end: calc(0.5rem + var(--ion-safe-area-right, 0px));
+    --padding-bottom: var(--ion-safe-area-bottom, 0px);
+    --padding-start: 1rem;
+    --padding-end: 1rem;
 }
 
 .schedule-content::part(scroll) {
     display: flex;
     flex-direction: column;
     height: 100%;
-    overflow: auto;
 }
 
 .schedule-shell {
@@ -37,14 +39,14 @@
     gap: 0.5rem;
     width: 100%;
     max-width: none;
-    margin: 0;
-    padding: 0;
-    flex: 1 1 auto;
+    margin: 0 !important;
+    padding: 0 !important;
+    flex: 1 1 0%;
     min-height: 0;
-    height: 100%;
 }
 
-.schedule-shell .app-page-section {
+.schedule-shell .app-page-section,
+.schedule-calendar-card.app-page-section {
     margin-bottom: 0;
 }
 
@@ -62,23 +64,32 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    flex: 1;
+    flex: 1 1 0%;
 }
 
 .schedule-calendar-card ion-card-content {
     color: var(--cfg-text);
     padding: 0; /* Removing padding to let the calendar define its edges */
     display: flex;
-    flex: 1 1 auto;
+    flex-direction: column;
+    flex: 1 1 0%;
+    min-height: 0;
     overflow: hidden;
 }
 
 .schedule-calendar-frame {
     display: flex;
     flex-direction: column;
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     min-height: 0;
     min-width: 0;
+    height: 100%;
+}
+
+.schedule-calendar-frame app-schedule-calendar {
+    flex: 1;
+    height: 100%;
+    min-height: 0;
 }
 
 /* ─────────────────────────────────────────────────────────────────

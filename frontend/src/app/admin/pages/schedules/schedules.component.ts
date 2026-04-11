@@ -144,7 +144,7 @@ interface ScheduleBlockForm {
             (actionButtonClick)="PublishSelected()"
         ></app-page-header>
 
-        <ion-content class="ion-padding schedule-content" [scrollY]="false">
+        <ion-content class="schedule-content" [scrollY]="false">
             <div class="app-page-shell app-page-shell--wide schedule-shell">
                 
                 <div class="schedule-controls">
