@@ -1146,10 +1146,10 @@ export class SchedulesComponent implements OnInit {
             }
 
             this.formData = {
-                groupId: seed.groupId ?? null,
+                groupId: seed.groupId ?? this.filterGroupId ?? null,
                 subjectId: seed.subjectId ?? null,
                 teacherId: seed.teacherId ?? null,
-                subgroup: seed.subgroup ?? '',
+                subgroup: seed.subgroup ?? this.filterSubgroupValue ?? '',
                 isPublished: seed.isPublished ?? false
             };
             this.scheduleBlocks = [this.createBlockDraft({ ...seed, buildingId: initialBuildingId })];
