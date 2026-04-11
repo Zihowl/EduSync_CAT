@@ -43,6 +43,7 @@
   min-width: max-content;
   flex: 1 1 0%;
   min-height: 0;
+  padding-right: 0.5rem;
 }
 
 
@@ -54,6 +55,9 @@
   align-items: stretch;
   flex: 0 0 auto;
   padding-bottom: 0.4rem;
+  scrollbar-gutter: stable;
+  width: min-content;
+  min-width: 100%;
 }
 
 .schedule-calendar__time-head,
@@ -134,6 +138,9 @@
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+  width: min-content;
+  min-width: 100%;
 }
 
 .schedule-calendar__time-rail {
