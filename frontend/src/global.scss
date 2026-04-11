@@ -509,3 +509,7 @@ ion-modal.catalog-form-modal::part(backdrop) {
     padding-right: 0.85rem;
   }
 }
+
+ion-fab[slot='fixed'] {
+  margin: 1rem;
+}
