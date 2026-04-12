@@ -16,7 +16,7 @@
       </div>
 
       <div class="page-header__side page-header__side--end">
-        <div class="page-header__actions" *ngIf="showStatusBadge || showActionButton || showMenuButton">
+        <div class="page-header__actions" *ngIf="showStatusBadge || showSecondaryActionButton || showActionButton || showMenuButton">
           <ion-badge
             *ngIf="showStatusBadge"
             class="page-header__status-badge"
@@ -28,6 +28,23 @@
             <ion-icon *ngIf="statusBadgeIcon" [name]="statusBadgeIcon" class="page-header__status-icon"></ion-icon>
             <span class="page-header__status-label">{{ statusBadgeText }}</span>
           </ion-badge>
+
+          <ion-button
+            *ngIf="showSecondaryActionButton"
+            fill="clear"
+            color="light"
+            class="page-header__action-button"
+            [attr.aria-label]="secondaryActionButtonAriaLabel || secondaryActionButtonIcon"
+            (click)="secondaryActionButtonClick.emit()"
+          >
+            <ion-icon
+              *ngIf="secondaryActionButtonIcon"
+              [name]="secondaryActionButtonIcon"
+              [slot]="secondaryActionButtonText ? 'start' : 'icon-only'"
+              class="page-header__action-icon"
+            ></ion-icon>
+            <span *ngIf="secondaryActionButtonText" class="page-header__action-label">{{ secondaryActionButtonText }}</span>
+          </ion-button>
 
           <ion-button
             *ngIf="showActionButton"

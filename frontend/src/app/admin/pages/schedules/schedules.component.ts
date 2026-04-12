@@ -140,11 +140,6 @@ interface ScheduleBlockForm {
             title="Horarios"
             [showBackButton]="true"
             backDefaultHref="/admin"
-            [showActionButton]="true"
-            actionButtonIcon="cloud-upload-outline"
-            [actionButtonText]="selectedIds.size > 0 ? 'Publicar (' + selectedIds.size + ')' : 'Publicar selección'"
-            actionButtonAriaLabel="Publicar horarios seleccionados"
-            (actionButtonClick)="PublishSelected()"
         ></app-page-header>
 
         <ion-content class="schedule-content" [scrollY]="false">
@@ -199,15 +194,25 @@ interface ScheduleBlockForm {
                                 [endMinute]="calendarEndMinute"
                                 [minuteHeight]="1.2"
                                 [editable]="true"
+                                [selectionMode]="selectionMode"
                                 [showHeaders]="showCalendarHeaders"
                                 [loaded]="isSchedulesLoaded"
                                 [emptyTitle]="calendarEmptyTitle"
                                 [emptySubtitle]="calendarEmptySubtitle"
                                 [showCurrentTimeMarker]="true"
+                                [selectionCount]="selectedIds.size"
+                                [publishSelectionText]="publishSelectionButtonText"
+                                [publishSelectionDisabled]="selectedDraftCount === 0"
+                                [hideSelectionText]="hideSelectionButtonText"
+                                [hideSelectionDisabled]="selectedPublishedCount === 0"
                                 (eventSelected)="onCalendarEventSelected($event)"
                                 (cellSelected)="onCalendarCellSelected($event)"
                                 (actionSelected)="onCalendarActionSelected($event)"
                                 (selectionModeChange)="onSelectionModeChange($event)"
+                                (publishSelectionRequested)="PublishSelected()"
+                                (hideSelectionRequested)="HideSelected()"
+                                (selectAllRequested)="SelectAllVisible()"
+                                (deleteSelectionRequested)="DeleteSelected()"
                                 (selectionToggled)="toggleSelectedId($event.id)">
                             </app-schedule-calendar>
                         </div>
@@ -426,6 +431,7 @@ export class SchedulesComponent implements OnInit {
     private readonly STORAGE_KEY = 'admin-schedules-filters';
 
     selectedIds = new Set<number>();
+    selectionMode = false;
     updatingIds: number[] = [];
     isModalOpen = false;
     editingItem: any = null;
@@ -530,6 +536,28 @@ export class SchedulesComponent implements OnInit {
 
     isUpdating(id: any): boolean {
         return this.updatingIds.includes(Number(id));
+    }
+
+    get publishSelectionButtonText(): string {
+        const count = this.selectedDraftCount;
+        return count > 0 ? `Publicar (${count})` : 'Publicar';
+    }
+
+    get hideSelectionButtonText(): string {
+        const count = this.selectedPublishedCount;
+        return count > 0 ? `Ocultar (${count})` : 'Ocultar';
+    }
+
+    get selectedPublishedCount(): number {
+        return this.getSelectedSchedules().filter((schedule) => Boolean(schedule.isPublished)).length;
+    }
+
+    get selectedDraftCount(): number {
+        return this.getSelectedSchedules().filter((schedule) => !Boolean(schedule.isPublished)).length;
+    }
+
+    private getSelectedSchedules(): any[] {
+        return this.allSchedules.filter((schedule) => this.selectedIds.has(Number(schedule.id)));
     }
 
     private normalizeSubgroupValue(value: string | null | undefined): string | null {
@@ -857,12 +885,23 @@ export class SchedulesComponent implements OnInit {
     }
 
     onSelectionModeChange(selectionMode: boolean): void {
+        this.selectionMode = selectionMode;
+
         if (!selectionMode) {
             this.selectedIds.clear();
         } else if (this.activeScheduleId != null) {
             this.selectedSchedule = null;
             this.activeScheduleId = null;
         }
+        this.syncCalendarState();
+    }
+
+    SelectAllVisible(): void {
+        if (this.schedules.length === 0) {
+            return;
+        }
+
+        this.selectedIds = new Set(this.schedules.map((schedule) => Number(schedule.id)));
         this.syncCalendarState();
     }
 
@@ -1363,6 +1402,8 @@ export class SchedulesComponent implements OnInit {
     }
 
     async Remove(id: number) {
+        const scheduleId = Number(id);
+
         if (!(await this.notifications.confirm({
             title: 'Eliminar horario',
             message: '¿Eliminar este horario?',
@@ -1372,15 +1413,106 @@ export class SchedulesComponent implements OnInit {
             styleType: 'danger'
         }))) return;
 
-        this.apollo.mutate({
+        this.updatingIds = [...new Set([...this.updatingIds, scheduleId])];
+
+        try {
+            await this.removeScheduleById(scheduleId);
+            this.LoadSchedules(true);
+            this.showToast('Horario eliminado');
+        } catch (err: any) {
+            this.showToast('Error al eliminar: ' + err.message, 'danger');
+        } finally {
+            this.updatingIds = this.updatingIds.filter((id) => id !== scheduleId);
+        }
+    }
+
+    HideSelected(): void {
+        this.setSelectedPublicationState(false);
+    }
+
+    PublishSelected(): void {
+        this.setSelectedPublicationState(true);
+    }
+
+    async DeleteSelected(): Promise<void> {
+        if (this.selectedIds.size === 0) {
+            return;
+        }
+
+        const ids = Array.from(this.selectedIds).map((id) => Number(id));
+
+        if (!(await this.notifications.confirm({
+            title: 'Eliminar horarios',
+            message: `¿Eliminar ${ids.length} horario(s) seleccionados?`,
+            confirmText: 'Eliminar',
+            cancelText: 'Cancelar',
+            confirmColor: 'danger',
+            styleType: 'danger'
+        }))) {
+            return;
+        }
+
+        this.updatingIds = [...new Set([...this.updatingIds, ...ids])];
+
+        const results = await Promise.all(ids.map(async (scheduleId) => {
+            try {
+                await this.removeScheduleById(scheduleId);
+                return { id: scheduleId, ok: true };
+            } catch {
+                return { id: scheduleId, ok: false };
+            }
+        }));
+
+        const failedIds = results.filter((result) => !result.ok).map((result) => result.id);
+        const succeededCount = ids.length - failedIds.length;
+
+        this.updatingIds = this.updatingIds.filter((currentId) => !ids.includes(currentId));
+        this.selectedIds = new Set(failedIds);
+        this.syncCalendarState();
+        this.LoadSchedules(true);
+
+        if (failedIds.length === 0) {
+            this.showToast(`${succeededCount} horario(s) eliminado(s)`);
+        } else {
+            this.showToast(`Se eliminaron ${succeededCount} de ${ids.length} horarios`, 'warning');
+        }
+    }
+
+    private removeScheduleById(id: number) {
+        return firstValueFrom(this.apollo.mutate({
             mutation: REMOVE_SCHEDULE,
             variables: { id: Number(id) }
+        }));
+    }
+
+    private setSelectedPublicationState(isPublished: boolean): void {
+        const schedulesToUpdate = this.getSelectedSchedules().filter((schedule) => isPublished ? !schedule.isPublished : schedule.isPublished);
+
+        if (schedulesToUpdate.length === 0) {
+            return;
+        }
+
+        const ids = schedulesToUpdate.map((schedule) => Number(schedule.id));
+        this.updatingIds = [...new Set([...this.updatingIds, ...ids])];
+
+        this.apollo.mutate({
+            mutation: SET_PUBLISHED,
+            variables: { ids, isPublished }
         }).subscribe({
             next: () => {
+                this.updatingIds = this.updatingIds.filter((currentId) => !ids.includes(currentId));
+                this.selectedIds.clear();
+                this.syncCalendarState();
                 this.LoadSchedules(true);
-                this.showToast('Horario eliminado');
+                this.showToast(
+                    isPublished ? `${ids.length} horario(s) publicado(s)` : `${ids.length} horario(s) ocultado(s)`,
+                    isPublished ? 'success' : 'warning'
+                );
             },
-            error: (err) => this.showToast('Error al eliminar: ' + err.message, 'danger')
+            error: (err) => {
+                this.updatingIds = this.updatingIds.filter((currentId) => !ids.includes(currentId));
+                this.showToast('Error: ' + err.message, 'danger');
+            }
         });
     }
 
@@ -1410,23 +1542,6 @@ export class SchedulesComponent implements OnInit {
                 this.updatingIds = this.updatingIds.filter(id => id !== scheduleId);
                 this.showToast('Error: ' + err.message, 'danger');
             }
-        });
-    }
-
-    PublishSelected() {
-        if (this.selectedIds.size === 0) return;
-        const ids = Array.from(this.selectedIds).map(id => Number(id));
-
-        this.apollo.mutate({
-            mutation: SET_PUBLISHED,
-            variables: { ids, isPublished: true }
-        }).subscribe({
-            next: () => {
-                this.LoadSchedules(true);
-                this.selectedIds.clear();
-                this.showToast(`${ids.length} horario(s) publicado(s)`);
-            },
-            error: (err) => this.showToast('Error: ' + err.message, 'danger')
         });
     }
 }

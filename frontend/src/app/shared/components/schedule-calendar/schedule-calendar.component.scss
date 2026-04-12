@@ -569,10 +569,82 @@
 
 .schedule-calendar__toolbar {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
   padding: 0.5rem 1rem;
   background: transparent;
   margin-bottom: 0.5rem;
+}
+
+.schedule-calendar__toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.schedule-calendar__toolbar-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.42rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.5);
+  color: var(--schedule-text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+
+.schedule-calendar__toolbar-action-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.schedule-calendar__toolbar-action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.schedule-calendar__toolbar-action-btn--danger {
+  border-color: rgba(248, 113, 113, 0.28);
+  color: #fecaca;
+}
+
+.schedule-calendar__toolbar-action-btn--success {
+  border-color: rgba(74, 222, 128, 0.28);
+  color: #dcfce7;
+}
+
+.schedule-calendar__toolbar-action-btn--success:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(74, 222, 128, 0.45);
+  color: #f0fdf4;
+}
+
+.schedule-calendar__toolbar-action-btn--warning {
+  border-color: rgba(251, 191, 36, 0.28);
+  color: #fef3c7;
+}
+
+.schedule-calendar__toolbar-action-btn--warning:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(251, 191, 36, 0.45);
+  color: #fffbeb;
+}
+
+.schedule-calendar__toolbar-action-btn--danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #fff1f2;
 }
 
 .schedule-calendar__selection-mode-btn {
@@ -641,9 +713,19 @@
     margin-bottom: 0.35rem;
   }
 
+  .schedule-calendar__toolbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+  }
+
   .schedule-calendar__selection-mode-btn {
     width: 100%;
     justify-content: center;
+  }
+
+  .schedule-calendar__toolbar-action-btn {
+    padding: 0.38rem 0.75rem;
   }
 
   .schedule-calendar__header,

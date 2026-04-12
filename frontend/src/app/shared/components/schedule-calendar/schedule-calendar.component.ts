@@ -36,8 +36,23 @@ interface DayCluster {
             <div class="schedule-calendar__toolbar" *ngIf="editable && events.length > 0">
                 <button type="button" class="schedule-calendar__selection-mode-btn" [class.schedule-calendar__selection-mode-btn--active]="selectionMode" (click)="toggleSelectionMode()">
                     <ion-icon [name]="selectionMode ? 'checkbox' : 'list-outline'"></ion-icon>
-                    <span>{{ selectionMode ? 'Finalizar selección' : 'Selección Múltiple' }}</span>
+                    <span>{{ selectionMode ? 'Cancelar' : 'Selección Múltiple' }}</span>
                 </button>
+
+                <div *ngIf="selectionMode" class="schedule-calendar__toolbar-actions">
+                    <button type="button" class="schedule-calendar__toolbar-action-btn schedule-calendar__toolbar-action-btn--success" [disabled]="publishSelectionDisabled" (click)="requestPublishSelection($event)">
+                        {{ publishSelectionText }}
+                    </button>
+                    <button type="button" class="schedule-calendar__toolbar-action-btn schedule-calendar__toolbar-action-btn--warning" [disabled]="hideSelectionDisabled" (click)="requestHideSelection($event)">
+                        {{ hideSelectionText }}
+                    </button>
+                    <button type="button" class="schedule-calendar__toolbar-action-btn" (click)="selectAllVisible($event)">
+                        Seleccionar todo
+                    </button>
+                    <button type="button" class="schedule-calendar__toolbar-action-btn schedule-calendar__toolbar-action-btn--danger" [disabled]="selectionCount === 0" (click)="requestDeleteSelection($event)">
+                        Borrar
+                    </button>
+                </div>
             </div>
 
       <div class="schedule-calendar__viewport">
@@ -180,6 +195,11 @@ export class ScheduleCalendarComponent implements OnChanges {
   @Input() editable = false;
   contextMenu: { x: number, y: number, buttons: any[] } | null = null;
   @Input() selectionMode = false;
+    @Input() selectionCount = 0;
+    @Input() publishSelectionText = 'Publicar';
+    @Input() publishSelectionDisabled = false;
+    @Input() hideSelectionText = 'Ocultar';
+    @Input() hideSelectionDisabled = false;
   @Input() highlightedDay: number | null = null;
   @Input() showCurrentTimeMarker = true;
   @Input() showHeaders = true;
@@ -194,6 +214,10 @@ export class ScheduleCalendarComponent implements OnChanges {
   @Output() selectionToggled = new EventEmitter<ScheduleCalendarEvent>();
   @Output() dayHeaderSelected = new EventEmitter<number>();
   @Output() selectionModeChange = new EventEmitter<boolean>();
+    @Output() publishSelectionRequested = new EventEmitter<void>();
+    @Output() hideSelectionRequested = new EventEmitter<void>();
+    @Output() selectAllRequested = new EventEmitter<void>();
+    @Output() deleteSelectionRequested = new EventEmitter<void>();
 
   @ViewChild('scrollBody', { static: false }) scrollBody?: ElementRef<HTMLElement>;
 
@@ -207,6 +231,41 @@ export class ScheduleCalendarComponent implements OnChanges {
   toggleSelectionMode(): void {
       this.selectionMode = !this.selectionMode;
       this.selectionModeChange.emit(this.selectionMode);
+  }
+
+  selectAllVisible(event: MouseEvent): void {
+      event.stopPropagation();
+      this.selectAllRequested.emit();
+  }
+
+  requestPublishSelection(event: MouseEvent): void {
+      event.stopPropagation();
+
+      if (this.publishSelectionDisabled) {
+          return;
+      }
+
+      this.publishSelectionRequested.emit();
+  }
+
+  requestHideSelection(event: MouseEvent): void {
+      event.stopPropagation();
+
+      if (this.hideSelectionDisabled) {
+          return;
+      }
+
+      this.hideSelectionRequested.emit();
+  }
+
+  requestDeleteSelection(event: MouseEvent): void {
+      event.stopPropagation();
+
+      if (this.selectionCount === 0) {
+          return;
+      }
+
+      this.deleteSelectionRequested.emit();
   }
 
   layoutsByDay = new Map<number, ScheduleCalendarLayoutEvent[]>();

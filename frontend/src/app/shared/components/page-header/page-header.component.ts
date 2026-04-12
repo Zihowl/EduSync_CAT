@@ -31,6 +31,10 @@ export class PageHeaderComponent {
   @Input() statusBadgeText = '';
   @Input() statusBadgeIcon = '';
   @Input() statusBadgeTone: 'neutral' | 'info' | 'success' | 'warning' | 'danger' = 'neutral';
+  @Input() showSecondaryActionButton = false;
+  @Input() secondaryActionButtonIcon = '';
+  @Input() secondaryActionButtonText = '';
+  @Input() secondaryActionButtonAriaLabel = '';
   @Input() showActionButton = false;
   @Input() actionButtonIcon = '';
   @Input() actionButtonText = '';
@@ -40,6 +44,7 @@ export class PageHeaderComponent {
   @Input() menuButtonAriaLabel = 'Abrir menú';
   @Input() menuItems: PageHeaderMenuItem[] = [];
 
+  @Output() secondaryActionButtonClick = new EventEmitter<void>();
   @Output() actionButtonClick = new EventEmitter<void>();
   @Output() menuItemSelected = new EventEmitter<PageHeaderMenuItem>();
 
