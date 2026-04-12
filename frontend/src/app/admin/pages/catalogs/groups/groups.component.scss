@@ -480,8 +480,10 @@ ion-fab.groups-fab ion-fab-button {
   overflow: hidden;
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 0.9rem;
-  background: rgba(15, 23, 42, 0.4);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+  background: rgba(15, 23, 42, 0.45);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .groups-root__row {
@@ -544,7 +546,9 @@ ion-fab.groups-fab ion-fab-button {
   display: flex;
   flex-direction: column;
   border-top: 1px solid rgba(148, 163, 184, 0.12);
-  background: rgba(8, 13, 23, 0.26);
+  background: rgba(8, 13, 23, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .groups-child {
@@ -608,6 +612,7 @@ ion-fab.groups-fab ion-fab-button {
   font-size: 0.78rem;
   line-height: 1.35;
   border-top: 1px solid rgba(148, 163, 184, 0.1);
+  background: rgba(8, 13, 23, 0.18);
 }
 
 .groups-empty-inline ion-icon {
@@ -623,7 +628,9 @@ ion-fab.groups-fab ion-fab-button {
   padding: 0.8rem 0.9rem;
   border: 1px dashed rgba(148, 163, 184, 0.18);
   border-radius: 0.9rem;
-  background: rgba(15, 23, 42, 0.34);
+  background: rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: var(--groups-text-muted);
 }
 
