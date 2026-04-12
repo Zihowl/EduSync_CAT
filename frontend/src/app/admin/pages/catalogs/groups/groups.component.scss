@@ -123,7 +123,6 @@ ion-card.groups-state ion-card-content {
 .groups-card__content {
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
   padding: 0.8rem 0.85rem;
 }
 
@@ -252,7 +251,7 @@ ion-card.groups-state ion-card-content {
   padding: 0.8rem;
   border: 1px dashed rgba(148, 163, 184, 0.22);
   border-radius: 0.95rem;
-  background: rgba(8, 13, 23, 0.32);
+  background: rgba(15, 23, 42, 0.14);
   text-align: center;
 }
 
@@ -546,9 +545,7 @@ ion-fab.groups-fab ion-fab-button {
   display: flex;
   flex-direction: column;
   border-top: 1px solid rgba(148, 163, 184, 0.12);
-  background: rgba(8, 13, 23, 0.3);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: transparent;
 }
 
 .groups-child {
@@ -557,7 +554,8 @@ ion-fab.groups-fab ion-fab-button {
   gap: 0.5rem;
   align-items: center;
   padding: 0.55rem 0.8rem 0.55rem 0.95rem;
-  border-top: 1px solid rgba(148, 163, 184, 0.1);
+  border-top: 1px solid rgba(148, 163, 184, 0.08);
+  background: transparent;
 }
 
 .groups-child:first-child {
