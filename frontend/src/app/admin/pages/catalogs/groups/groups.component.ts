@@ -4,22 +4,28 @@ import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
 import { map } from 'rxjs';
 import {
-    IonContent, IonList, IonItem, IonButtons, IonLabel,
-    IonButton, IonIcon, IonFab, IonFabButton,
-    IonInput
+    IonButton, IonChip, IonContent, IonIcon, IonItem,
+    IonFab, IonFabButton, IonInput, IonLabel, IonList, IonSpinner
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { trashOutline, addOutline, pencilOutline, peopleOutline, personOutline, returnDownForward, addCircleOutline, people, person } from 'ionicons/icons';
+import {
+    addCircleOutline,
+    addOutline,
+    gitBranchOutline,
+    layersOutline,
+    peopleOutline,
+    pencilOutline,
+    trashOutline,
+} from 'ionicons/icons';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent } from '../../../../shared/components/page-header/page-header.component';
-import { DataListComponent } from '../../../../shared/components/data-list/data-list.component';
 import { ModalComponent } from '../../../../shared/components/modal/modal.component';
 import { CatalogToolbarComponent } from '../../../../shared/components/catalog-toolbar/catalog-toolbar.component';
 import { NotificationService } from '../../../../shared/services/notification.service';
 import { getGraphQLErrorMessage } from '../../../../shared/utils/graphql-error';
 import { RealtimeQueryCacheService } from '../../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../../core/services/realtime-sync.service';
-import { applyCatalogQuery, compareCatalogText, matchesCatalogText, type CatalogToolbarState } from '../../../../shared/utils/catalog-query';
+import { applyCatalogQuery, compareCatalogText, matchesCatalogText, type CatalogToolbarFilterConfig, type CatalogToolbarState } from '../../../../shared/utils/catalog-query';
 
 const GET_GROUPS = gql`
     query GetGroups {
@@ -73,88 +79,150 @@ const REMOVE_GROUP = gql`
     selector: 'app-groups',
     standalone: true,
     imports: [
-        CommonModule, FormsModule, IonContent, IonList, IonItem,
-        IonLabel, IonButtons, IonButton, IonIcon,
-        IonFab, IonFabButton, IonInput, PageHeaderComponent, DataListComponent, ModalComponent, CatalogToolbarComponent
+        CommonModule, FormsModule, IonButton, IonChip,
+        IonContent, IonIcon, IonItem, IonFab, IonFabButton, IonInput,
+        IonLabel, IonList, IonSpinner, PageHeaderComponent, ModalComponent, CatalogToolbarComponent,
     ],
     template: `
-        <app-page-header title="Grupos" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
+        <app-page-header
+            title="Grupos"
+            [showBackButton]="true"
+            backDefaultHref="/admin">
+        </app-page-header>
 
-        <ion-content class="ion-padding">
-            <div class="app-page-shell app-page-shell--medium">
+        <ion-content class="ion-padding groups-content">
+            <div class="app-page-shell app-page-shell--wide">
                 <div class="app-page-section">
                     <app-catalog-toolbar
                         [state]="catalogToolbarState"
                         [filters]="groupToolbarFilters"
                         [sortOptions]="groupSortOptions"
-                        searchPlaceholder="Buscar grupo..."
-                        sortPlaceholder="Ordenar grupos"
-                        clearLabel="Restablecer"
+                        searchPlaceholder="Buscar..."
+                        sortPlaceholder="Ordenar"
+                        clearLabel="Limpiar"
                         (stateChange)="OnToolbarChange($event)">
                     </app-catalog-toolbar>
                 </div>
-                <app-data-list
-                    [items]="filteredGroups"
-                    [loaded]="isGroupsLoaded"
-                    loadingText="Cargando grupos..."
-                    emptyIcon="people-outline"
-                    [emptyTitle]="allGroups.length === 0 ? 'No hay grupos registrados' : 'No se encontraron resultados'"
-                    [emptySubtitle]="allGroups.length === 0 ? 'Crea el primer grupo con el botón +' : 'Prueba con otro término, cambia el tipo o ajusta el orden'">
-                    <ng-template #itemTemplate let-g>
-                        <ion-item [class.groups-subgroup-item]="g.parent">
-                            <ion-icon [name]="g.parent ? 'return-down-forward' : 'people-outline'" slot="start" [color]="g.parent ? 'medium' : 'primary'"></ion-icon>
-                            <ion-label>
-                                <h2 class="groups-title"><span *ngIf="g.parent" class="groups-parent-prefix">{{ g.parent.name }}-</span>{{ g.name }}</h2>
-                                <p *ngIf="!g.parent">Grupo principal</p>
-                            </ion-label>
-                            <ion-buttons slot="end">
-                                <ion-button *ngIf="!g.parent" color="primary" (click)="AddSubgroup(g)">
-                                    <ion-icon name="add-circle-outline" slot="icon-only"></ion-icon>
-                                </ion-button>
-                                <ion-button color="medium" (click)="OpenModal(g)">
-                                    <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
-                                </ion-button>
-                                <ion-button color="danger" (click)="RemoveGroup(g)">
-                                    <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
-                                </ion-button>
-                            </ion-buttons>
-                        </ion-item>
+
+                <section class="groups-list-shell app-page-section">
+                    <ng-container *ngIf="isGroupsLoaded; else loadingState">
+                        <ng-container *ngIf="groupCards.length > 0; else emptyState">
+                            <div class="groups-list">
+                                <article class="groups-root" *ngFor="let group of groupCards; trackBy: trackByGroupId">
+                                    <div class="groups-root__row">
+                                        <div class="groups-root__main">
+                                            <div class="groups-root__title-row">
+                                                <ion-icon name="layers-outline" class="groups-root__icon"></ion-icon>
+                                                <h3 class="groups-root__title">{{ group.name }}</h3>
+                                                <ion-chip class="groups-chip groups-chip--grade" color="primary">
+                                                    <ion-label>{{ formatGradeLabel(group.grade) }}</ion-label>
+                                                </ion-chip>
+                                            </div>
+                                            <p class="groups-root__meta">{{ group.children?.length || 0 }} subgrupos</p>
+                                        </div>
+
+                                        <div class="groups-root__actions">
+                                            <ion-button fill="clear" color="primary" aria-label="Nuevo subgrupo" title="Nuevo subgrupo" (click)="AddSubgroup(group)">
+                                                <ion-icon name="add-outline" slot="icon-only"></ion-icon>
+                                            </ion-button>
+                                            <ion-button fill="clear" color="medium" aria-label="Editar grupo" title="Editar grupo" (click)="OpenModal(group)">
+                                                <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
+                                            </ion-button>
+                                            <ion-button fill="clear" color="danger" aria-label="Eliminar grupo" title="Eliminar grupo" (click)="RemoveGroup(group)">
+                                                <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+                                            </ion-button>
+                                        </div>
+                                    </div>
+
+                                    <div class="groups-children" *ngIf="(group.children?.length || 0) > 0; else noChildrenState">
+                                        <div class="groups-child" *ngFor="let subgroup of group.children; trackBy: trackByGroupId">
+                                            <div class="groups-child__rail">
+                                                <ion-icon name="git-branch-outline"></ion-icon>
+                                            </div>
+                                            <div class="groups-child__main">
+                                                <p class="groups-child__title">{{ group.name }}-{{ subgroup.name }}</p>
+                                            </div>
+                                            <div class="groups-child__actions">
+                                                <ion-button fill="clear" color="medium" aria-label="Editar subgrupo" title="Editar subgrupo" (click)="OpenModal(subgroup)">
+                                                    <ion-icon name="pencil-outline" slot="icon-only"></ion-icon>
+                                                </ion-button>
+                                                <ion-button fill="clear" color="danger" aria-label="Eliminar subgrupo" title="Eliminar subgrupo" (click)="RemoveGroup(subgroup)">
+                                                    <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+                                                </ion-button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <ng-template #noChildrenState>
+                                        <div class="groups-empty-inline">
+                                            <ion-icon name="people-outline"></ion-icon>
+                                            <span>Sin subgrupos</span>
+                                        </div>
+                                    </ng-template>
+                                </article>
+                            </div>
+                        </ng-container>
+                    </ng-container>
+
+                    <ng-template #loadingState>
+                        <div class="groups-state groups-state--loading">
+                            <ion-spinner name="crescent"></ion-spinner>
+                            <span>Cargando...</span>
+                        </div>
                     </ng-template>
-                </app-data-list>
+
+                    <ng-template #emptyState>
+                        <div class="groups-state groups-state--empty">
+                            <ion-icon name="people-outline"></ion-icon>
+                            <strong>{{ hasGroupCriteria() ? 'Sin resultados' : 'Sin grupos' }}</strong>
+                            <span>{{ hasGroupCriteria() ? 'Prueba otro filtro.' : 'Crea el primero con +' }}</span>
+                        </div>
+                    </ng-template>
+                </section>
             </div>
 
-            <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-                    <ion-fab-button (click)="OpenNewGroup()">
-                        <ion-icon name="add-outline"></ion-icon>
-                    </ion-fab-button>
-                </ion-fab>
+            <ion-fab class="groups-fab" vertical="bottom" horizontal="end" slot="fixed">
+                <ion-fab-button (click)="OpenNewGroup()">
+                    <ion-icon name="add-outline"></ion-icon>
+                </ion-fab-button>
+            </ion-fab>
 
-                <app-modal
-                    [(isOpen)]="isModalOpen"
-                    [title]="getModalTitle()"
-                    subtitle="Crea grupos flexibles como 1A, 2B, 3C o Taller, y subgrupos con números o texto libre."
-                    [saveLabel]="editingItem ? 'Actualizar' : 'Guardar'"
-                    [saveDisabled]="!formData.name"
-                    (save)="Save()">
-                    <ng-template #modalBody>
-                        <ion-list>
-                            <ion-item fill="outline">
-                                <ion-label position="stacked"><ion-icon name="people-outline" class="label-icon"></ion-icon> {{ formData.parentId ? 'Nombre del Subgrupo *' : 'Nombre del Grupo *' }}</ion-label>
-                                <ion-input [(ngModel)]="formData.name" [placeholder]="formData.parentId ? 'Ej. 1, Software, Principiantes' : 'Ej. A, Ajedrez o Taller'"></ion-input>
-                            </ion-item>
-                            
-                            <ion-item fill="outline" class="ion-margin-top" *ngIf="!formData.parentId">
-                                <ion-label position="stacked"><ion-icon name="pencil-outline" class="label-icon"></ion-icon> Grado (Opcional)</ion-label>
-                                <ion-input type="number" [(ngModel)]="formData.grade" placeholder="Ej. 1, 2, 3 (dejar vacío para talleres)"></ion-input>
-                            </ion-item>
+            <app-modal
+                [(isOpen)]="isModalOpen"
+                [title]="getModalTitle()"
+                subtitle="Grado solo para grupos raíz. Subgrupos heredan el contexto."
+                [saveLabel]="editingItem ? 'Actualizar' : 'Guardar'"
+                [saveDisabled]="!formData.name"
+                (save)="Save()">
+                <ng-template #modalBody>
+                    <ion-list>
+                        <ion-item fill="outline">
+                            <ion-label position="stacked">
+                                <ion-icon name="people-outline" class="label-icon"></ion-icon>
+                                {{ formData.parentId !== null ? 'Nombre del Subgrupo *' : 'Nombre del Grupo *' }}
+                            </ion-label>
+                            <ion-input
+                                [(ngModel)]="formData.name"
+                                [placeholder]="formData.parentId !== null ? 'Ej. 1, Software, Principiantes' : 'Ej. A, Ajedrez o Taller'">
+                            </ion-input>
+                        </ion-item>
 
-                            <p *ngIf="formData.parentId" class="groups-preview-text">
-                                <ion-icon name="arrow-forward-outline" class="groups-preview-icon"></ion-icon>
-                                <span class="groups-preview-label">{{ getParentName(formData.parentId) }}-</span><strong>{{ formData.name || '...' }}</strong>
-                            </p>
-                        </ion-list>
-                    </ng-template>
-                </app-modal>
+                        <ion-item fill="outline" class="ion-margin-top" *ngIf="formData.parentId === null">
+                            <ion-label position="stacked">
+                                <ion-icon name="layers-outline" class="label-icon"></ion-icon>
+                                Grado (Opcional)
+                            </ion-label>
+                            <ion-input type="number" [(ngModel)]="formData.grade" placeholder="Ej. 1, 2, 3 (dejar vacío para talleres)"></ion-input>
+                        </ion-item>
+
+                        <p *ngIf="formData.parentId !== null" class="groups-modal-preview">
+                            <ion-icon name="git-branch-outline" class="groups-modal-preview__icon"></ion-icon>
+                            <span class="groups-modal-preview__label">{{ getParentName(formData.parentId) }}-</span>
+                            <strong>{{ formData.name || '...' }}</strong>
+                        </p>
+                    </ion-list>
+                </ng-template>
+            </app-modal>
         </ion-content>
     `,
     styleUrls: ['./groups.component.scss']
@@ -168,32 +236,43 @@ export class GroupsComponent implements OnInit {
     private notifications = inject(NotificationService);
 
     allGroups: any[] = [];
-    groups: any[] = [];
-    filteredGroups: any[] = [];
+    groupCards: any[] = [];
     catalogToolbarState: CatalogToolbarState = {
         searchQuery: '',
         sortValue: '',
         sortDirection: 'asc',
         filters: {
             type: '',
+            grade: '',
         },
     };
-    readonly groupToolbarFilters = [
+    readonly groupSortOptions = [
+        { value: 'grade', label: 'Grado' },
+        { value: 'name', label: 'Nombre' },
+    ];
+    readonly groupTypeFilter: CatalogToolbarFilterConfig = {
+        key: 'type',
+        label: 'Tipo',
+        placeholder: 'Tipo de grupo',
+        defaultValue: '',
+        options: [
+            { value: '__all__', label: 'Todos' },
+            { value: 'root', label: 'Solo grupos principales' },
+            { value: 'subgroup', label: 'Solo subgrupos' },
+        ],
+    };
+    groupToolbarFilters: CatalogToolbarFilterConfig[] = [
+        this.groupTypeFilter,
         {
-            key: 'type',
-            label: 'Tipo',
-            placeholder: 'Tipo de grupo',
+            key: 'grade',
+            label: 'Grado',
+            placeholder: 'Filtrar por grado',
             defaultValue: '',
             options: [
                 { value: '__all__', label: 'Todos' },
-                { value: 'root', label: 'Solo grupos principales' },
-                { value: 'subgroup', label: 'Solo subgrupos' },
+                { value: '__none__', label: 'Sin grado' },
             ],
         },
-    ];
-    readonly groupSortOptions = [
-        { value: 'nameAsc', label: 'Nombre A-Z' },
-        { value: 'nameDesc', label: 'Nombre Z-A' },
     ];
     isGroupsLoaded = false;
     isModalOpen = false;
@@ -201,70 +280,19 @@ export class GroupsComponent implements OnInit {
     formData = {
         name: '',
         parentId: null as number | null,
-        grade: null as number | null
+        grade: null as number | null,
     };
 
-    hasChildren(groupId: any): boolean {
-        return this.allGroups.some(g => g.parent && Number(g.parent.id) === Number(groupId));
-    }
-
-    getParentName(id: any): string {
-        const parent = this.allGroups.find(g => !g.parent && Number(g.id) === Number(id));
-        return parent ? parent.name : '';
-    }
-
-    private normalizeParents(groups: any[]): any[] {
-        const byId = new Map<number, any>();
-        
-        // Crear copias de los objetos para evitar mutación
-        const copies = groups.map(g => ({ ...g }));
-        copies.forEach(g => byId.set(Number(g.id), g));
-
-        copies.forEach(g => {
-            if (g.parent && g.parent.id != null) {
-                const parent = byId.get(Number(g.parent.id));
-                if (parent) {
-                    g.parent = parent;
-                }
-            }
-        });
-
-        return copies;
-    }
-
-    private buildHierarchy(groups: any[], allowedIds?: Set<number>, sortDescending = false): any[] {
-        const compareGroups = (left: any, right: any): number => {
-            const comparison = compareCatalogText(left?.name, right?.name);
-            return sortDescending ? -comparison : comparison;
-        };
-
-        const roots = groups
-            .filter(g => !g.parent && (!allowedIds || allowedIds.has(Number(g.id))))
-            .sort(compareGroups);
-
-        const childrenByParent = new Map<number, any[]>();
-        groups.forEach(g => {
-            if (!g.parent) return;
-            const parentId = Number(g.parent.id);
-            if (allowedIds && !allowedIds.has(Number(g.id))) return;
-            const list = childrenByParent.get(parentId) ?? [];
-            list.push(g);
-            childrenByParent.set(parentId, list);
-        });
-
-        const result: any[] = [];
-        roots.forEach(root => {
-            result.push(root);
-            const children = childrenByParent.get(Number(root.id)) ?? [];
-            children.sort(compareGroups);
-            result.push(...children);
-        });
-
-        return result;
-    }
-
     ngOnInit() {
-        addIcons({ trashOutline, addOutline, pencilOutline, peopleOutline, personOutline, returnDownForward, addCircleOutline, people, person });
+        addIcons({
+            addCircleOutline,
+            addOutline,
+            gitBranchOutline,
+            layersOutline,
+            peopleOutline,
+            pencilOutline,
+            trashOutline,
+        });
         this.setupRealtimeRefresh();
     }
 
@@ -300,19 +328,15 @@ export class GroupsComponent implements OnInit {
 
         request$.subscribe({
             next: (rawGroups: any[]) => {
-                console.log('GetGroups response:', rawGroups);
-                console.log('Raw groups:', rawGroups);
                 try {
                     const normalized = this.normalizeParents(rawGroups ?? []);
                     this.allGroups = [...normalized];
-                    this.groups = this.buildHierarchy(this.allGroups, undefined, this.catalogToolbarState.sortValue === 'nameDesc');
+                    this.refreshGroupToolbarFilters();
                     this.ApplyFilter();
-                    console.log('Filtered groups:', this.filteredGroups);
                 } catch (err) {
                     console.error('Error al procesar grupos:', err);
                     this.allGroups = [];
-                    this.groups = [];
-                    this.filteredGroups = [];
+                    this.groupCards = [];
                 } finally {
                     this.isGroupsLoaded = true;
                     this.cdr.detectChanges();
@@ -342,7 +366,8 @@ export class GroupsComponent implements OnInit {
         const matched = applyCatalogQuery(this.allGroups, this.catalogToolbarState, {
             searchPredicate: (group: any, normalizedQuery: string) =>
                 matchesCatalogText(group?.name, normalizedQuery) ||
-                matchesCatalogText(group?.parent?.name, normalizedQuery),
+                matchesCatalogText(group?.parent?.name, normalizedQuery) ||
+                matchesCatalogText(group?.grade, normalizedQuery),
             filterPredicates: {
                 type: (group: any, value: string) => {
                     if (value === 'root') {
@@ -355,34 +380,45 @@ export class GroupsComponent implements OnInit {
 
                     return true;
                 },
+                grade: (group: any, value: string) => {
+                    if (group.parent) {
+                        return false;
+                    }
+
+                    if (value === '__none__') {
+                        return group.grade == null;
+                    }
+
+                    return String(group.grade ?? '') === value;
+                },
             },
         });
 
         const allowedIds = new Set<number>();
-        matched.forEach(g => {
-            allowedIds.add(Number(g.id));
 
-            if (g.parent) {
-                allowedIds.add(Number(g.parent.id));
-            } else {
-                // Incluir subgrupos del grupo raíz para mantener contexto
-                this.allGroups
-                    .filter(child => child.parent && Number(child.parent.id) === Number(g.id))
-                    .forEach(child => allowedIds.add(Number(child.id)));
+        matched.forEach((group) => {
+            allowedIds.add(Number(group.id));
+
+            if (group.parent) {
+                allowedIds.add(Number(group.parent.id));
+                return;
             }
+
+            this.allGroups
+                .filter((child) => child.parent && Number(child.parent.id) === Number(group.id))
+                .forEach((child) => allowedIds.add(Number(child.id)));
         });
 
-        const sortDescending = this.catalogToolbarState.sortValue === 'nameDesc';
-        this.filteredGroups = this.buildHierarchy(this.allGroups, allowedIds, sortDescending);
+        this.groupCards = this.buildGroupCards(this.allGroups, allowedIds);
     }
 
     OpenModal(item: any = null) {
         this.editingItem = item;
         if (item) {
-            this.formData = { 
-                name: item.name, 
+            this.formData = {
+                name: item.name,
                 parentId: item.parent ? Number(item.parent.id) : null,
-                grade: item.grade != null ? Number(item.grade) : null
+                grade: item.grade != null ? Number(item.grade) : null,
             };
         } else {
             this.formData = { name: '', parentId: null, grade: null };
@@ -401,47 +437,47 @@ export class GroupsComponent implements OnInit {
         this.formData = {
             name: '',
             parentId: Number(parent.id),
-            grade: null
+            grade: null,
         };
         this.isModalOpen = true;
     }
 
     getModalTitle(): string {
         if (this.editingItem) {
-            return this.editingItem.parent ? 'Editar Subgrupo' : 'Editar Grupo';
+            return this.editingItem.parent ? 'Editar Subgrupo' : 'Editar Grupo Principal';
         }
-        return this.formData.parentId ? 'Nuevo Subgrupo' : 'Nuevo Grupo';
+
+        return this.formData.parentId !== null ? 'Nuevo Subgrupo' : 'Nuevo Grupo Principal';
     }
 
     Save() {
         if (!this.formData.name) return;
 
-        const groupInput: any = { 
-            name: this.formData.name 
+        const groupInput: any = {
+            name: this.formData.name,
         };
-        
-        // Solo enviar parentId si se seleccionó uno
-        if (this.formData.parentId) {
+
+        if (this.formData.parentId !== null) {
             groupInput.parentId = Number(this.formData.parentId);
-            groupInput.grade = null; // subgroups don't have grade independently
+            groupInput.grade = null;
         } else {
             groupInput.parentId = null;
-            groupInput.grade = this.formData.grade != null && String(this.formData.grade).trim() !== '' 
-                ? Number(this.formData.grade) 
+            groupInput.grade = this.formData.grade != null && String(this.formData.grade).trim() !== ''
+                ? Number(this.formData.grade)
                 : null;
         }
 
         if (this.editingItem) {
             this.apollo.mutate({
                 mutation: UPDATE_GROUP,
-                variables: { 
-                    input: { 
+                variables: {
+                    input: {
                         id: Number(this.editingItem.id),
-                        ...groupInput
-                    } 
+                        ...groupInput,
+                    },
                 }
             }).subscribe({
-                next: () => { 
+                next: () => {
                     this.isModalOpen = false;
                     this.editingItem = null;
                     this.LoadGroups(true);
@@ -476,13 +512,13 @@ export class GroupsComponent implements OnInit {
 
         if (!(await this.notifications.confirm({
             title: 'Eliminar grupo',
-            message: `¿Seguro que desea eliminar el grupo "${group.parent ? group.parent.name + '-' : ''}${group.name}"?`,
+            message: `¿Seguro que desea eliminar ${this.getGroupPath(group)}?`,
             confirmText: 'Eliminar',
             cancelText: 'Cancelar',
             confirmColor: 'danger',
             styleType: 'danger'
         }))) return;
-        
+
         this.apollo.mutate({
             mutation: REMOVE_GROUP,
             variables: { id: Number(group.id) },
@@ -493,5 +529,211 @@ export class GroupsComponent implements OnInit {
                 this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudo eliminar el grupo.'));
             }
         });
+    }
+
+    hasChildren(groupId: any): boolean {
+        return this.allGroups.some((group) => group.parent && Number(group.parent.id) === Number(groupId));
+    }
+
+    getParentName(id: any): string {
+        const parent = this.allGroups.find((group) => !group.parent && Number(group.id) === Number(id));
+        return parent ? parent.name : '';
+    }
+
+    getGroupPath(group: any): string {
+        return group?.parent ? `el subgrupo "${group.parent.name}-${group.name}"` : `el grupo principal "${group.name}"`;
+    }
+
+    getVisibleSummaryText(): string {
+        const rootCount = this.groupCards.length;
+        const subgroupCount = this.groupCards.reduce((total, group) => total + (group.children?.length ?? 0), 0);
+
+        return `Mostrando ${rootCount} ${this.pluralize(rootCount, 'grupo principal', 'grupos principales')} y ${subgroupCount} ${this.pluralize(subgroupCount, 'subgrupo', 'subgrupos')} en la vista actual.`;
+    }
+
+    formatRootSummary(group: any): string {
+        const childCount = group?.children?.length ?? 0;
+
+        if (childCount === 0) {
+            return 'Todavía no tiene subgrupos. Usa el botón Subgrupo para crear el primero.';
+        }
+
+        return `Contiene ${childCount} ${childCount === 1 ? 'subgrupo' : 'subgrupos'} listos para horarios y edición.`;
+    }
+
+    formatSubgroupSummary(group: any): string {
+        return `Subgrupo del grupo principal ${group?.name ?? ''}`;
+    }
+
+    formatGradeLabel(grade: number | null): string {
+        return grade == null ? 'Sin grado' : `Grado ${grade}`;
+    }
+
+    hasGroupCriteria(): boolean {
+        if (this.catalogToolbarState.searchQuery.trim().length > 0) {
+            return true;
+        }
+
+        if (this.catalogToolbarState.sortValue !== '') {
+            return true;
+        }
+
+        if (this.catalogToolbarState.sortDirection === 'desc') {
+            return true;
+        }
+
+        return Object.entries(this.catalogToolbarState.filters ?? {}).some(([, value]) => {
+            const normalized = String(value ?? '').trim();
+            return normalized !== '' && normalized !== '__all__';
+        });
+    }
+
+    get rootGroupCount(): number {
+        return this.allGroups.filter((group) => !group.parent).length;
+    }
+
+    get subgroupCount(): number {
+        return this.allGroups.filter((group) => !!group.parent).length;
+    }
+
+    get ungradedRootGroupCount(): number {
+        return this.allGroups.filter((group) => !group.parent && (group.grade == null || String(group.grade).trim() === '')).length;
+    }
+
+    private refreshGroupToolbarFilters(): void {
+        this.groupToolbarFilters = [
+            this.groupTypeFilter,
+            {
+                key: 'grade',
+                label: 'Grado',
+                placeholder: 'Filtrar por grado',
+                defaultValue: '',
+                options: [
+                    { value: '__all__', label: 'Todos' },
+                    { value: '__none__', label: 'Sin grado' },
+                    ...this.buildGradeFilterOptions(),
+                ],
+            },
+        ];
+    }
+
+    private buildGradeFilterOptions(): Array<{ label: string; value: string }> {
+        const gradeValues = new Set<number>();
+
+        this.allGroups.forEach((group) => {
+            if (!group.parent && group.grade != null && String(group.grade).trim() !== '') {
+                gradeValues.add(Number(group.grade));
+            }
+        });
+
+        return Array.from(gradeValues)
+            .sort((left, right) => left - right)
+            .map((grade) => ({
+                value: String(grade),
+                label: `Grado ${grade}`,
+            }));
+    }
+
+    private normalizeParents(groups: any[]): any[] {
+        const byId = new Map<number, any>();
+        const copies = groups.map((group) => ({ ...group }));
+
+        copies.forEach((group) => byId.set(Number(group.id), group));
+
+        copies.forEach((group) => {
+            if (group.parent && group.parent.id != null) {
+                const parent = byId.get(Number(group.parent.id));
+
+                if (parent) {
+                    group.parent = parent;
+                }
+            }
+        });
+
+        return copies;
+    }
+
+    private buildGroupCards(groups: any[], allowedIds?: Set<number>): any[] {
+        const compareRoots = (left: any, right: any): number => {
+            if (this.catalogToolbarState.sortValue === 'name') {
+                return this.compareByName(left, right);
+            }
+
+            const leftHasGrade = left?.grade != null && String(left.grade).trim() !== '';
+            const rightHasGrade = right?.grade != null && String(right.grade).trim() !== '';
+
+            if (leftHasGrade !== rightHasGrade) {
+                return leftHasGrade ? -1 : 1;
+            }
+
+            const gradeComparison = this.compareGrade(left?.grade, right?.grade);
+            if (gradeComparison !== 0) {
+                return this.catalogToolbarState.sortDirection === 'desc' ? -gradeComparison : gradeComparison;
+            }
+
+            return this.compareByName(left, right);
+        };
+
+        const compareChildren = (left: any, right: any): number => this.compareByName(left, right);
+
+        const roots = groups
+            .filter((group) => !group.parent && (!allowedIds || allowedIds.has(Number(group.id))))
+            .sort(compareRoots)
+            .map((root) => ({
+                ...root,
+                children: [] as any[],
+            }));
+
+        const rootsById = new Map<number, any>();
+        roots.forEach((root) => rootsById.set(Number(root.id), root));
+
+        groups.forEach((group) => {
+            if (!group.parent) {
+                return;
+            }
+
+            const parentId = Number(group.parent.id);
+
+            if (allowedIds && !allowedIds.has(Number(group.id))) {
+                return;
+            }
+
+            const parent = rootsById.get(parentId);
+            if (!parent) {
+                return;
+            }
+
+            parent.children.push(group);
+        });
+
+        roots.forEach((root) => {
+            root.children.sort(compareChildren);
+        });
+
+        return roots;
+    }
+
+    private compareByName(left: any, right: any): number {
+        const comparison = compareCatalogText(left?.name, right?.name);
+        return this.catalogToolbarState.sortDirection === 'desc' ? -comparison : comparison;
+    }
+
+    private compareGrade(leftGrade: unknown, rightGrade: unknown): number {
+        const left = leftGrade == null || String(leftGrade).trim() === '' ? Number.POSITIVE_INFINITY : Number(leftGrade);
+        const right = rightGrade == null || String(rightGrade).trim() === '' ? Number.POSITIVE_INFINITY : Number(rightGrade);
+
+        if (left === right) {
+            return 0;
+        }
+
+        return left < right ? -1 : 1;
+    }
+
+    private pluralize(count: number, singular: string, plural: string): string {
+        return count === 1 ? singular : plural;
+    }
+
+    trackByGroupId(index: number, group: any): number {
+        return Number(group?.id ?? index);
     }
 }
