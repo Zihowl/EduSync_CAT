@@ -447,13 +447,13 @@ impl ExcelService {
 
         let group = self
             .group_service
-            .find_or_create(&parsed.grupo, None)
+            .find_or_create(&parsed.grupo, None, parsed.grade)
             .await?;
 
         let subgroup = if let Some(subgroup_name) = parsed.subgroup.as_deref() {
             Some(
                 self.group_service
-                    .find_or_create(subgroup_name, Some(group.id))
+                    .find_or_create(subgroup_name, Some(group.id), parsed.grade)
                     .await?
                     .name,
             )

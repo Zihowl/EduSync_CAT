@@ -36,16 +36,24 @@ impl GroupService {
         &self,
         name: &str,
         parent_id: Option<i32>,
+        grade: Option<i32>,
     ) -> Result<Group, DomainError> {
         let name = normalize_required_text("Nombre del grupo", name)?;
 
         if let Some(existing) = self.repo.find_by_name_and_parent(&name, parent_id).await? {
+            if grade.is_some() && existing.grade != grade {
+                return self
+                    .repo
+                    .update(existing.id, None, None, Some(grade))
+                    .await;
+            }
+
             return Ok(existing);
         }
 
         self.validate_parent_link(None, parent_id).await?;
 
-        self.repo.create(&name, parent_id, None).await
+        self.repo.create(&name, parent_id, grade).await
     }
 
     pub async fn create(
@@ -154,5 +162,172 @@ impl GroupService {
                 None => return Ok(()),
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::GroupService;
+    use async_trait::async_trait;
+    use std::sync::{Arc, Mutex};
+
+    use crate::domain::{
+        errors::DomainError,
+        models::group::Group,
+        ports::group_repository::GroupRepository,
+    };
+
+    #[derive(Default)]
+    struct MockGroupRepository {
+        existing: Option<Group>,
+        parent: Option<Group>,
+        created: Mutex<Vec<(String, Option<i32>, Option<i32>)>>,
+        updated: Mutex<Vec<(i32, Option<String>, Option<Option<i32>>, Option<Option<i32>>)>>,
+    }
+
+    impl MockGroupRepository {
+        fn with_existing(existing: Option<Group>) -> Self {
+            Self {
+                existing,
+                ..Self::default()
+            }
+        }
+
+        fn with_parent(parent: Option<Group>) -> Self {
+            Self {
+                parent,
+                ..Self::default()
+            }
+        }
+    }
+
+    #[async_trait]
+    impl GroupRepository for MockGroupRepository {
+        async fn find_all(&self) -> Result<Vec<Group>, DomainError> {
+            Ok(vec![])
+        }
+
+        async fn find_by_id(&self, id: i32) -> Result<Option<Group>, DomainError> {
+            if self.parent.as_ref().map(|group| group.id) == Some(id) {
+                return Ok(self.parent.clone());
+            }
+
+            if self.existing.as_ref().map(|group| group.id) == Some(id) {
+                return Ok(self.existing.clone());
+            }
+
+            Ok(None)
+        }
+
+        async fn find_by_name_and_parent(
+            &self,
+            name: &str,
+            parent_id: Option<i32>,
+        ) -> Result<Option<Group>, DomainError> {
+            let Some(existing) = &self.existing else {
+                return Ok(None);
+            };
+
+            if existing.name == name && existing.parent_id == parent_id {
+                Ok(Some(existing.clone()))
+            } else {
+                Ok(None)
+            }
+        }
+
+        async fn create(
+            &self,
+            name: &str,
+            parent_id: Option<i32>,
+            grade: Option<i32>,
+        ) -> Result<Group, DomainError> {
+            self.created
+                .lock()
+                .expect("created mutex poisoned")
+                .push((name.to_string(), parent_id, grade));
+
+            Ok(Group {
+                id: 99,
+                name: name.to_string(),
+                parent_id,
+                grade,
+            })
+        }
+
+        async fn update(
+            &self,
+            id: i32,
+            name: Option<&str>,
+            parent_id: Option<Option<i32>>,
+            grade: Option<Option<i32>>,
+        ) -> Result<Group, DomainError> {
+            self.updated
+                .lock()
+                .expect("updated mutex poisoned")
+                .push((id, name.map(str::to_string), parent_id, grade));
+
+            let mut group = self.existing.clone().unwrap_or(Group {
+                id,
+                name: String::new(),
+                parent_id: None,
+                grade: None,
+            });
+
+            if let Some(name) = name {
+                group.name = name.to_string();
+            }
+            if let Some(parent_id) = parent_id {
+                group.parent_id = parent_id;
+            }
+            if let Some(grade) = grade {
+                group.grade = grade;
+            }
+
+            Ok(group)
+        }
+
+        async fn delete(&self, _id: i32) -> Result<bool, DomainError> {
+            Ok(true)
+        }
+    }
+
+    #[tokio::test]
+    async fn find_or_create_creates_subgroup_with_grade() {
+        let repo = Arc::new(MockGroupRepository::with_parent(Some(Group {
+            id: 1,
+            name: "1A".to_string(),
+            parent_id: None,
+            grade: Some(1),
+        })));
+        let service = GroupService::new(repo.clone());
+
+        let group = service
+            .find_or_create("1", Some(1), Some(1))
+            .await
+            .expect("el subgrupo debe crearse");
+
+        assert_eq!(group.grade, Some(1));
+        assert_eq!(repo.created.lock().expect("created mutex").len(), 1);
+        assert_eq!(repo.created.lock().expect("created mutex")[0], ("1".to_string(), Some(1), Some(1)));
+    }
+
+    #[tokio::test]
+    async fn find_or_create_updates_existing_group_grade() {
+        let repo = Arc::new(MockGroupRepository::with_existing(Some(Group {
+            id: 2,
+            name: "1A".to_string(),
+            parent_id: None,
+            grade: None,
+        })));
+        let service = GroupService::new(repo.clone());
+
+        let group = service
+            .find_or_create("1A", None, Some(1))
+            .await
+            .expect("el grupo debe sincronizar el grado");
+
+        assert_eq!(group.grade, Some(1));
+        assert_eq!(repo.updated.lock().expect("updated mutex").len(), 1);
+        assert_eq!(repo.updated.lock().expect("updated mutex")[0].3, Some(Some(1)));
     }
 }
