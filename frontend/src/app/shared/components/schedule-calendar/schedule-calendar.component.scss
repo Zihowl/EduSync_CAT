@@ -569,7 +569,7 @@
 
 .schedule-calendar__toolbar {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
@@ -583,7 +583,6 @@
   align-items: center;
   gap: 0.35rem;
   flex-wrap: wrap;
-  margin-left: auto;
 }
 
 .schedule-calendar__toolbar-action-btn {
@@ -647,38 +646,23 @@
   color: #fff1f2;
 }
 
-.schedule-calendar__selection-mode-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 999px;
-  background: var(--schedule-surface-strong, rgba(30, 41, 59, 0.4));
+.schedule-calendar__toolbar-selection-btn {
+  margin-left: 0;
+}
+
+.schedule-calendar__toolbar-selection-btn--active {
+  background: transparent;
+  border-color: transparent;
   color: var(--schedule-text);
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  backdrop-filter: blur(8px);
+  box-shadow: none;
+  padding-inline: 0.4rem;
+}
 
-  ion-icon {
-    font-size: 1.1rem;
-  }
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  &--active {
-    background: rgba(37, 99, 235, 0.8);
-    border-color: rgba(59, 130, 246, 0.5);
-    color: #ffffff;
-    
-    &:hover {
-      background: rgba(37, 99, 235, 1);
-    }
-  }
+.schedule-calendar__toolbar-selection-btn--active:hover:not(:disabled) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--schedule-text);
+  transform: none;
 }
 
 .schedule-calendar__selection-indicator {
@@ -714,18 +698,15 @@
   }
 
   .schedule-calendar__toolbar-actions {
-    width: 100%;
-    justify-content: flex-start;
-    margin-left: 0;
-  }
-
-  .schedule-calendar__selection-mode-btn {
-    width: 100%;
-    justify-content: center;
+    justify-content: flex-end;
   }
 
   .schedule-calendar__toolbar-action-btn {
     padding: 0.38rem 0.75rem;
+  }
+
+  .schedule-calendar__toolbar-selection-btn {
+    margin-left: 0;
   }
 
   .schedule-calendar__header,

@@ -1311,7 +1311,7 @@ export class SchedulesComponent implements OnInit {
             return;
         }
 
-        this.notifications.success(message, 'Horario');
+        this.notifications.success(message, '¡Éxito!');
     }
 
     async Save() {
@@ -1419,6 +1419,7 @@ export class SchedulesComponent implements OnInit {
             await this.removeScheduleById(scheduleId);
             this.LoadSchedules(true);
             this.showToast('Horario eliminado');
+            this.exitSelectionMode();
         } catch (err: any) {
             this.showToast('Error al eliminar: ' + err.message, 'danger');
         } finally {
@@ -1426,12 +1427,56 @@ export class SchedulesComponent implements OnInit {
         }
     }
 
-    HideSelected(): void {
-        this.setSelectedPublicationState(false);
+    async HideSelected(): Promise<void> {
+        const schedulesToUpdate = this.getSelectedSchedules().filter((schedule) => Boolean(schedule.isPublished));
+
+        if (schedulesToUpdate.length === 0) {
+            return;
+        }
+
+        const confirmed = await this.notifications.confirm({
+            title: 'Ocultar horarios',
+            message: `¿Ocultar ${schedulesToUpdate.length} horario(s) publicado(s)?`,
+            confirmText: 'Ocultar',
+            cancelText: 'Cancelar',
+            confirmColor: 'warning',
+            styleType: 'warning'
+        });
+
+        if (!confirmed) {
+            return;
+        }
+
+        const updated = await this.setSelectedPublicationState(false, schedulesToUpdate);
+        if (updated) {
+            this.exitSelectionMode();
+        }
     }
 
-    PublishSelected(): void {
-        this.setSelectedPublicationState(true);
+    async PublishSelected(): Promise<void> {
+        const schedulesToUpdate = this.getSelectedSchedules().filter((schedule) => !Boolean(schedule.isPublished));
+
+        if (schedulesToUpdate.length === 0) {
+            return;
+        }
+
+        const confirmed = await this.notifications.confirm({
+            title: 'Publicar horarios',
+            message: `¿Publicar ${schedulesToUpdate.length} horario(s) en borrador?`,
+            confirmText: 'Publicar',
+            cancelText: 'Cancelar',
+            confirmColor: 'success',
+            styleType: 'success'
+        });
+
+        if (!confirmed) {
+            return;
+        }
+
+        const updated = await this.setSelectedPublicationState(true, schedulesToUpdate);
+        if (updated) {
+            this.exitSelectionMode();
+        }
     }
 
     async DeleteSelected(): Promise<void> {
@@ -1467,9 +1512,10 @@ export class SchedulesComponent implements OnInit {
         const succeededCount = ids.length - failedIds.length;
 
         this.updatingIds = this.updatingIds.filter((currentId) => !ids.includes(currentId));
-        this.selectedIds = new Set(failedIds);
+        this.selectedIds.clear();
         this.syncCalendarState();
         this.LoadSchedules(true);
+        this.exitSelectionMode();
 
         if (failedIds.length === 0) {
             this.showToast(`${succeededCount} horario(s) eliminado(s)`);
@@ -1485,35 +1531,42 @@ export class SchedulesComponent implements OnInit {
         }));
     }
 
-    private setSelectedPublicationState(isPublished: boolean): void {
-        const schedulesToUpdate = this.getSelectedSchedules().filter((schedule) => isPublished ? !schedule.isPublished : schedule.isPublished);
+    private async setSelectedPublicationState(isPublished: boolean, schedulesToUpdate: any[]): Promise<boolean> {
+        const filteredSchedules = schedulesToUpdate.filter((schedule) => isPublished ? !schedule.isPublished : schedule.isPublished);
 
-        if (schedulesToUpdate.length === 0) {
-            return;
+        if (filteredSchedules.length === 0) {
+            return false;
         }
 
-        const ids = schedulesToUpdate.map((schedule) => Number(schedule.id));
+        const ids = filteredSchedules.map((schedule) => Number(schedule.id));
         this.updatingIds = [...new Set([...this.updatingIds, ...ids])];
 
-        this.apollo.mutate({
-            mutation: SET_PUBLISHED,
-            variables: { ids, isPublished }
-        }).subscribe({
-            next: () => {
-                this.updatingIds = this.updatingIds.filter((currentId) => !ids.includes(currentId));
-                this.selectedIds.clear();
-                this.syncCalendarState();
-                this.LoadSchedules(true);
-                this.showToast(
-                    isPublished ? `${ids.length} horario(s) publicado(s)` : `${ids.length} horario(s) ocultado(s)`,
-                    isPublished ? 'success' : 'warning'
-                );
-            },
-            error: (err) => {
-                this.updatingIds = this.updatingIds.filter((currentId) => !ids.includes(currentId));
-                this.showToast('Error: ' + err.message, 'danger');
-            }
-        });
+        try {
+            await firstValueFrom(this.apollo.mutate({
+                mutation: SET_PUBLISHED,
+                variables: { ids, isPublished }
+            }));
+
+            this.selectedIds.clear();
+            this.syncCalendarState();
+            this.LoadSchedules(true);
+            this.showToast(
+                isPublished ? `${ids.length} horario(s) publicado(s)` : `${ids.length} horario(s) ocultado(s)`,
+                'success'
+            );
+            return true;
+        } catch (err: any) {
+            this.showToast('Error: ' + err.message, 'danger');
+            return false;
+        } finally {
+            this.updatingIds = this.updatingIds.filter((currentId) => !ids.includes(currentId));
+        }
+    }
+
+    private exitSelectionMode(): void {
+        this.selectionMode = false;
+        this.selectedIds.clear();
+        this.syncCalendarState();
     }
 
     TogglePublish(schedule: any) {

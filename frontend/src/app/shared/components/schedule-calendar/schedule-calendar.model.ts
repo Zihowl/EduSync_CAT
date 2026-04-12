@@ -115,12 +115,11 @@ export function buildVisibleScheduleDays(dayOfWeekValues: Array<number | null | 
   );
   const visibleDays = [...SCHEDULE_DEFAULT_VISIBLE_DAYS];
 
-  if (weekendDays.has(6)) {
-    visibleDays.push(6);
-  }
-
   if (weekendDays.has(7)) {
+    visibleDays.push(6);
     visibleDays.push(7);
+  } else if (weekendDays.has(6)) {
+    visibleDays.push(6);
   }
 
   return visibleDays;

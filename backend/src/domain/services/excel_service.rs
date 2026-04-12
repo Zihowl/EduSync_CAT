@@ -334,18 +334,36 @@ impl ExcelService {
         
         if !has_time_error {
             if let Some(c_id) = classroom_id {
-                let collision_res = self.schedule_service.handle_collisions(
-                    teacher_id,
-                    c_id,
-                    parsed.day_of_week,
-                    &parsed.hora_inicio,
-                    &parsed.hora_fin,
-                    None,
-                    false
-                ).await;
-                
-                if let Err(DomainError::Conflict(msg)) = collision_res {
-                    warnings.push(format!("{}, se sobreescribirá.", msg));
+                let group = self
+                    .group_service
+                    .find_by_name_and_parent(&parsed.grupo, None)
+                    .await?;
+
+                if let Some(group) = group {
+                    let subgroup = if let Some(subgroup_name) = parsed.subgroup.as_deref() {
+                        self.group_service
+                            .find_by_name_and_parent(subgroup_name, Some(group.id))
+                            .await?
+                            .map(|existing| existing.name)
+                    } else {
+                        None
+                    };
+
+                    let collision_res = self.schedule_service.handle_collisions(
+                        teacher_id,
+                        c_id,
+                        group.id,
+                        subgroup.as_deref(),
+                        parsed.day_of_week,
+                        &parsed.hora_inicio,
+                        &parsed.hora_fin,
+                        None,
+                        false,
+                    ).await;
+
+                    if let Err(DomainError::Conflict(msg)) = collision_res {
+                        warnings.push(format!("{}, se sobreescribirá.", msg));
+                    }
                 }
             }
         }

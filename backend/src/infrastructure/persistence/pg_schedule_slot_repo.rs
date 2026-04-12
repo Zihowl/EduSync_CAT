@@ -244,6 +244,45 @@ impl ScheduleSlotRepository for PgScheduleSlotRepository {
         Ok(row.map(Into::into))
     }
 
+    async fn find_conflict_for_group(
+        &self,
+        group_id: i32,
+        subgroup: Option<&str>,
+        day_of_week: i32,
+        start_time: &str,
+        end_time: &str,
+        exclude_id: Option<i32>,
+    ) -> Result<Option<ScheduleSlot>, DomainError> {
+        let row = sqlx::query_as::<_, SlotRow>(
+            "SELECT id, teacher_id, subject_id, classroom_id, group_id, day_of_week,
+                    start_time::text AS start_time, end_time::text AS end_time,
+                    subgroup, is_published, created_by_id, created_at, updated_at
+             FROM schedule_slots
+             WHERE day_of_week = $1
+               AND group_id = $2
+                AND (
+                    COALESCE(NULLIF(BTRIM($3::text), ''), '') = ''
+                    OR COALESCE(NULLIF(BTRIM(subgroup), ''), '') = ''
+                    OR COALESCE(NULLIF(BTRIM(subgroup), ''), '') = COALESCE(NULLIF(BTRIM($3::text), ''), '')
+                )
+               AND start_time < $4::time
+               AND end_time > $5::time
+               AND ($6::int IS NULL OR id != $6)
+             LIMIT 1",
+        )
+        .bind(day_of_week)
+        .bind(group_id)
+        .bind(subgroup)
+        .bind(end_time)
+        .bind(start_time)
+        .bind(exclude_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+
+        Ok(row.map(Into::into))
+    }
+
     async fn find_conflict_for_classroom(
         &self,
         classroom_id: i32,

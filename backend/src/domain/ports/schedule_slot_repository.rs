@@ -22,6 +22,15 @@ pub trait ScheduleSlotRepository: Send + Sync {
         end_time: &str,
         exclude_id: Option<i32>,
     ) -> Result<Option<ScheduleSlot>, DomainError>;
+    async fn find_conflict_for_group(
+        &self,
+        group_id: i32,
+        subgroup: Option<&str>,
+        day_of_week: i32,
+        start_time: &str,
+        end_time: &str,
+        exclude_id: Option<i32>,
+    ) -> Result<Option<ScheduleSlot>, DomainError>;
     async fn find_conflict_for_classroom(
         &self,
         classroom_id: i32,

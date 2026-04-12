@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ActionSheetController } from '@ionic/angular/standalone';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild, ElementRef, AfterViewChecked, HostListener } from '@angular/core';
 import { addIcons } from 'ionicons';
-import { calendarOutline, checkmarkCircleOutline, ellipseOutline, ellipsisVertical, listOutline, checkbox, informationCircleOutline, close, closeCircleOutline } from 'ionicons/icons';
+import { calendarOutline, checkmarkCircleOutline, ellipseOutline, ellipsisVertical, informationCircleOutline, close, closeCircleOutline } from 'ionicons/icons';
 import { IonBadge, IonChip, IonIcon } from '@ionic/angular/standalone';
 import {
     formatClockTime,
@@ -34,25 +34,29 @@ interface DayCluster {
     template: `
     <div class="schedule-calendar" [style.--schedule-day-count]="visibleDays.length">
             <div class="schedule-calendar__toolbar" *ngIf="editable && events.length > 0">
-                <button type="button" class="schedule-calendar__selection-mode-btn" [class.schedule-calendar__selection-mode-btn--active]="selectionMode" (click)="toggleSelectionMode()">
-                    <ion-icon [name]="selectionMode ? 'checkbox' : 'list-outline'"></ion-icon>
-                    <span>{{ selectionMode ? 'Cancelar' : 'Selección Múltiple' }}</span>
-                </button>
-
                 <div *ngIf="selectionMode" class="schedule-calendar__toolbar-actions">
-                    <button type="button" class="schedule-calendar__toolbar-action-btn schedule-calendar__toolbar-action-btn--success" [disabled]="publishSelectionDisabled" (click)="requestPublishSelection($event)">
-                        {{ publishSelectionText }}
+                    <button type="button" class="schedule-calendar__toolbar-action-btn schedule-calendar__toolbar-action-btn--danger" [disabled]="selectionCount === 0" (click)="requestDeleteSelection($event)">
+                        Borrar
                     </button>
                     <button type="button" class="schedule-calendar__toolbar-action-btn schedule-calendar__toolbar-action-btn--warning" [disabled]="hideSelectionDisabled" (click)="requestHideSelection($event)">
                         {{ hideSelectionText }}
                     </button>
+                    <button type="button" class="schedule-calendar__toolbar-action-btn schedule-calendar__toolbar-action-btn--success" [disabled]="publishSelectionDisabled" (click)="requestPublishSelection($event)">
+                        {{ publishSelectionText }}
+                    </button>
                     <button type="button" class="schedule-calendar__toolbar-action-btn" (click)="selectAllVisible($event)">
                         Seleccionar todo
                     </button>
-                    <button type="button" class="schedule-calendar__toolbar-action-btn schedule-calendar__toolbar-action-btn--danger" [disabled]="selectionCount === 0" (click)="requestDeleteSelection($event)">
-                        Borrar
-                    </button>
                 </div>
+
+                <button
+                    type="button"
+                    class="schedule-calendar__toolbar-action-btn schedule-calendar__toolbar-selection-btn"
+                    [class.schedule-calendar__toolbar-selection-btn--active]="selectionMode"
+                    [attr.aria-label]="selectionMode ? 'Cancelar selección' : 'Activar selección múltiple'"
+                    (click)="toggleSelectionMode()">
+                    <span>{{ selectionMode ? 'x' : 'Modo Selección' }}</span>
+                </button>
             </div>
 
       <div class="schedule-calendar__viewport">
@@ -611,8 +615,6 @@ addIcons({
     checkmarkCircleOutline,
     ellipseOutline,
     ellipsisVertical,
-    listOutline,
-    checkbox,
     informationCircleOutline,
     close,
     closeCircleOutline
