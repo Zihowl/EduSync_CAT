@@ -22,7 +22,7 @@
 .catalog-toolbar__grid {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.75rem;
 }
 
 .catalog-toolbar__search {
@@ -43,15 +43,15 @@
 }
 
 .catalog-toolbar__controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.85rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.65rem;
   align-items: stretch;
 }
 
 .catalog-toolbar__select {
-  flex: 1 1 12rem;
   min-width: 0;
+  width: 100%;
   --background: rgba(8, 13, 23, 0.58);
   --color: #f8fafc;
   --placeholder-color: rgba(248, 250, 252, 0.78);
@@ -66,6 +66,13 @@
   text-align: left;
 }
 
+.catalog-toolbar__sort-group {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
 .catalog-toolbar__select::part(container) {
   background: transparent;
 }
@@ -76,16 +83,15 @@
 }
 
 .catalog-toolbar__clear {
-  flex: 0 0 auto;
-  align-self: stretch;
-  margin-left: auto;
-  min-width: 10.5rem;
+  width: 100%;
+  min-width: 0;
+  justify-self: stretch;
   --border-color: rgba(148, 163, 184, 0.24);
   --color: rgba(248, 250, 252, 0.92);
   --border-radius: 0.8rem;
   --background-hover: rgba(96, 165, 250, 0.12);
   --background-activated: rgba(96, 165, 250, 0.18);
-  min-height: 3rem;
+  min-height: 2.9rem;
 }
 
 .catalog-toolbar__clear ion-icon {
@@ -94,7 +100,7 @@
 
 @media (min-width: 720px) {
   .catalog-toolbar__controls {
-    align-items: end;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   }
 
   .catalog-toolbar__search {
@@ -104,22 +110,32 @@
   .catalog-toolbar__clear {
     justify-content: center;
   }
+
+  .catalog-toolbar__sort-direction {
+    width: 2.9rem;
+    min-width: 2.9rem;
+    justify-self: end;
+  }
 }
 
 @media (min-width: 1080px) {
-  .catalog-toolbar__select {
-    flex-basis: 13rem;
+  .catalog-toolbar__controls {
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
   }
 }
 
 @media (max-width: 719px) {
   .catalog-toolbar__controls {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 
-  .catalog-toolbar__clear,
-  .catalog-toolbar__select {
-    width: 100%;
-    margin-left: 0;
+  .catalog-toolbar__sort-group {
+    grid-template-columns: 1fr auto;
+  }
+
+  .catalog-toolbar__sort-direction {
+    width: 2.7rem;
+    min-width: 2.7rem;
+    justify-self: end;
   }
 }
