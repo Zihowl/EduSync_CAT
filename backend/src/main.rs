@@ -232,6 +232,9 @@ async fn graphql_playground() -> impl IntoResponse {
     Html(playground_source(GraphQLPlaygroundConfig::new("/graphql")))
 }
 
+// Checa si la base de datos tiene usuarios. Si no tiene, o si solo tiene un usuario
+// con email @setup.local, genera credenciales de súper administrador y las muestra
+// en consola.
 async fn genesis_protocol(user_repo: Arc<dyn UserRepository>) -> anyhow::Result<()> {
     let users = user_repo.find_all().await.map_err(anyhow::Error::msg)?;
 
