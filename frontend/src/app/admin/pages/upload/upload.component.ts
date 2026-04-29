@@ -5,6 +5,8 @@ import { Apollo, gql } from 'apollo-angular';
 import { firstValueFrom } from 'rxjs';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { NotificationService } from '../../../shared/services/notification.service';
+import { PopoverController } from '@ionic/angular';
+import { MissingItemsPopoverComponent } from '../../../shared/components/missing-items-popover/missing-items-popover.component';
 import { getGraphQLErrorMessage } from '../../../shared/utils/graphql-error';
 import { normalizeCatalogText } from '../../../shared/utils/catalog-query';
 import {
@@ -271,22 +273,23 @@ const CREATE_CLASSROOM = gql`
                                     </p>
                                 </div>
 
-                                <ion-button
-                                    class="upload-missing-card__action"
-                                    color="warning"
-                                    expand="block"
-                                    (click)="CreateMissingCatalogItems()"
-                                    [disabled]="isPreviewLoading || isConfirmLoading || isCreatingMissingCatalogs">
-                                    <ion-spinner *ngIf="isCreatingMissingCatalogs" name="crescent" slot="start"></ion-spinner>
-                                    {{ isCreatingMissingCatalogs ? 'Creando...' : 'Crear faltantes' }}
-                                </ion-button>
+                                <div class="upload-missing-card__action-wrap">
+                                    <ion-button
+                                        class="upload-missing-card__action"
+                                        color="warning"
+                                        (click)="CreateMissingCatalogItems()"
+                                        [disabled]="isPreviewLoading || isConfirmLoading || isCreatingMissingCatalogs">
+                                        <ion-spinner *ngIf="isCreatingMissingCatalogs" name="crescent" slot="start"></ion-spinner>
+                                        {{ isCreatingMissingCatalogs ? 'Creando...' : 'Crear faltantes' }}
+                                    </ion-button>
+                                </div>
                             </div>
 
                             <div class="upload-missing-card__chips">
-                                <ion-chip *ngIf="missingSubjects.length" color="warning">{{ missingSubjects.length }} materias</ion-chip>
-                                <ion-chip *ngIf="missingTeachers.length" color="warning">{{ missingTeachers.length }} docentes</ion-chip>
-                                <ion-chip *ngIf="missingBuildings.length" color="warning">{{ missingBuildings.length }} edificios</ion-chip>
-                                <ion-chip *ngIf="missingClassrooms.length" color="warning">{{ missingClassrooms.length }} aulas</ion-chip>
+                                <ion-chip *ngIf="missingSubjects.length" color="warning" (click)="OpenMissingItemsPopover($event, 'subject')">{{ missingSubjects.length }} materias</ion-chip>
+                                <ion-chip *ngIf="missingTeachers.length" color="warning" (click)="OpenMissingItemsPopover($event, 'teacher')">{{ missingTeachers.length }} docentes</ion-chip>
+                                <ion-chip *ngIf="missingBuildings.length" color="warning" (click)="OpenMissingItemsPopover($event, 'building')">{{ missingBuildings.length }} edificios</ion-chip>
+                                <ion-chip *ngIf="missingClassrooms.length" color="warning" (click)="OpenMissingItemsPopover($event, 'classroom')">{{ missingClassrooms.length }} aulas</ion-chip>
                             </div>
                         </div>
 
@@ -379,12 +382,14 @@ const CREATE_CLASSROOM = gql`
             </div>
         </ion-content>
     `,
-    styleUrls: ['./upload.component.scss']
+    styleUrls: ['./upload.component.scss'],
+    providers: [PopoverController]
 })
 export class UploadComponent implements OnInit {
     private apollo = inject(Apollo);
     private http = inject(HttpClient);
     private notifications = inject(NotificationService);
+    private popover = inject(PopoverController);
     private apiUrl = environment.apiUrl;
     private fileInputElement: HTMLInputElement | null = null;
 
@@ -538,6 +543,179 @@ export class UploadComponent implements OnInit {
             return false;
         } finally {
             this.isPreviewLoading = false;
+        }
+    }
+
+    async OpenMissingItemsPopover(ev?: Event, category: MissingCatalogType | 'all' = 'all'): Promise<void> {
+        const pop = await this.popover.create({
+            component: MissingItemsPopoverComponent,
+            componentProps: {
+                missingSubjects: this.missingSubjects,
+                missingTeachers: this.missingTeachers,
+                missingBuildings: this.missingBuildings,
+                missingClassrooms: this.missingClassrooms,
+                activeCategory: category,
+            },
+            event: ev,
+            translucent: true,
+            cssClass: 'upload-missing-popover',
+        });
+
+        await pop.present();
+        const { data } = await pop.onDidDismiss();
+        if (!data) return;
+
+        if (data.action === 'createSelected') {
+            await this.createSelectedMissingFromPopover(data.items ?? []);
+        } else if (data.action === 'createAll') {
+            await this.CreateMissingCatalogItems();
+        } else if (data.action === 'editItem') {
+            const item = data.item;
+            const confirmed = await this.notifications.confirm({
+                title: 'Crear elemento',
+                message: `¿Crear ${this.missingItemLabel(item)}?`,
+                confirmText: 'Crear',
+                cancelText: 'Cancelar',
+                confirmColor: 'warning',
+            });
+
+            if (confirmed) {
+                await this.createSelectedMissingFromPopover([item]);
+            }
+        }
+    }
+
+    defaultMissingCatalogCategory(): MissingCatalogType | 'all' {
+        if (this.missingSubjects.length) return 'subject';
+        if (this.missingTeachers.length) return 'teacher';
+        if (this.missingBuildings.length) return 'building';
+        if (this.missingClassrooms.length) return 'classroom';
+        return 'all';
+    }
+
+    private missingItemLabel(item: MissingCatalogItem): string {
+        if (!item) return '';
+        switch (item.type) {
+            case 'subject':
+                return `${item.row.claveMateria} — ${item.row.materia || item.key}`;
+            case 'teacher':
+                return `${item.row.noEmpleado} — ${item.row.docente || item.key}`;
+            case 'building':
+                return `${item.row.edificio}`;
+            case 'classroom':
+                return `${item.row.aula} — ${item.row.edificio}`;
+        }
+    }
+
+    private async createSelectedMissingFromPopover(items: MissingCatalogItem[]): Promise<void> {
+        if (!items || items.length === 0) return;
+
+        const counts = items.reduce((acc: any, it) => {
+            acc[it.type] = (acc[it.type] || 0) + 1;
+            return acc;
+        }, {});
+        const parts: string[] = [];
+        if (counts.subject) parts.push(`${counts.subject} ${counts.subject === 1 ? 'materia' : 'materias'}`);
+        if (counts.teacher) parts.push(`${counts.teacher} ${counts.teacher === 1 ? 'docente' : 'docentes'}`);
+        if (counts.building) parts.push(`${counts.building} ${counts.building === 1 ? 'edificio' : 'edificios'}`);
+        if (counts.classroom) parts.push(`${counts.classroom} ${counts.classroom === 1 ? 'aula' : 'aulas'}`);
+
+        const confirmed = await this.notifications.confirm({
+            title: 'Crear catálogos seleccionados',
+            message: `Se crearán ${parts.join(', ')} a partir del archivo. ¿Continuar?`,
+            confirmText: 'Crear',
+            cancelText: 'Cancelar',
+            confirmColor: 'warning',
+        });
+
+        if (!confirmed) return;
+
+        this.isCreatingMissingCatalogs = true;
+
+        try {
+            const state = await this.loadCurrentCatalogState();
+            const failures: string[] = [];
+
+            // Create buildings first
+            const buildings = items.filter(i => i.type === 'building');
+            for (const b of buildings) {
+                const buildingName = b.row.edificio;
+                const buildingKey = this.buildCatalogKey(buildingName);
+                if (state.buildings.has(buildingKey)) continue;
+
+                try {
+                    const id = await this.createBuilding(buildingName);
+                    state.buildings.set(buildingKey, id);
+                } catch (err: any) {
+                    if (this.isDuplicateCatalogError(err)) {
+                        const resolved = await this.findBuildingIdByName(buildingName);
+                        if (resolved !== null) state.buildings.set(buildingKey, resolved);
+                        else failures.push(`No se pudo crear el edificio ${buildingName}.`);
+                    } else {
+                        failures.push(getGraphQLErrorMessage(err, `No se pudo crear el edificio ${buildingName}.`));
+                    }
+                }
+            }
+
+            // Subjects
+            const subjects = items.filter(i => i.type === 'subject');
+            for (const s of subjects) {
+                const subjectKey = this.buildCatalogKey(s.row.claveMateria);
+                if (state.subjects.has(subjectKey)) continue;
+                try {
+                    await this.createSubject(s.row);
+                    state.subjects.set(subjectKey, 1);
+                } catch (err: any) {
+                    if (!this.isDuplicateCatalogError(err)) failures.push(getGraphQLErrorMessage(err, `No se pudo crear la materia ${s.row.claveMateria}.`));
+                }
+            }
+
+            // Teachers
+            const teachers = items.filter(i => i.type === 'teacher');
+            for (const t of teachers) {
+                const teacherKey = this.buildCatalogKey(t.row.noEmpleado);
+                if (state.teachers.has(teacherKey)) continue;
+                try {
+                    await this.createTeacher(t.row);
+                    state.teachers.set(teacherKey, 1);
+                } catch (err: any) {
+                    if (!this.isDuplicateCatalogError(err)) failures.push(getGraphQLErrorMessage(err, `No se pudo crear el docente ${t.row.noEmpleado}.`));
+                }
+            }
+
+            // Classrooms
+            const classrooms = items.filter(i => i.type === 'classroom');
+            for (const c of classrooms) {
+                const buildingKey = this.buildCatalogKey(c.row.edificio);
+                const classroomKey = this.buildClassroomKey(c.row.edificio, c.row.aula);
+                const buildingId = state.buildings.get(buildingKey);
+                if (!buildingId) {
+                    failures.push(`No se pudo resolver el edificio ${c.row.edificio} para crear el aula ${c.row.aula}.`);
+                    continue;
+                }
+
+                if (state.classrooms.has(classroomKey)) continue;
+
+                try {
+                    await this.createClassroom(c.row, buildingId);
+                    state.classrooms.set(classroomKey, 1);
+                } catch (err: any) {
+                    if (!this.isDuplicateCatalogError(err)) failures.push(getGraphQLErrorMessage(err, `No se pudo crear el aula ${c.row.aula} en ${c.row.edificio}.`));
+                }
+            }
+
+            await this.PreviewUpload(false);
+
+            if (failures.length > 0) {
+                this.notifications.warning(`Se crearon algunos elementos, pero hubo incidencias: ${failures.slice(0, 3).join(' ')}`, 'Creación parcial', { autoDismissMs: 0 });
+            } else {
+                this.notifications.success('Elementos creados correctamente.', 'Creación completa');
+            }
+        } catch (err: any) {
+            this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudieron crear los elementos seleccionados.'), 'Error', { autoDismissMs: 0 });
+        } finally {
+            this.isCreatingMissingCatalogs = false;
+            this.refreshMissingCatalogItems();
         }
     }
 

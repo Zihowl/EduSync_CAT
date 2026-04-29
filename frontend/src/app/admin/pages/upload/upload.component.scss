@@ -236,7 +236,18 @@
     display: flex;
     gap: 1rem;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
+}
+
+.upload-missing-card__header > div:first-child {
+    min-width: 0;
+}
+
+.upload-missing-card__action-wrap {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+    justify-content: flex-end;
 }
 
 .upload-missing-card__title {
@@ -254,16 +265,31 @@
 }
 
 .upload-missing-card__action {
-    min-width: 12rem;
     --border-radius: 999px;
     font-weight: 700;
     margin: 0;
+    min-width: 11rem;
 }
 
 .upload-missing-card__chips {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
+}
+
+@media (max-width: 720px) {
+    .upload-missing-card__header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .upload-missing-card__action-wrap {
+        justify-content: flex-start;
+    }
+
+    .upload-missing-card__action {
+        width: 100%;
+    }
 }
 
 .upload-loading-state,

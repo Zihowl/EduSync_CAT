@@ -1,0 +1,253 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: min(78vh, 620px);
+  width: 100%;
+  color: #f8fafc;
+}
+
+.missing-popover-content {
+  --background: transparent;
+  --padding-bottom: 0.75rem;
+  --padding-end: 0.75rem;
+  --padding-start: 0.75rem;
+  --padding-top: 0.75rem;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.missing-popover__header ion-toolbar,
+.missing-popover__footer ion-toolbar {
+  --background: rgba(15, 23, 42, 0.96);
+  --border-color: rgba(148, 163, 184, 0.14);
+  --color: #f8fafc;
+}
+
+.missing-popover__header,
+.missing-popover__footer {
+  flex: 0 0 auto;
+}
+
+.missing-popover__header ion-title {
+  padding-inline: 0.85rem;
+}
+
+.missing-popover__header ion-title span,
+.missing-popover__header ion-title small {
+  display: block;
+}
+
+.missing-popover__header ion-title span {
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.missing-popover__header ion-title small {
+  color: rgba(203, 213, 225, 0.72);
+  font-size: 0.68rem;
+  font-weight: 600;
+  margin-top: 0.1rem;
+}
+
+.missing-popover__summary {
+  align-items: center;
+  background: rgba(30, 41, 59, 0.54);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 0.9rem;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  padding: 0.65rem 0.75rem;
+}
+
+.missing-popover__summary p {
+  color: rgba(226, 232, 240, 0.78);
+  font-size: 0.76rem;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.missing-popover__quick-action {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 999px;
+  color: #fbbf24;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.35rem 0.55rem;
+}
+
+.missing-popover__quick-action:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.missing-popover__search {
+  align-items: center;
+  background: rgba(2, 6, 23, 0.36);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 0.85rem;
+  display: flex;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+  padding: 0.45rem 0.65rem;
+}
+
+.missing-popover__search ion-icon {
+  color: rgba(148, 163, 184, 0.86);
+  font-size: 0.92rem;
+}
+
+.missing-popover__search input {
+  background: transparent;
+  border: 0;
+  color: #f8fafc;
+  font-size: 0.78rem;
+  outline: 0;
+  width: 100%;
+}
+
+.missing-popover__search input::placeholder {
+  color: rgba(148, 163, 184, 0.7);
+}
+
+.missing-popover__list {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+  padding-bottom: 0.25rem;
+}
+
+.missing-popover__item {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.58);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 0.9rem;
+  cursor: pointer;
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 0.58rem 0.62rem;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.missing-popover__item:hover,
+.missing-popover__item--selected {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.34);
+}
+
+.missing-popover__item:active {
+  transform: scale(0.99);
+}
+
+.missing-popover__item ion-checkbox {
+  --border-color: rgba(203, 213, 225, 0.45);
+  --checkbox-background: rgba(15, 23, 42, 0.8);
+  --checkbox-background-checked: #f59e0b;
+  --checkmark-color: #111827;
+  --size: 1rem;
+}
+
+.missing-popover__item-copy {
+  min-width: 0;
+}
+
+.missing-popover__item-copy strong,
+.missing-popover__item-copy span,
+.missing-popover__item-copy em {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.missing-popover__item-copy strong {
+  color: #f8fafc;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.missing-popover__item-copy span {
+  color: rgba(203, 213, 225, 0.78);
+  font-size: 0.68rem;
+  margin-top: 0.12rem;
+}
+
+.missing-popover__item-copy em {
+  color: #fbbf24;
+  font-size: 0.66rem;
+  font-style: normal;
+  font-weight: 700;
+  margin-top: 0.16rem;
+}
+
+.missing-popover__item-action {
+  --color: rgba(248, 250, 252, 0.82);
+  height: 1.75rem;
+  margin: 0;
+  width: 1.75rem;
+}
+
+.missing-popover__empty {
+  align-items: center;
+  border: 1px dashed rgba(148, 163, 184, 0.28);
+  border-radius: 1rem;
+  color: rgba(203, 213, 225, 0.75);
+  display: grid;
+  gap: 0.25rem;
+  justify-items: center;
+  margin-top: 0.75rem;
+  min-height: 8rem;
+  padding: 1rem;
+  text-align: center;
+}
+
+.missing-popover__empty strong {
+  color: #f8fafc;
+  font-size: 0.84rem;
+}
+
+.missing-popover__empty span {
+  font-size: 0.72rem;
+}
+
+.missing-popover__footer ion-toolbar {
+  padding: 0.42rem 0.5rem;
+}
+
+.missing-popover__footer-content {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.missing-popover__footer-content > span {
+  color: rgba(203, 213, 225, 0.72);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding-left: 0.3rem;
+  white-space: nowrap;
+}
+
+.missing-popover__footer-content > div {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+@media (max-width: 420px) {
+  .missing-popover__summary,
+  .missing-popover__footer-content {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .missing-popover__quick-action {
+    width: 100%;
+  }
+}
