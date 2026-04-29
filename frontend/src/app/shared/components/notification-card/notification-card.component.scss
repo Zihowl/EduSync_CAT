@@ -12,54 +12,68 @@
   left: 0;
   right: 0;
   margin: 0 auto;
-  width: min(calc(100% - 2rem), 400px);
+  width: min(calc(100% - 2rem), 420px);
   box-sizing: border-box;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--notification-card-shadow);
   pointer-events: auto;
   z-index: 1;
+  border-radius: var(--notification-card-radius);
+  overflow: hidden;
 
   /* CSS Variables for theming */
-  border: 1px solid var(--card-border);
+  border: none;
   background: var(--card-bg);
   color: var(--card-text);
 }
 
+.notification-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--card-border);
+  z-index: 0;
+}
+
 .notification-card--danger {
-  --card-border: rgba(220, 38, 38, 0.35);
-  --card-bg: rgba(220, 38, 38, 0.18);
-  --card-text: #fee2e2;
-  --card-icon: #f87171;
-  --card-subtext: #ffe4e6;
+  --card-border: var(--notification-accent-danger);
+  --card-bg: var(--app-notification-surface);
+  --card-text: var(--app-notification-foreground);
+  --card-icon: var(--notification-accent-danger);
+  --card-subtext: #fee2e2;
 }
 
 .notification-card--warning {
-  --card-border: rgba(234, 179, 8, 0.35);
-  --card-bg: rgba(234, 179, 8, 0.18);
-  --card-text: #fffbeb;
-  --card-icon: #facc15;
-  --card-subtext: #fffbeb;
+  --card-border: var(--notification-accent-warning);
+  --card-bg: var(--app-notification-surface);
+  --card-text: var(--app-notification-foreground);
+  --card-icon: var(--notification-accent-warning);
+  --card-subtext: #fef3c7;
 }
 
 .notification-card--info {
-  --card-border: rgba(56, 189, 248, 0.35);
-  --card-bg: rgba(56, 189, 248, 0.18);
-  --card-text: #e0f2fe;
-  --card-icon: #38bdf8;
+  --card-border: var(--notification-accent-info);
+  --card-bg: var(--app-notification-surface);
+  --card-text: var(--app-notification-foreground);
+  --card-icon: var(--notification-accent-info);
   --card-subtext: #e0f2fe;
 }
 
 .notification-card--success {
-  --card-border: rgba(34, 197, 94, 0.35);
-  --card-bg: rgba(34, 197, 94, 0.18);
-  --card-text: #ecfdf5;
-  --card-icon: #4ade80;
+  --card-border: var(--notification-accent-success);
+  --card-bg: var(--app-notification-surface);
+  --card-text: var(--app-notification-foreground);
+  --card-icon: var(--notification-accent-success);
   --card-subtext: #dcfce7;
 }
 
 
 .notification-card-content {
   position: relative;
-  padding: 0.9rem 0.9rem 0.85rem;
+  padding: 0.9rem 0.9rem 0.85rem 1.2rem;
+  z-index: 1;
 }
 
 .notification-card-body {

@@ -42,6 +42,16 @@
 	--app-notification-header-offset: 56px;
 	--app-notification-gap: 0.75rem;
 
+  /* Notification tokens (solid surfaces, accents) */
+  --app-notification-surface: #0f172a;
+  --app-notification-foreground: #ffffff;
+  --notification-accent-danger: #dc2626;
+  --notification-accent-warning: #f59e0b;
+  --notification-accent-info: #06b6d4;
+  --notification-accent-success: #16a34a;
+  --notification-card-radius: 0.75rem;
+  --notification-card-shadow: 0 8px 24px rgba(2, 6, 23, 0.45);
+
         /* Catalog Form Modal & Unified Modal Theme Variables */
       --cfm-surface-bg: rgba(15, 23, 42, 0.94);
       --cfm-border: rgba(148, 163, 184, 0.2);
