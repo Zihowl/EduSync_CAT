@@ -454,3 +454,32 @@
     gap: 0.35rem;
     margin-top: 0.45rem;
 }
+
+.upload-custom-popover {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10000;
+    pointer-events: auto;
+    width: min(92vw, 430px);
+    height: min(78vh, 620px);
+    background: rgba(15, 23, 42, 0.98);
+    box-shadow: 0 24px 70px rgba(2, 6, 23, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 1.1rem;
+    overflow: hidden;
+    animation: fade-in-scale 0.18s ease-out forwards;
+}
+
+@keyframes fade-in-scale {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -46%) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+

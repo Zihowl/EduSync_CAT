@@ -81,9 +81,20 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let config = Arc::new(AppConfig::from_env());
-    let pool = PgPool::connect(&config.database_url).await?;
+    let pool = match PgPool::connect(&config.database_url).await {
+        Ok(p) => p,
+        Err(e) => {
+            tracing::error!(error = %e, "No se pudo conectar a la base de datos");
+            eprintln!("Error al conectar a la base de datos: {}", e);
+            std::process::exit(1);
+        }
+    };
 
-    sqlx::migrate!("./migrations").run(&pool).await?;
+    if let Err(e) = sqlx::migrate!("./migrations").run(&pool).await {
+        tracing::error!(error = %e, "Fallo al ejecutar migraciones de la base de datos");
+        eprintln!("Error al ejecutar migraciones: {}", e);
+        std::process::exit(1);
+    }
 
     let user_repo: Arc<dyn UserRepository> = Arc::new(PgUserRepository::new(pool.clone()));
     let allowed_domain_repo: Arc<dyn AllowedDomainRepository> =

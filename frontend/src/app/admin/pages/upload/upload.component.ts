@@ -173,7 +173,8 @@ const CREATE_CLASSROOM = gql`
         IonBadge,
         IonChip,
         IonSpinner,
-        PageHeaderComponent
+        PageHeaderComponent,
+        MissingItemsPopoverComponent
     ],
     template: `
         <app-page-header title="Carga de Horarios" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
@@ -362,8 +363,14 @@ const CREATE_CLASSROOM = gql`
                         <div *ngIf="previewResult?.details?.errors?.length" class="upload-summary-error">
                             <ion-icon name="warning-outline"></ion-icon>
                             <div>
-                                <strong>Hay registros inválidos</strong>
-                                <p>Corrige los elementos marcados en rojo para habilitar la confirmación.</p>
+                                <strong *ngIf="previewRows.length > 0">Hay registros inválidos</strong>
+                                <strong *ngIf="previewRows.length === 0">Error en la previsualización</strong>
+                                <p *ngIf="previewRows.length > 0">Corrige los elementos marcados en rojo para habilitar la confirmación.</p>
+                                <div class="upload-summary-error-list">
+                                    <div *ngFor="let err of previewResult?.details?.errors">
+                                        <ion-chip color="danger">{{ err }}</ion-chip>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -380,6 +387,19 @@ const CREATE_CLASSROOM = gql`
                     </ion-card-content>
                 </ion-card>
             </div>
+
+            <!-- Custom absolute popover so we don't use Ionic's scroll-blocking overlay -->
+            <div class="upload-custom-popover" *ngIf="activeMissingCategory">
+                <app-missing-items-popover
+                    [missingSubjects]="missingSubjects"
+                    [missingTeachers]="missingTeachers"
+                    [missingBuildings]="missingBuildings"
+                    [missingClassrooms]="missingClassrooms"
+                    [activeCategory]="activeMissingCategory"
+                    (closed)="PopMissingItemsPopover($event)">
+                </app-missing-items-popover>
+            </div>
+
         </ion-content>
     `,
     styleUrls: ['./upload.component.scss'],
@@ -392,6 +412,8 @@ export class UploadComponent implements OnInit {
     private popover = inject(PopoverController);
     private apiUrl = environment.apiUrl;
     private fileInputElement: HTMLInputElement | null = null;
+    
+    activeMissingCategory: MissingCatalogType | 'all' | null = null;
 
     expectedColumns = [
         { label: 'ClaveMateria', required: true },
@@ -547,22 +569,11 @@ export class UploadComponent implements OnInit {
     }
 
     async OpenMissingItemsPopover(ev?: Event, category: MissingCatalogType | 'all' = 'all'): Promise<void> {
-        const pop = await this.popover.create({
-            component: MissingItemsPopoverComponent,
-            componentProps: {
-                missingSubjects: this.missingSubjects,
-                missingTeachers: this.missingTeachers,
-                missingBuildings: this.missingBuildings,
-                missingClassrooms: this.missingClassrooms,
-                activeCategory: category,
-            },
-            event: ev,
-            translucent: true,
-            cssClass: 'upload-missing-popover',
-        });
+        this.activeMissingCategory = category;
+    }
 
-        await pop.present();
-        const { data } = await pop.onDidDismiss();
+    async PopMissingItemsPopover(data?: any): Promise<void> {
+        this.activeMissingCategory = null;
         if (!data) return;
 
         if (data.action === 'createSelected') {

@@ -67,22 +67,6 @@
   margin: 0;
 }
 
-.missing-popover__quick-action {
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.28);
-  border-radius: 999px;
-  color: #fbbf24;
-  cursor: pointer;
-  flex: 0 0 auto;
-  font-size: 0.68rem;
-  font-weight: 800;
-  padding: 0.35rem 0.55rem;
-}
-
-.missing-popover__quick-action:disabled {
-  cursor: default;
-  opacity: 0.45;
-}
 
 .missing-popover__search {
   align-items: center;
@@ -184,12 +168,6 @@
   margin-top: 0.16rem;
 }
 
-.missing-popover__item-action {
-  --color: rgba(248, 250, 252, 0.82);
-  height: 1.75rem;
-  margin: 0;
-  width: 1.75rem;
-}
 
 .missing-popover__empty {
   align-items: center;

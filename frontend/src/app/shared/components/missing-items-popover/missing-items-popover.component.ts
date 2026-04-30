@@ -1,4 +1,4 @@
-import { Component, Input, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -6,15 +6,13 @@ import {
     IonToolbar,
     IonTitle,
     IonContent,
-    IonCheckbox,
     IonButton,
     IonIcon,
-    IonFooter,
     IonButtons,
 } from '@ionic/angular/standalone';
 import { PopoverController } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { addOutline, searchOutline } from 'ionicons/icons';
+import { searchOutline } from 'ionicons/icons';
 
 type MissingCatalogType = 'subject' | 'teacher' | 'building' | 'classroom';
 
@@ -46,7 +44,7 @@ interface MissingCatalogItem {
 @Component({
     selector: 'app-missing-items-popover',
     standalone: true,
-    imports: [CommonModule, FormsModule, IonHeader, IonToolbar, IonTitle, IonContent, IonCheckbox, IonButton, IonIcon, IonFooter, IonButtons],
+    imports: [CommonModule, FormsModule, IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonIcon, IonButtons],
     templateUrl: './missing-items-popover.component.html',
     styleUrls: ['./missing-items-popover.component.scss']
 })
@@ -57,15 +55,15 @@ export class MissingItemsPopoverComponent {
     @Input() missingClassrooms: MissingCatalogItem[] = [];
 
     @Input() activeCategory: MissingCatalogType | 'all' = 'all';
+    @Output() closed = new EventEmitter<any>();
     searchText = '';
-    selectedKeys = new Set<string>();
 
     private popoverCtrl = inject(PopoverController);
     private readonly categoryCopy: Record<MissingCatalogType | 'all', { title: string; plural: string; hint: string }> = {
         all: {
             title: 'Catálogos faltantes',
             plural: 'elementos',
-            hint: 'Revisa y crea los elementos detectados en el archivo.',
+            hint: 'Revisa los elementos detectados en el archivo.',
         },
         subject: {
             title: 'Materias faltantes',
@@ -90,47 +88,14 @@ export class MissingItemsPopoverComponent {
     };
 
     constructor() {
-        addIcons({ addOutline, searchOutline });
+        addIcons({ searchOutline });
     }
 
     dismiss(result?: any) {
-        this.popoverCtrl.dismiss(result);
-    }
-
-    toggleSelection(item: MissingCatalogItem) {
-        if (this.selectedKeys.has(item.key)) {
-            this.selectedKeys.delete(item.key);
-        } else {
-            this.selectedKeys.add(item.key);
-        }
-    }
-
-    selectAllForActive() {
-        const items = this.itemsForActiveCategory();
-        for (const it of items) this.selectedKeys.add(it.key);
-    }
-
-    clearSelection() {
-        this.selectedKeys.clear();
-    }
-
-    createSelected() {
-        const all = this.flattenItems();
-        const selected = all.filter(i => this.selectedKeys.has(i.key));
-        this.popoverCtrl.dismiss({ action: 'createSelected', items: selected });
-    }
-
-    createAll() {
-        if (this.activeCategory === 'all') {
-            this.popoverCtrl.dismiss({ action: 'createAll' });
-            return;
-        }
-
-        this.popoverCtrl.dismiss({ action: 'createSelected', items: this.itemsForCategory(this.activeCategory) });
-    }
-
-    editItem(item: MissingCatalogItem) {
-        this.popoverCtrl.dismiss({ action: 'editItem', item });
+        this.closed.emit(result);
+        try {
+            this.popoverCtrl.dismiss(result);
+        } catch (e) {}
     }
 
     flattenItems(): MissingCatalogItem[] {
@@ -166,14 +131,6 @@ export class MissingItemsPopoverComponent {
 
     activePlural(): string {
         return this.categoryCopy[this.activeCategory].plural;
-    }
-
-    createAllLabel(): string {
-        return 'Crear todo';
-    }
-
-    selectedVisibleCount(): number {
-        return this.itemsForActiveCategory().filter(item => this.selectedKeys.has(item.key)).length;
     }
 
     metaFor(item: MissingCatalogItem): string {

@@ -13,9 +13,6 @@
 <ion-content class="missing-popover-content">
   <section class="missing-popover__summary">
     <p>{{ activeHint() }}</p>
-    <button type="button" class="missing-popover__quick-action" (click)="selectAllForActive()" [disabled]="itemsForActiveCategory().length === 0">
-      Seleccionar visibles
-    </button>
   </section>
 
   <label class="missing-popover__search">
@@ -26,10 +23,7 @@
   <div class="missing-popover__list" *ngIf="itemsForActiveCategory().length > 0; else emptyState">
     <article
       class="missing-popover__item"
-      [class.missing-popover__item--selected]="selectedKeys.has(item.key)"
-      *ngFor="let item of itemsForActiveCategory()"
-      (click)="toggleSelection(item)">
-      <ion-checkbox [checked]="selectedKeys.has(item.key)" (click)="$event.stopPropagation()" (ionChange)="toggleSelection(item)"></ion-checkbox>
+      *ngFor="let item of itemsForActiveCategory()">
 
       <div class="missing-popover__item-copy">
         <strong>{{ labelFor(item) }}</strong>
@@ -37,10 +31,6 @@
         <span>{{ detailsFor(item) }}</span>
         <em>{{ rowsLabel(item) }}</em>
       </div>
-
-      <ion-button class="missing-popover__item-action" fill="clear" size="small" (click)="$event.stopPropagation(); editItem(item)">
-        <ion-icon name="add-outline"></ion-icon>
-      </ion-button>
     </article>
   </div>
 
@@ -52,15 +42,4 @@
   </ng-template>
 </ion-content>
 
-<ion-footer class="missing-popover__footer">
-  <ion-toolbar>
-    <div class="missing-popover__footer-content">
-      <span>{{ selectedVisibleCount() }} seleccionados</span>
-      <div>
-        <ion-button fill="clear" size="small" (click)="clearSelection()" [disabled]="selectedKeys.size === 0">Limpiar</ion-button>
-        <ion-button color="warning" size="small" (click)="createSelected()" [disabled]="selectedKeys.size === 0">Crear</ion-button>
-        <ion-button color="tertiary" fill="clear" size="small" (click)="createAll()" [disabled]="activeTotal() === 0">{{ createAllLabel() }}</ion-button>
-      </div>
-    </div>
-  </ion-toolbar>
-</ion-footer>
+<!-- footer removed: popover is now a read-only compact list -->

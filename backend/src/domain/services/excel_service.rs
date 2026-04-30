@@ -2,6 +2,7 @@ use std::{io::Cursor, sync::Arc};
 
 use calamine::{open_workbook_auto_from_rs, Data, Reader};
 use csv::ReaderBuilder;
+use encoding_rs::WINDOWS_1252;
 use serde::Serialize;
 
 use crate::domain::{
@@ -135,7 +136,23 @@ impl ExcelService {
         &self,
         file: &[u8],
     ) -> Result<ExcelPreviewResult, DomainError> {
-        let ParsedScheduleTable { headers, rows } = parse_uploaded_schedule_table(file)?;
+        // If parsing as Excel/CSV fails with a BadRequest (structural/formatting issues),
+        // return a successful HTTP-level response that contains the parse error message
+        // in the preview details. Other domain errors are still propagated.
+        let parsed_table = match parse_uploaded_schedule_table(file) {
+            Ok(t) => t,
+            Err(DomainError::BadRequest(msg)) => {
+                return Ok(ExcelPreviewResult {
+                    success: false,
+                    processed: 0,
+                    errors: vec![msg],
+                    rows: vec![],
+                })
+            }
+            Err(e) => return Err(e),
+        };
+
+        let ParsedScheduleTable { headers, rows } = parsed_table;
 
         let mut processed = 0usize;
         let mut errors = Vec::new();
@@ -300,69 +317,96 @@ impl ExcelService {
         }
 
         if !parsed.clave_materia.is_empty() {
-            match self.find_subject_id(&parsed.clave_materia).await? {
-                Some(_) => {}
-                None => errors.push(format!("Materia no encontrada: {}", parsed.clave_materia)),
+            match self.find_subject_id(&parsed.clave_materia).await {
+                Ok(Some(_)) => {}
+                Ok(None) => {
+                    errors.push(format!("Materia no encontrada: {}", parsed.clave_materia));
+                }
+                Err(err) => {
+                    errors.push(err.msg());
+                }
             }
         }
 
         let mut teacher_id = None;
         if !parsed.no_empleado.is_empty() {
-            match self.find_teacher_id(&parsed.no_empleado).await? {
-                Some(id) => teacher_id = Some(id),
-                None => errors.push(format!("Docente no encontrado: {}", parsed.no_empleado)),
+            match self.find_teacher_id(&parsed.no_empleado).await {
+                Ok(Some(id)) => teacher_id = Some(id),
+                Ok(None) => errors.push(format!("Docente no encontrado: {}", parsed.no_empleado)),
+                Err(err) => errors.push(err.msg()),
             }
         }
 
         let mut classroom_id = None;
         if !parsed.edificio.is_empty() {
-            match self.find_building_id(&parsed.edificio).await? {
-                Some(building_id) => {
+            match self.find_building_id(&parsed.edificio).await {
+                Ok(Some(building_id)) => {
                     if !parsed.aula.is_empty() {
-                        match self.find_classroom_id(&parsed.aula, building_id).await? {
-                            Some(id) => classroom_id = Some(id),
-                            None => errors.push(format!(
+                        match self.find_classroom_id(&parsed.aula, building_id).await {
+                            Ok(Some(id)) => classroom_id = Some(id),
+                            Ok(None) => errors.push(format!(
                                 "Salón no encontrado: {} en {}",
                                 parsed.aula, parsed.edificio
                             )),
+                            Err(err) => errors.push(err.msg()),
                         }
                     }
                 }
-                None => errors.push(format!("Edificio no encontrado: {}", parsed.edificio)),
+                Ok(None) => errors.push(format!("Edificio no encontrado: {}", parsed.edificio)),
+                Err(err) => errors.push(err.msg()),
             }
         }
         
         if !has_time_error {
             if let Some(c_id) = classroom_id {
-                let group = self
-                    .group_service
-                    .find_by_name_and_parent(&parsed.grupo, None)
-                    .await?;
+                if !parsed.grupo.is_empty() {
+                    match self
+                        .group_service
+                        .find_by_name_and_parent(&parsed.grupo, None)
+                        .await
+                    {
+                        Ok(Some(group)) => {
+                            let subgroup = if let Some(subgroup_name) = parsed.subgroup.as_deref() {
+                                match self
+                                    .group_service
+                                    .find_by_name_and_parent(subgroup_name, Some(group.id))
+                                    .await
+                                {
+                                    Ok(Some(existing)) => Some(existing.name),
+                                    Ok(None) => {
+                                        errors.push(format!(
+                                            "Subgrupo no encontrado: {} en {}",
+                                            subgroup_name, group.name
+                                        ));
+                                        None
+                                    }
+                                    Err(err) => {
+                                        errors.push(err.msg());
+                                        None
+                                    }
+                                }
+                            } else {
+                                None
+                            };
 
-                if let Some(group) = group {
-                    let subgroup = if let Some(subgroup_name) = parsed.subgroup.as_deref() {
-                        self.group_service
-                            .find_by_name_and_parent(subgroup_name, Some(group.id))
-                            .await?
-                            .map(|existing| existing.name)
-                    } else {
-                        None
-                    };
+                            let collision_res = self.schedule_service.handle_collisions(
+                                teacher_id,
+                                c_id,
+                                group.id,
+                                subgroup.as_deref(),
+                                parsed.day_of_week,
+                                &parsed.hora_inicio,
+                                &parsed.hora_fin,
+                                None,
+                                false,
+                            ).await;
 
-                    let collision_res = self.schedule_service.handle_collisions(
-                        teacher_id,
-                        c_id,
-                        group.id,
-                        subgroup.as_deref(),
-                        parsed.day_of_week,
-                        &parsed.hora_inicio,
-                        &parsed.hora_fin,
-                        None,
-                        false,
-                    ).await;
-
-                    if let Err(DomainError::Conflict(msg)) = collision_res {
-                        warnings.push(format!("{}, se sobreescribirá.", msg));
+                            if let Err(DomainError::Conflict(msg)) = collision_res {
+                                warnings.push(format!("{}, se sobreescribirá.", msg));
+                            }
+                        }
+                        Ok(None) => errors.push(format!("Grupo no encontrado: {}", parsed.grupo)),
+                        Err(err) => errors.push(err.msg()),
                     }
                 }
             }
@@ -596,9 +640,19 @@ fn parse_uploaded_schedule_table(file: &[u8]) -> Result<ParsedScheduleTable, Dom
 }
 
 fn parse_uploaded_csv(file: &[u8]) -> Result<ParsedScheduleTable, String> {
+    // Attempt to parse CSV assuming UTF-8 first. If that fails, try WINDOWS-1252
+    let csv_string = match std::str::from_utf8(file) {
+        Ok(s) => s.to_string(),
+        Err(_) => {
+            // Fallback to Windows-1252 (common for Excel-exported CSVs on Windows)
+            let (decoded, _, _had_errors) = WINDOWS_1252.decode(file);
+            decoded.into_owned()
+        }
+    };
+
     let mut reader = ReaderBuilder::new()
         .flexible(true)
-        .from_reader(Cursor::new(file));
+        .from_reader(csv_string.as_bytes());
 
     let headers_record = reader
         .headers()

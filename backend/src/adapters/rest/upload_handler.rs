@@ -117,6 +117,7 @@ async fn extract_uploaded_file(
 ) -> Result<Vec<u8>, (axum::http::StatusCode, String)> {
     let mut file_bytes: Option<Vec<u8>> = None;
     while let Some(field) = multipart.next_field().await.map_err(|e| {
+        tracing::error!("Error leyendo multipart: {e}");
         (
             axum::http::StatusCode::BAD_REQUEST,
             format!("Multipart inválido: {e}"),
@@ -124,6 +125,7 @@ async fn extract_uploaded_file(
     })? {
         if field.name() == Some("file") {
             let data = field.bytes().await.map_err(|e| {
+                tracing::error!("Error leyendo bytes del archivo: {e}");
                 (
                     axum::http::StatusCode::BAD_REQUEST,
                     format!("Archivo inválido: {e}"),

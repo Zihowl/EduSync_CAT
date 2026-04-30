@@ -328,6 +328,7 @@ dependencies = [
  "chrono",
  "csv",
  "dotenvy",
+ "encoding_rs",
  "futures-util",
  "jsonwebtoken",
  "rand 0.10.0",
