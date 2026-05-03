@@ -786,6 +786,8 @@ mod tests {
             genesis_super_admin_email: "superadmin@edusync.edu.mx".to_string(),
             genesis_super_admin_password: "ChangeMe123!".to_string(),
             genesis_super_admin_name: "Súper Administrador".to_string(),
+            keystore_dir: "./keys".to_string(),
+            keystore_passphrase: "test-passphrase".to_string(),
         };
 
         let auth_user =

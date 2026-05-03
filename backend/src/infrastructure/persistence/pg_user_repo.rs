@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{FromRow, PgPool};
@@ -9,15 +11,73 @@ use crate::domain::{
     ports::user_repository::UserRepository,
     validation::normalize_email,
 };
+use crate::infrastructure::crypto::KeyStore;
 
 #[derive(Clone)]
 pub struct PgUserRepository {
     pool: PgPool,
+    keystore: Arc<KeyStore>,
 }
 
 impl PgUserRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(pool: PgPool, keystore: Arc<KeyStore>) -> Self {
+        Self { pool, keystore }
+    }
+
+    fn decrypt_hash(&self, stored: String) -> Result<String, DomainError> {
+        self.keystore.decrypt_secret(&stored).map_err(|e| {
+            DomainError::Internal(format!("No se pudo descifrar el hash de contraseña: {e}"))
+        })
+    }
+
+    fn encrypt_hash(&self, plain_hash: &str) -> Result<String, DomainError> {
+        self.keystore.encrypt_secret(plain_hash.as_bytes()).map_err(|e| {
+            DomainError::Internal(format!("No se pudo cifrar el hash de contraseña: {e}"))
+        })
+    }
+
+    fn map_user(&self, row: UserRow) -> Result<User, DomainError> {
+        let plain_hash = self.decrypt_hash(row.password_hash)?;
+        Ok(User {
+            id: row.id,
+            email: row.email.to_ascii_lowercase(),
+            full_name: row.full_name,
+            password_hash: plain_hash,
+            role: UserRole::from_str(&row.role),
+            is_active: row.is_active,
+            is_temp_password: row.is_temp_password,
+            failed_login_attempts: row.failed_login_attempts,
+            lockout_until: row.lockout_until,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+        })
+    }
+
+    /// Recorre la tabla y vuelve a guardar todo `password_hash` que aún no esté
+    /// cifrado con la llave actual. Idempotente.
+    pub async fn backfill_encrypted_hashes(&self) -> Result<usize, DomainError> {
+        let rows = sqlx::query_as::<_, (Uuid, String)>(
+            "SELECT id, password_hash FROM users",
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+
+        let mut updated = 0usize;
+        for (id, stored) in rows {
+            if KeyStore::is_encrypted(&stored) {
+                continue;
+            }
+            let blob = self.encrypt_hash(&stored)?;
+            sqlx::query("UPDATE users SET password_hash = $2 WHERE id = $1")
+                .bind(id)
+                .bind(blob)
+                .execute(&self.pool)
+                .await
+                .map_err(map_sqlx)?;
+            updated += 1;
+        }
+        Ok(updated)
     }
 }
 
@@ -36,24 +96,6 @@ struct UserRow {
     updated_at: DateTime<Utc>,
 }
 
-impl From<UserRow> for User {
-    fn from(v: UserRow) -> Self {
-        Self {
-            id: v.id,
-            email: v.email.to_ascii_lowercase(),
-            full_name: v.full_name,
-            password_hash: v.password_hash,
-            role: UserRole::from_str(&v.role),
-            is_active: v.is_active,
-            is_temp_password: v.is_temp_password,
-            failed_login_attempts: v.failed_login_attempts,
-            lockout_until: v.lockout_until,
-            created_at: v.created_at,
-            updated_at: v.updated_at,
-        }
-    }
-}
-
 fn map_sqlx(e: sqlx::Error) -> DomainError {
     DomainError::Internal(format!("Error de base de datos en usuarios: {e}"))
 }
@@ -67,7 +109,7 @@ impl UserRepository for PgUserRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(map_sqlx)?;
-        Ok(rows.into_iter().map(Into::into).collect())
+        rows.into_iter().map(|r| self.map_user(r)).collect()
     }
 
     async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, DomainError> {
@@ -78,7 +120,7 @@ impl UserRepository for PgUserRepository {
         .fetch_optional(&self.pool)
         .await
         .map_err(map_sqlx)?;
-        Ok(row.map(Into::into))
+        row.map(|r| self.map_user(r)).transpose()
     }
 
     async fn find_by_email(&self, email: &str) -> Result<Option<User>, DomainError> {
@@ -90,7 +132,7 @@ impl UserRepository for PgUserRepository {
         .fetch_optional(&self.pool)
         .await
         .map_err(map_sqlx)?;
-        Ok(row.map(Into::into))
+        row.map(|r| self.map_user(r)).transpose()
     }
 
     async fn has_active_user_with_domain(&self, domain: &str) -> Result<bool, DomainError> {
@@ -129,6 +171,7 @@ impl UserRepository for PgUserRepository {
             "ADMIN_HORARIOS"
         };
 
+        let encrypted = self.encrypt_hash(password_hash)?;
         let row = sqlx::query_as::<_, UserRow>(
             "INSERT INTO users (email, full_name, password_hash, role, is_active, is_temp_password, failed_login_attempts, lockout_until)
              VALUES ($1, $2, $3, $4::user_role, TRUE, TRUE, 0, NULL)
@@ -136,13 +179,13 @@ impl UserRepository for PgUserRepository {
         )
         .bind(email)
         .bind(full_name)
-        .bind(password_hash)
+        .bind(encrypted)
         .bind(role)
         .fetch_one(&self.pool)
         .await
         .map_err(map_sqlx)?;
 
-        Ok(row.into())
+        self.map_user(row)
     }
 
     async fn increment_failed_login_attempts(&self, user_id: Uuid) -> Result<(), DomainError> {
@@ -197,7 +240,7 @@ impl UserRepository for PgUserRepository {
         .await
         .map_err(map_sqlx)?;
 
-        Ok(row.into())
+        self.map_user(row)
     }
 
     async fn update_credentials(
@@ -208,6 +251,7 @@ impl UserRepository for PgUserRepository {
         is_temp_password: bool,
     ) -> Result<User, DomainError> {
         let email = normalize_email(email);
+        let encrypted = self.encrypt_hash(password_hash)?;
         let row = sqlx::query_as::<_, UserRow>(
             "UPDATE users
              SET email = $2,
@@ -221,12 +265,12 @@ impl UserRepository for PgUserRepository {
         )
         .bind(user_id)
         .bind(email)
-        .bind(password_hash)
+        .bind(encrypted)
         .bind(is_temp_password)
         .fetch_one(&self.pool)
         .await
         .map_err(map_sqlx)?;
 
-        Ok(row.into())
+        self.map_user(row)
     }
 }

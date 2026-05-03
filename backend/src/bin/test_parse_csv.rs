@@ -38,15 +38,11 @@ fn main() {
 
     let mut rows = 0usize;
     for result in reader.records() {
-        match result {
-            Ok(record) => {
-                rows += 1;
-            }
-            Err(e) => {
-                eprintln!("No se pudo leer una fila CSV: {}", e);
-                std::process::exit(1);
-            }
+        if let Err(e) = result {
+            eprintln!("No se pudo leer una fila CSV: {}", e);
+            std::process::exit(1);
         }
+        rows += 1;
     }
 
     println!("Filas leídas: {}", rows);

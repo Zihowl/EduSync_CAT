@@ -14,6 +14,8 @@ pub struct AppConfig {
     pub genesis_super_admin_email: String,
     pub genesis_super_admin_password: String,
     pub genesis_super_admin_name: String,
+    pub keystore_dir: String,
+    pub keystore_passphrase: String,
 }
 
 impl AppConfig {
@@ -47,6 +49,9 @@ impl AppConfig {
                 .unwrap_or_else(|_| "ChangeMe123!".to_string()),
             genesis_super_admin_name: env::var("GENESIS_SUPER_ADMIN_NAME")
                 .unwrap_or_else(|_| "Súper Administrador".to_string()),
+            keystore_dir: env::var("KEYSTORE_DIR").unwrap_or_else(|_| "./keys".to_string()),
+            keystore_passphrase: env::var("KEYSTORE_PASSPHRASE")
+                .unwrap_or_else(|_| "CHANGE_ME_KEYSTORE_PASSPHRASE".to_string()),
         }
     }
 

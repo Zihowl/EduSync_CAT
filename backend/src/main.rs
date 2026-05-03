@@ -44,6 +44,7 @@ use domain::{
         teacher_service::TeacherService, user_service::UserService,
     },
 };
+use infrastructure::crypto::KeyStore;
 use infrastructure::email::brevo_sender::BrevoEmailSender;
 use infrastructure::persistence::{
     pg_allowed_domain_repo::PgAllowedDomainRepository, pg_audit_log_repo::PgAuditLogRepository,
@@ -96,7 +97,27 @@ async fn main() -> anyhow::Result<()> {
         std::process::exit(1);
     }
 
-    let user_repo: Arc<dyn UserRepository> = Arc::new(PgUserRepository::new(pool.clone()));
+    let keystore = match KeyStore::initialize(&config.keystore_dir, &config.keystore_passphrase) {
+        Ok(ks) => Arc::new(ks),
+        Err(e) => {
+            tracing::error!(error = %e, "No se pudo inicializar el keystore");
+            eprintln!("Error al inicializar el keystore criptográfico: {}", e);
+            std::process::exit(1);
+        }
+    };
+    tracing::info!("Keystore criptográfico listo (RSA-4096 + AES-256-GCM)");
+
+    let pg_user_repo = PgUserRepository::new(pool.clone(), keystore.clone());
+    match pg_user_repo.backfill_encrypted_hashes().await {
+        Ok(0) => {}
+        Ok(n) => tracing::warn!(updated = n, "Backfill: hashes de contraseña migrados a cifrado AES"),
+        Err(e) => {
+            tracing::error!(error = %e, "Backfill de hashes cifrados falló");
+            eprintln!("Error en backfill de cifrado de contraseñas: {}", e);
+            std::process::exit(1);
+        }
+    }
+    let user_repo: Arc<dyn UserRepository> = Arc::new(pg_user_repo);
     let allowed_domain_repo: Arc<dyn AllowedDomainRepository> =
         Arc::new(PgAllowedDomainRepository::new(pool.clone()));
     let audit_log_repo: Arc<dyn AuditLogRepository> =
