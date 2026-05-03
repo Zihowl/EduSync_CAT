@@ -16,5 +16,10 @@
 > Nota: El frontend corre en `http://localhost:8100` y el backend Rust en `http://localhost:3000`.
 > El frontend llama al API por el mismo origen, así que el proxy local puede reenviar las rutas sin exponer el backend aparte.
 
+## Para acceder a la base de datos directamente en entorno de desarrollo:
+```Bash
+psql -h localhost -U postgres -d edusync_db
+```
+
 ## Licencia
 Este proyecto se distribuye bajo AGPL-3.0-or-later. Ver LICENSE.
