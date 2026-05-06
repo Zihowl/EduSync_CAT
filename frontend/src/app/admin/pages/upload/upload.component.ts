@@ -9,6 +9,7 @@ import { PopoverController } from '@ionic/angular';
 import { MissingItemsPopoverComponent } from '../../../shared/components/missing-items-popover/missing-items-popover.component';
 import { getGraphQLErrorMessage } from '../../../shared/utils/graphql-error';
 import { normalizeCatalogText } from '../../../shared/utils/catalog-query';
+import { DraggableDirective } from '../../../shared/directives/draggable.directive';
 import {
     IonContent,
     IonCard,
@@ -174,7 +175,8 @@ const CREATE_CLASSROOM = gql`
         IonChip,
         IonSpinner,
         PageHeaderComponent,
-        MissingItemsPopoverComponent
+        MissingItemsPopoverComponent,
+        DraggableDirective
     ],
     template: `
         <app-page-header title="Carga de Horarios" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
@@ -389,7 +391,7 @@ const CREATE_CLASSROOM = gql`
             </div>
 
             <!-- Custom absolute popover so we don't use Ionic's scroll-blocking overlay -->
-            <div class="upload-custom-popover" *ngIf="activeMissingCategory">
+            <div class="upload-custom-popover" *ngIf="activeMissingCategory" appDraggable dragHandleSelector=".missing-popover__header">
                 <app-missing-items-popover
                     [missingSubjects]="missingSubjects"
                     [missingTeachers]="missingTeachers"
@@ -460,7 +462,7 @@ export class UploadComponent implements OnInit {
         }
 
         if (!this.isAllowedFile(nextFile)) {
-            this.notifications.warning('Solo se permiten archivos .xlsx o .csv.', 'Archivo no válido', { autoDismissMs: 0 });
+            this.notifications.warning('Solo se permiten archivos .xlsx o .csv.', 'Archivo no válido');
             this.clearSelection(this.fileInputElement);
             return;
         }
@@ -548,8 +550,7 @@ export class UploadComponent implements OnInit {
                 if (res.details.errors.length > 0) {
                     this.notifications.warning(
                         `Se detectaron ${res.details.errors.length} error(es) en ${this.previewRows.length} filas.`,
-                        'Revisión necesaria',
-                        { autoDismissMs: 0 }
+                        'Revisión necesaria'
                     );
                 } else {
                     this.notifications.success(
@@ -561,7 +562,7 @@ export class UploadComponent implements OnInit {
 
             return true;
         } catch (err: any) {
-            this.notifications.danger('Error en la previsualización: ' + (err?.error?.message || err?.message), 'Error en la previsualización', { autoDismissMs: 0 });
+            this.notifications.danger('Error en la previsualización: ' + (err?.error?.message || err?.message), 'Error en la previsualización');
             return false;
         } finally {
             this.isPreviewLoading = false;
@@ -718,12 +719,12 @@ export class UploadComponent implements OnInit {
             await this.PreviewUpload(false);
 
             if (failures.length > 0) {
-                this.notifications.warning(`Se crearon algunos elementos, pero hubo incidencias: ${failures.slice(0, 3).join(' ')}`, 'Creación parcial', { autoDismissMs: 0 });
+                this.notifications.warning(`Se crearon algunos elementos, pero hubo incidencias: ${failures.slice(0, 3).join(' ')}`, 'Creación parcial');
             } else {
                 this.notifications.success('Elementos creados correctamente.', 'Creación completa');
             }
         } catch (err: any) {
-            this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudieron crear los elementos seleccionados.'), 'Error', { autoDismissMs: 0 });
+            this.notifications.danger(getGraphQLErrorMessage(err, 'No se pudieron crear los elementos seleccionados.'), 'Error');
         } finally {
             this.isCreatingMissingCatalogs = false;
             this.refreshMissingCatalogItems();
@@ -909,22 +910,19 @@ export class UploadComponent implements OnInit {
                     : 'No se pudieron crear los catálogos faltantes';
                 this.notifications.warning(
                     `${creationSummary}, pero quedaron ${overallFailures.length} incidencia(s) al crear catálogos. ${overallFailures.slice(0, 3).join(' ')}`,
-                    'Catálogos parcialmente actualizados',
-                    { autoDismissMs: 0 }
+                    'Catálogos parcialmente actualizados'
                 );
             } else if (hasCreatedItems) {
                 const remainingErrors = this.previewResult?.details.errors?.length ?? 0;
                 if (this.hasMissingCatalogItems()) {
                     this.notifications.warning(
                         `Se actualizó ${createdSummary}, pero todavía faltan ${this.buildMissingCatalogSummary()}.`,
-                        'Catálogos parcialmente actualizados',
-                        { autoDismissMs: 0 }
+                        'Catálogos parcialmente actualizados'
                     );
                 } else if (remainingErrors > 0) {
                     this.notifications.success(
                         `Se actualizó ${createdSummary}. Aún quedan ${remainingErrors} error(es) en el archivo por corregir.`,
-                        'Catálogos actualizados',
-                        { autoDismissMs: 0 }
+                        'Catálogos actualizados'
                     );
                 } else {
                     this.notifications.success(
@@ -941,8 +939,7 @@ export class UploadComponent implements OnInit {
         } catch (error) {
             this.notifications.danger(
                 getGraphQLErrorMessage(error, 'No se pudieron crear los catálogos faltantes.'),
-                'Error en catálogos',
-                { autoDismissMs: 0 }
+                'Error en catálogos'
             );
         } finally {
             this.isCreatingMissingCatalogs = false;
@@ -1234,7 +1231,7 @@ export class UploadComponent implements OnInit {
                             ? `Se procesaron ${processed} registros, pero hubo errores en algunas filas (total: ${errors.length}).\n${preview}`
                             : `Hubo errores en la carga (total: ${errors.length}).\n${preview}`;
 
-                        this.notifications.warning(message, title, { autoDismissMs: 0 });
+                        this.notifications.warning(message, title);
                     } else {
                         this.notifications.success(`Se procesaron ${processed} registros correctamente.`, 'Carga exitosa');
                     }
@@ -1242,7 +1239,7 @@ export class UploadComponent implements OnInit {
                 },
                 error: (err) => {
                     this.isConfirmLoading = false;
-                    this.notifications.danger('Error en la carga: ' + (err.error?.message || err.message), 'Error en la carga', { autoDismissMs: 0 });
+                    this.notifications.danger('Error en la carga: ' + (err.error?.message || err.message), 'Error en la carga');
                 }
             });
     }
