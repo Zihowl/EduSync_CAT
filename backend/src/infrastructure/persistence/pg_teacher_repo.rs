@@ -150,6 +150,18 @@ impl TeacherRepository for PgTeacherRepository {
     }
 
     async fn delete(&self, id: i32) -> Result<bool, DomainError> {
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM schedule_slots WHERE teacher_id = $1")
+            .bind(id)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(map_sqlx)?;
+
+        if count > 0 {
+            return Err(DomainError::Conflict(
+                "No se puede eliminar el docente porque tiene bloques de horario asociados. Elimina primero los horarios.".to_string(),
+            ));
+        }
+
         let result = sqlx::query("DELETE FROM teachers WHERE id = $1")
             .bind(id)
             .execute(&self.pool)

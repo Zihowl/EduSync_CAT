@@ -295,7 +295,7 @@ export class BuildingsComponent implements OnInit {
     async RemoveBuilding(id: number) {
         if (!(await this.notifications.confirm({
             title: 'Eliminar edificio',
-            message: '¿Seguro que desea eliminar este edificio? Esta acción no se puede deshacer.',
+            message: '¿Seguro que desea eliminar este edificio? Si tiene aulas registradas, no podrá eliminarse hasta que las remuevas primero.',
             confirmText: 'Eliminar',
             cancelText: 'Cancelar',
             confirmColor: 'danger',

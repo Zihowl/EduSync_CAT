@@ -128,6 +128,18 @@ impl GroupRepository for PgGroupRepository {
     }
 
     async fn delete(&self, id: i32) -> Result<bool, DomainError> {
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM schedule_slots WHERE group_id = $1")
+            .bind(id)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(map_sqlx)?;
+
+        if count > 0 {
+            return Err(DomainError::Conflict(
+                "No se puede eliminar el grupo porque tiene bloques de horario asociados. Elimina primero los horarios.".to_string(),
+            ));
+        }
+
         let result = sqlx::query("DELETE FROM \"groups\" WHERE id = $1")
             .bind(id)
             .execute(&self.pool)

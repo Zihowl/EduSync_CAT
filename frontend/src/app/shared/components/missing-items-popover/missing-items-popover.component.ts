@@ -14,7 +14,7 @@ import { PopoverController } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { searchOutline } from 'ionicons/icons';
 
-type MissingCatalogType = 'subject' | 'teacher' | 'building' | 'classroom';
+type MissingCatalogType = 'subject' | 'teacher' | 'building' | 'classroom' | 'group' | 'subgroup';
 
 interface UploadPreviewRow {
     rowNumber: number;
@@ -53,6 +53,8 @@ export class MissingItemsPopoverComponent {
     @Input() missingTeachers: MissingCatalogItem[] = [];
     @Input() missingBuildings: MissingCatalogItem[] = [];
     @Input() missingClassrooms: MissingCatalogItem[] = [];
+    @Input() missingGroups: MissingCatalogItem[] = [];
+    @Input() missingSubgroups: MissingCatalogItem[] = [];
 
     @Input() activeCategory: MissingCatalogType | 'all' = 'all';
     @Output() closed = new EventEmitter<any>();
@@ -85,6 +87,16 @@ export class MissingItemsPopoverComponent {
             plural: 'aulas',
             hint: 'Aulas nuevas vinculadas a su edificio correspondiente.',
         },
+        group: {
+            title: 'Grupos faltantes',
+            plural: 'grupos',
+            hint: 'Grupos nuevos detectados en el archivo.',
+        },
+        subgroup: {
+            title: 'Subgrupos faltantes',
+            plural: 'subgrupos',
+            hint: 'Subgrupos nuevos vinculados a su grupo padre.',
+        },
     };
 
     constructor() {
@@ -99,7 +111,7 @@ export class MissingItemsPopoverComponent {
     }
 
     flattenItems(): MissingCatalogItem[] {
-        return [...this.missingSubjects, ...this.missingTeachers, ...this.missingBuildings, ...this.missingClassrooms];
+        return [...this.missingGroups, ...this.missingSubgroups, ...this.missingSubjects, ...this.missingTeachers, ...this.missingBuildings, ...this.missingClassrooms];
     }
 
     itemsForActiveCategory(): MissingCatalogItem[] {
@@ -113,6 +125,8 @@ export class MissingItemsPopoverComponent {
             teacher: this.missingTeachers,
             building: this.missingBuildings,
             classroom: this.missingClassrooms,
+            group: this.missingGroups,
+            subgroup: this.missingSubgroups,
         } as any;
         return map[category] ?? [];
     }
@@ -139,6 +153,8 @@ export class MissingItemsPopoverComponent {
             case 'teacher': return `Empleado ${item.row.noEmpleado || 'N/D'} · ${this.scheduleLabel(item)}`;
             case 'building': return `${this.classroomsForBuilding(item.row.edificio)} aulas relacionadas`;
             case 'classroom': return `Edificio ${item.row.edificio || 'N/D'} · ${this.scheduleLabel(item)}`;
+            case 'group': return `Grupo ${item.row.grupo || 'N/D'} · Grado ${item.row.grade ?? 'N/D'}`;
+            case 'subgroup': return `Subgrupo ${item.row.subgroup || 'N/D'} · Grupo ${item.row.grupo || 'N/D'}`;
         }
         return item.key;
     }
@@ -149,6 +165,8 @@ export class MissingItemsPopoverComponent {
             case 'teacher': return item.row.docente || 'Sin nombre de docente';
             case 'building': return this.relatedClassroomsLabel(item.row.edificio);
             case 'classroom': return `Aula ${item.row.aula || 'N/D'} · ${this.groupLabel(item)}`;
+            case 'group': return item.row.grupo || 'Sin nombre de grupo';
+            case 'subgroup': return item.row.subgroup || 'Sin nombre de subgrupo';
         }
         return item.key;
     }
@@ -181,6 +199,8 @@ export class MissingItemsPopoverComponent {
             case 'teacher': return `${item.row.noEmpleado} — ${item.row.docente || 'Sin nombre'}`;
             case 'building': return `${item.row.edificio}`;
             case 'classroom': return `${item.row.aula} — ${item.row.edificio}`;
+            case 'group': return `${item.row.grupo}`;
+            case 'subgroup': return `${item.row.grupo} / ${item.row.subgroup}`;
         }
         return item.key;
     }

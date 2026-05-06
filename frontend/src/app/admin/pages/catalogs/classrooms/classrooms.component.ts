@@ -425,7 +425,7 @@ export class ClassroomsComponent implements OnInit {
     async RemoveClassroom(id: number) {
         if (!(await this.notifications.confirm({
             title: 'Eliminar aula',
-            message: '¿Seguro que desea eliminar esta aula? Esta acción no se puede deshacer.',
+            message: '¿Seguro que desea eliminar esta aula? Si tiene bloques de horario asignados, no podrá eliminarse hasta que los remuevas primero.',
             confirmText: 'Eliminar',
             cancelText: 'Cancelar',
             confirmColor: 'danger',

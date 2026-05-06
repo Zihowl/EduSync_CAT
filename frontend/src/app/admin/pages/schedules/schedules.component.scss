@@ -102,6 +102,26 @@
     margin-bottom: 0.5rem;
 }
 
+.schedule-controls--collapsed {
+    gap: 0;
+    margin-bottom: 0.25rem;
+    min-height: 0;
+}
+
+.schedule-controls__collapsed-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.schedule-controls__toggle {
+    --padding-start: 0.4rem;
+    --padding-end: 0.4rem;
+    min-height: 2.2rem;
+    margin: 0;
+    align-self: center;
+}
+
 .schedule-controls__group {
     display: flex;
     flex-direction: row;

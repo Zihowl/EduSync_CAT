@@ -512,7 +512,7 @@ export class GroupsComponent implements OnInit {
 
         if (!(await this.notifications.confirm({
             title: 'Eliminar grupo',
-            message: `¿Seguro que desea eliminar ${this.getGroupPath(group)}?`,
+            message: `¿Seguro que desea eliminar ${this.getGroupPath(group)}? Si tiene bloques de horario asignados, no podrá eliminarse hasta que los remuevas primero.`,
             confirmText: 'Eliminar',
             cancelText: 'Cancelar',
             confirmColor: 'danger',

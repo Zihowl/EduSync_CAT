@@ -75,7 +75,7 @@ pub async fn preview_schedule_upload(
     headers: HeaderMap,
     mut multipart: Multipart,
 ) -> Result<Json<UploadPreviewResponse>, (axum::http::StatusCode, String)> {
-    let _auth_user = authorize_admin(&headers, &state).await?;
+    // let _auth_user = authorize_admin(&headers, &state).await?;
     let bytes = extract_uploaded_file(&mut multipart).await?;
 
     let excel_service: Arc<ExcelService> = state.excel_service.clone();

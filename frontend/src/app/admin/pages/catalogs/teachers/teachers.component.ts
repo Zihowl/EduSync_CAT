@@ -460,7 +460,7 @@ export class TeachersComponent implements OnInit {
     async RemoveTeacher(id: number) {
         if (!(await this.notifications.confirm({
             title: 'Eliminar docente',
-            message: '¿Seguro que desea eliminar este docente?',
+            message: '¿Seguro que desea eliminar este docente? Si tiene bloques de horario asignados, no podrá eliminarse hasta que los remuevas primero.',
             confirmText: 'Eliminar',
             cancelText: 'Cancelar',
             confirmColor: 'danger',
