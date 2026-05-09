@@ -422,21 +422,24 @@ const CREATE_GROUP = gql`
                 </ion-card>
             </div>
 
-            <!-- Custom absolute popover so we don't use Ionic's scroll-blocking overlay -->
-            <div class="upload-custom-popover" *ngIf="activeMissingCategory" appDraggable dragHandleSelector=".missing-popover__header">
-                <app-missing-items-popover
-                    [missingSubjects]="missingSubjects"
-                    [missingTeachers]="missingTeachers"
-                    [missingBuildings]="missingBuildings"
-                    [missingClassrooms]="missingClassrooms"
-                    [missingGroups]="missingGroups"
-                    [missingSubgroups]="missingSubgroups"
-                    [activeCategory]="activeMissingCategory"
-                    (closed)="PopMissingItemsPopover($event)">
-                </app-missing-items-popover>
-            </div>
-
         </ion-content>
+
+        <!-- Custom absolute popover so we don't use Ionic's scroll-blocking overlay.
+             Renderizado fuera de <ion-content> para que position:fixed sea relativo al
+             viewport (ion-content crea su propio stacking context con transform) y el
+             z-index compita contra el ion-header. -->
+        <div class="upload-custom-popover" *ngIf="activeMissingCategory" appDraggable dragHandleSelector=".missing-popover__header">
+            <app-missing-items-popover
+                [missingSubjects]="missingSubjects"
+                [missingTeachers]="missingTeachers"
+                [missingBuildings]="missingBuildings"
+                [missingClassrooms]="missingClassrooms"
+                [missingGroups]="missingGroups"
+                [missingSubgroups]="missingSubgroups"
+                [activeCategory]="activeMissingCategory"
+                (closed)="PopMissingItemsPopover($event)">
+            </app-missing-items-popover>
+        </div>
     `,
     styleUrls: ['./upload.component.scss'],
     providers: [PopoverController]
