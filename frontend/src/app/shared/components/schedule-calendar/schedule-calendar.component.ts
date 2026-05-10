@@ -394,21 +394,21 @@ export class ScheduleCalendarComponent implements OnChanges {
           text: action.label,
           icon: action.icon,
           role: action.tone === 'danger' ? 'destructive' : undefined,
-                cssClass: '',
-                handler: () => this.emitActionClick(event, action, domEvent)
-            }));
+          cssClass: '',
+          handler: () => this.emitActionClick(event, action, domEvent)
+      }));
 
-            buttons.push({
-                text: 'Seleccionar bloque',
-                icon: 'checkmark-circle-outline',
-                handler: () => {
-                    this.toggleSelectionMode();
-                    this.toggleSelection(event, domEvent);
-                      }
-                  });
+      buttons.push({
+          text: 'Seleccionar bloque',
+          icon: 'checkmark-circle-outline',
+          handler: () => {
+              this.toggleSelectionMode();
+              this.toggleSelection(event, domEvent);
+          }
+      });
 
-            const menuWidth = 200;
-            const menuHeight = buttons.length * 44 + 16;
+      const menuWidth = 200;
+      const menuHeight = buttons.length * 44 + 16;
       
       const componentRect = this.el.nativeElement.getBoundingClientRect();
       

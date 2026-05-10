@@ -108,19 +108,19 @@ export function formatClockTime(totalMinutes: number): string {
 }
 
 export function buildVisibleScheduleDays(dayOfWeekValues: Array<number | null | undefined>): number[] {
-  const weekendDays = new Set(
-    dayOfWeekValues
-      .map((day) => (day == null ? null : normalizeDayOfWeek(Number(day))))
-      .filter((day): day is number => day === 6 || day === 7)
-  );
-  const visibleDays = [...SCHEDULE_DEFAULT_VISIBLE_DAYS];
+    const weekendDays = new Set(
+        dayOfWeekValues
+            .map((day) => (day == null ? null : normalizeDayOfWeek(Number(day))))
+            .filter((day): day is number => day === 6 || day === 7)
+    );
+    const visibleDays = [...SCHEDULE_DEFAULT_VISIBLE_DAYS];
 
-  if (weekendDays.has(7)) {
-    visibleDays.push(6);
-    visibleDays.push(7);
-  } else if (weekendDays.has(6)) {
-    visibleDays.push(6);
-  }
+    if (weekendDays.has(7)) {
+        visibleDays.push(6);
+        visibleDays.push(7);
+    } else if (weekendDays.has(6)) {
+        visibleDays.push(6);
+    }
 
-  return visibleDays;
+    return visibleDays;
 }

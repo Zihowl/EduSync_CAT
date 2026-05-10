@@ -75,17 +75,30 @@ impl ScheduleSlotRepository for PgScheduleSlotRepository {
         let limit = filter.limit.unwrap_or(50).max(1);
         let offset = (page - 1) * limit;
         let rows = sqlx::query_as::<_, SlotRow>(
-            "SELECT id, teacher_id, subject_id, classroom_id, group_id, day_of_week,
-                    start_time::text AS start_time, end_time::text AS end_time,
-                    subgroup, is_published, created_by_id, created_at, updated_at
-             FROM schedule_slots
-             WHERE ($1::int IS NULL OR teacher_id = $1)
-               AND ($2::int IS NULL OR classroom_id = $2)
-               AND ($3::int IS NULL OR group_id = $3)
-               AND ($4::int IS NULL OR day_of_week = $4)
-               AND ($5::bool IS NULL OR is_published = $5)
-             ORDER BY day_of_week ASC, start_time ASC
-             LIMIT $6 OFFSET $7",
+            r#"
+            WITH RECURSIVE group_hierarchy AS (
+                SELECT id, parent_id
+                FROM groups
+                WHERE id = $3::int
+                
+                UNION
+                
+                SELECT g.id, g.parent_id
+                FROM groups g
+                INNER JOIN group_hierarchy gh ON g.id = gh.parent_id
+            )
+            SELECT id, teacher_id, subject_id, classroom_id, group_id, day_of_week,
+                   start_time::text AS start_time, end_time::text AS end_time,
+                   subgroup, is_published, created_by_id, created_at, updated_at
+            FROM schedule_slots
+            WHERE ($1::int IS NULL OR teacher_id = $1)
+              AND ($2::int IS NULL OR classroom_id = $2)
+              AND ($3::int IS NULL OR group_id IN (SELECT id FROM group_hierarchy))
+              AND ($4::int IS NULL OR day_of_week = $4)
+              AND ($5::bool IS NULL OR is_published = $5)
+            ORDER BY day_of_week ASC, start_time ASC
+            LIMIT $6 OFFSET $7
+            "#,
         )
         .bind(filter.teacher_id)
         .bind(filter.classroom_id)

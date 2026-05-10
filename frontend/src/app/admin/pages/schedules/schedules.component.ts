@@ -163,14 +163,14 @@ interface ScheduleBlockForm {
                                 </ion-select-option>
                             </ion-select>
 
-                            <ion-select [disabled]="filterGroupId == null" [(ngModel)]="filterSubgroupValue" (ionChange)="onSubgroupFilterChange()" (ionCancel)="onFilterSelectClosed($event)" (ionDismiss)="onFilterSelectClosed($event)" placeholder="Subgrupo" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter glass-input">
-                                <ion-select-option [value]="null">General</ion-select-option>
+                            <ion-select [disabled]="filterGroupId === null" [(ngModel)]="filterSubgroupValue" (ionChange)="onSubgroupFilterChange()" (ionCancel)="onFilterSelectClosed($event)" (ionDismiss)="onFilterSelectClosed($event)" placeholder="Subgrupo" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter glass-input">
+                                <ion-select-option [value]="''">General</ion-select-option>
                                 <ion-select-option *ngFor="let subgroup of availableSubgroups" [value]="subgroup">
                                     {{ subgroup }}
                                 </ion-select-option>
                             </ion-select>
 
-                            <ion-select [(ngModel)]="filterTeacherId" (ionChange)="onTeacherFilterChange()" (ionCancel)="onFilterSelectClosed($event)" (ionDismiss)="onFilterSelectClosed($event)" placeholder="Todos los maestros" interface="popover" [interfaceOptions]="{ animated: false, cssClass: 'teacher-select-popover' }" class="schedule-filter glass-input" [compareWith]="compareIds">
+                            <ion-select [(ngModel)]="filterTeacherId" (ionChange)="onTeacherFilterChange()" (ionCancel)="onFilterSelectClosed($event)" (ionDismiss)="onFilterSelectClosed($event)" placeholder="Todos los maestros" [selectedText]="getSelectedTeacherName()" interface="popover" [interfaceOptions]="{ animated: false, cssClass: 'teacher-select-popover' }" class="schedule-filter glass-input" [compareWith]="compareIds">
                                 <ion-select-option [value]="null">Todos los maestros</ion-select-option>
                                 <ion-select-option *ngFor="let teacher of teachers" [value]="teacher.id">{{ teacher.name }}&#10;{{ teacher.employeeNumber }}</ion-select-option>
                             </ion-select>
@@ -180,7 +180,7 @@ interface ScheduleBlockForm {
                                 <ion-select-option *ngFor="let b of buildings" [value]="b.id">{{ b.name }}</ion-select-option>
                             </ion-select>
 
-                            <ion-select [disabled]="filterBuildingId == null" [(ngModel)]="filterClassroomId" (ionChange)="onClassroomFilterChange()" (ionCancel)="onFilterSelectClosed($event)" (ionDismiss)="onFilterSelectClosed($event)" placeholder="Aula" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter glass-input" [compareWith]="compareIds">
+                            <ion-select [disabled]="filterBuildingId === null" [(ngModel)]="filterClassroomId" (ionChange)="onClassroomFilterChange()" (ionCancel)="onFilterSelectClosed($event)" (ionDismiss)="onFilterSelectClosed($event)" placeholder="Aula" interface="popover" [interfaceOptions]="{ animated: false }" class="schedule-filter glass-input" [compareWith]="compareIds">
                                 <ion-select-option [value]="null">Aula</ion-select-option>
                                 <ion-select-option *ngFor="let c of getFilteredClassrooms(filterBuildingId)" [value]="c.id">{{ c.name }}</ion-select-option>
                             </ion-select>
@@ -447,7 +447,7 @@ export class SchedulesComponent implements OnInit {
 
     filterPublished: 'all' | 'published' | 'draft' = 'all';
     filterGroupId: number | null = null;
-    filterSubgroupValue: string | null = null;
+    filterSubgroupValue: string | null = '';
     filterTeacherId: number | null = null;
     filterBuildingId: number | null = null;
     filterClassroomId: number | null = null;
@@ -553,6 +553,12 @@ export class SchedulesComponent implements OnInit {
         return group.parent ? `${group.parent.name}-${group.name}` : group.name;
     }
 
+    getSelectedTeacherName(): string | undefined {
+        if (!this.filterTeacherId) return undefined;
+        const teacher = this.teachers.find((t: any) => Number(t.id) === Number(this.filterTeacherId));
+        return teacher ? teacher.name : undefined;
+    }
+
     getSubjectLabel(subject: any): string {
         if (!subject) return '';
         return subject.name;
@@ -644,14 +650,14 @@ export class SchedulesComponent implements OnInit {
     private syncAvailableSubgroups(): void {
         if (this.filterGroupId == null) {
             this.availableSubgroups = [];
-            this.filterSubgroupValue = null;
+            this.filterSubgroupValue = '';
             return;
         }
 
         const selectedGroupId = this.getRootGroupId(this.filterGroupId);
         if (selectedGroupId == null) {
             this.availableSubgroups = [];
-            this.filterSubgroupValue = null;
+            this.filterSubgroupValue = '';
             return;
         }
 
@@ -661,7 +667,7 @@ export class SchedulesComponent implements OnInit {
                 return;
             }
 
-            const subgroup = this.normalizeSubgroupValue(schedule.subgroup);
+            const subgroup = this.normalizeSubgroupValue(schedule.group?.parent != null ? schedule.group.name : schedule.subgroup);
             if (subgroup) {
                 subgroupValues.add(subgroup);
             }
@@ -669,8 +675,8 @@ export class SchedulesComponent implements OnInit {
 
         this.availableSubgroups = Array.from(subgroupValues).sort((left, right) => left.localeCompare(right, 'es', { numeric: true, sensitivity: 'base' }));
 
-        if (this.filterSubgroupValue != null && !this.availableSubgroups.includes(this.filterSubgroupValue)) {
-            this.filterSubgroupValue = null;
+        if (this.filterSubgroupValue != null && this.filterSubgroupValue !== '' && !this.availableSubgroups.includes(this.filterSubgroupValue)) {
+            this.filterSubgroupValue = '';
         }
     }
 
@@ -699,16 +705,17 @@ export class SchedulesComponent implements OnInit {
             }
 
             const selectedSubgroup = this.filterSubgroupValue;
-            const scheduleSubgroup = this.normalizeSubgroupValue(schedule.subgroup);
+            const scheduleSubgroup = this.normalizeSubgroupValue(schedule.group?.parent != null ? schedule.group.name : schedule.subgroup);
 
             if (selectedSubgroup === '') {
-                // Tronco comun selected: show only schedules without subgroup
+                // General selected: show only schedules without subgroup
                 if (scheduleSubgroup != null) return false;
             } else if (selectedSubgroup != null) {
-                // Specific subgroup selected: show only matching ones
-                if (scheduleSubgroup !== selectedSubgroup) return false;
+                // Specific subgroup selected: show matching ones PLUS general
+                // (scheduleSubgroup == null means it's part of the common base for all subgroups)
+                if (scheduleSubgroup != null && scheduleSubgroup !== selectedSubgroup) return false;
             }
-            // selectedSubgroup == null means "all subgroups" — no extra filtering
+            // selectedSubgroup == null means no extra filtering (fallback)
         }
 
         if (this.filterClassroomId != null && Number(schedule.classroom?.id) !== Number(this.filterClassroomId)) {
@@ -834,7 +841,7 @@ export class SchedulesComponent implements OnInit {
     }
 
     onGroupFilterChange(): void {
-        this.filterSubgroupValue = null;
+        this.filterSubgroupValue = '';
         this.clearFilterSelection();
         this.applyVisibleFilters();
     }
