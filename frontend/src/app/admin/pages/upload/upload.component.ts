@@ -697,12 +697,42 @@ export class UploadComponent implements OnInit {
             const state = await this.loadCurrentCatalogState();
             const failures: string[] = [];
 
-            const buildings = items.filter(i => i.type === 'building');
-            const subjects = items.filter(i => i.type === 'subject');
-            const teachers = items.filter(i => i.type === 'teacher');
-            const groups = items.filter(i => i.type === 'group');
-            const classrooms = items.filter(i => i.type === 'classroom');
-            const subgroups = items.filter(i => i.type === 'subgroup');
+            // Track the user's selection by key per type so that, as the preview
+            // surfaces newly-detected dependencies (e.g. a parent group only
+            // reported once we re-preview), we can keep auto-creating just the
+            // items the user opted into. Subgroups implicitly opt their parent
+            // groups in — they cannot be created without the parent existing.
+            const selectedKeys = {
+                building: new Set(items.filter(i => i.type === 'building').map(i => i.key)),
+                subject: new Set(items.filter(i => i.type === 'subject').map(i => i.key)),
+                teacher: new Set(items.filter(i => i.type === 'teacher').map(i => i.key)),
+                classroom: new Set(items.filter(i => i.type === 'classroom').map(i => i.key)),
+                group: new Set(items.filter(i => i.type === 'group').map(i => i.key)),
+                subgroup: new Set(items.filter(i => i.type === 'subgroup').map(i => i.key)),
+            };
+            for (const sg of items.filter(i => i.type === 'subgroup')) {
+                selectedKeys.group.add(this.buildCatalogKey(sg.row.grupo));
+            }
+
+            // Seed missing-* arrays from the current preview once. Subsequent
+            // iterations rely on pruneMissingByCreated() to advance state —
+            // calling refreshMissingCatalogItems() here would re-parse the stale
+            // previewRows and undo the prune.
+            this.refreshMissingCatalogItems();
+
+            const maxIterations = 3;
+            for (let iteration = 0; iteration < maxIterations; iteration++) {
+                const buildings = this.missingBuildings.filter(i => selectedKeys.building.has(i.key));
+                const subjects = this.missingSubjects.filter(i => selectedKeys.subject.has(i.key));
+                const teachers = this.missingTeachers.filter(i => selectedKeys.teacher.has(i.key));
+                const classrooms = this.missingClassrooms.filter(i => selectedKeys.classroom.has(i.key));
+                const groups = this.missingGroups.filter(i => selectedKeys.group.has(i.key));
+                const subgroups = this.missingSubgroups.filter(i => selectedKeys.subgroup.has(i.key));
+
+                if (buildings.length === 0 && subjects.length === 0 && teachers.length === 0
+                    && classrooms.length === 0 && groups.length === 0 && subgroups.length === 0) {
+                    break;
+                }
 
             // Phase 1: buildings + subjects + teachers + groups in parallel
             const buildingsTask = Promise.all(buildings.map(async (b) => {
@@ -808,6 +838,15 @@ export class UploadComponent implements OnInit {
 
             await Promise.all([classroomsTask, subgroupsTask]);
 
+            // Update missing-items arrays locally from the in-memory state so the
+            // next iteration sees what we already created — re-running PreviewUpload
+            // here would re-upload the file and re-run the full backend pipeline
+            // (~150-200ms each), which dominates the popover wall-time.
+            this.pruneMissingByCreated(state);
+            }
+
+            // Single re-preview after the loop so the table reflects the backend
+            // truth (collision warnings, etc.) before the user confirms.
             await this.PreviewUpload(false);
 
             if (failures.length > 0) {
@@ -853,13 +892,15 @@ export class UploadComponent implements OnInit {
             };
             const overallFailures: string[] = [];
             let progressMade = false;
-            const maxIterations = 2;
+            const maxIterations = 3;
 
             const state = await this.loadCurrentCatalogState();
 
-            for (let iteration = 0; iteration < maxIterations; iteration++) {
-                this.refreshMissingCatalogItems();
+            // Seed once. Iterations advance via pruneMissingByCreated() instead
+            // of re-parsing the stale previewRows each time.
+            this.refreshMissingCatalogItems();
 
+            for (let iteration = 0; iteration < maxIterations; iteration++) {
                 const missingGroups = [...this.missingGroups].sort((a, b) => a.rowNumbers[0] - b.rowNumbers[0]);
                 const missingSubgroups = [...this.missingSubgroups].sort((a, b) => a.rowNumbers[0] - b.rowNumbers[0]);
                 const missingSubjects = [...this.missingSubjects].sort((a, b) => a.rowNumbers[0] - b.rowNumbers[0]);
@@ -1012,10 +1053,7 @@ export class UploadComponent implements OnInit {
                 overallFailures.push(...failures);
                 progressMade = progressMade || iterationCreated;
 
-                const previewRefreshed = await this.PreviewUpload(false);
-                if (!previewRefreshed) {
-                    return;
-                }
+                this.pruneMissingByCreated(state);
 
                 if (!this.hasMissingCatalogItems()) {
                     break;
@@ -1025,6 +1063,10 @@ export class UploadComponent implements OnInit {
                     break;
                 }
             }
+
+            // Single re-preview after the loop so collision warnings and other
+            // backend-only signals reflect reality before the user confirms.
+            await this.PreviewUpload(false);
 
             this.refreshMissingCatalogItems();
 
@@ -1076,6 +1118,18 @@ export class UploadComponent implements OnInit {
         } finally {
             this.isCreatingMissingCatalogs = false;
         }
+    }
+
+    // Removes from the missing-* arrays any item whose key is now present in
+    // the freshly-mutated catalog state. Lets the popover loop progress without
+    // having to round-trip a full file re-preview after every iteration.
+    private pruneMissingByCreated(state: ExistingCatalogState): void {
+        this.missingSubjects = this.missingSubjects.filter(i => !state.subjects.has(i.key));
+        this.missingTeachers = this.missingTeachers.filter(i => !state.teachers.has(i.key));
+        this.missingBuildings = this.missingBuildings.filter(i => !state.buildings.has(i.key));
+        this.missingClassrooms = this.missingClassrooms.filter(i => !state.classrooms.has(i.key));
+        this.missingGroups = this.missingGroups.filter(i => !state.groups.has(i.key));
+        this.missingSubgroups = this.missingSubgroups.filter(i => !state.subgroups.has(i.key));
     }
 
     private refreshMissingCatalogItems(): void {

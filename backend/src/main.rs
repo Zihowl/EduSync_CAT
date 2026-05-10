@@ -1,15 +1,10 @@
-mod adapters;
-mod config;
-mod domain;
-mod infrastructure;
-
 use std::{net::SocketAddr, sync::Arc};
 
-use adapters::{
+use backend::adapters::{
     auth::middleware::read_active_auth_user_from_headers,
     graphql::{
         realtime::RealtimeBroadcaster,
-        schema::{build_schema, AppSchema},
+        schema::build_schema,
     },
     rest::{
         public_schedules,
@@ -26,8 +21,8 @@ use axum::{
     routing::{get, get_service, post},
     Extension, Router,
 };
-use config::AppConfig;
-use domain::{
+use backend::config::AppConfig;
+use backend::domain::{
     ports::{
         allowed_domain_repository::AllowedDomainRepository,
         audit_log_repository::AuditLogRepository, building_repository::BuildingRepository,
@@ -44,8 +39,8 @@ use domain::{
         teacher_service::TeacherService, user_service::UserService,
     },
 };
-use infrastructure::email::brevo_sender::BrevoEmailSender;
-use infrastructure::persistence::{
+use backend::infrastructure::email::brevo_sender::BrevoEmailSender;
+use backend::infrastructure::persistence::{
     pg_allowed_domain_repo::PgAllowedDomainRepository, pg_audit_log_repo::PgAuditLogRepository,
     pg_building_repo::PgBuildingRepository, pg_classroom_repo::PgClassroomRepository,
     pg_group_repo::PgGroupRepository, pg_schedule_slot_repo::PgScheduleSlotRepository,
@@ -55,21 +50,8 @@ use infrastructure::persistence::{
 use rand::prelude::{IndexedRandom, SliceRandom};
 use rand::RngExt;
 use sqlx::PgPool;
+use backend::AppState;
 use tower_http::cors::{Any, CorsLayer};
-
-#[derive(Clone)]
-pub struct AppState {
-    pub config: Arc<AppConfig>,
-    pub user_repo: Arc<dyn UserRepository>,
-    pub schema: AppSchema,
-    pub realtime: Arc<RealtimeBroadcaster>,
-    pub teacher_service: Arc<TeacherService>,
-    pub subject_service: Arc<SubjectService>,
-    pub classroom_service: Arc<ClassroomService>,
-    pub group_service: Arc<GroupService>,
-    pub schedule_service: Arc<ScheduleService>,
-    pub excel_service: Arc<ExcelService>,
-}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

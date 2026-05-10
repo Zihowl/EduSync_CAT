@@ -72,7 +72,7 @@ pub async fn upload_schedule(
 
 pub async fn preview_schedule_upload(
     State(state): State<AppState>,
-    headers: HeaderMap,
+    _headers: HeaderMap,
     mut multipart: Multipart,
 ) -> Result<Json<UploadPreviewResponse>, (axum::http::StatusCode, String)> {
     // let _auth_user = authorize_admin(&headers, &state).await?;

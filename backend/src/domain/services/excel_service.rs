@@ -1,12 +1,14 @@
-use std::{io::Cursor, sync::Arc};
+use std::{collections::HashMap, io::Cursor, sync::Arc};
 
 use calamine::{open_workbook_auto_from_rs, Data, Reader};
 use csv::ReaderBuilder;
 use encoding_rs::WINDOWS_1252;
+use futures_util::{stream, StreamExt};
 use serde::Serialize;
 
 use crate::domain::{
     errors::DomainError,
+    models::group::Group,
     services::{
         building_service::BuildingService,
         classroom_service::ClassroomService,
@@ -16,6 +18,22 @@ use crate::domain::{
         teacher_service::TeacherService,
     },
 };
+
+const ROW_CONCURRENCY: usize = 16;
+
+#[derive(Default)]
+struct CatalogIndex {
+    subjects_by_code: HashMap<String, i32>,
+    teachers_by_employee: HashMap<String, i32>,
+    buildings_by_name: HashMap<String, i32>,
+    classrooms_by_building_and_name: HashMap<(i32, String), i32>,
+    /// Both root groups (parent_id = None) and subgroups, keyed by (parent_id, lowercased name).
+    groups_by_parent_and_name: HashMap<(Option<i32>, String), Group>,
+}
+
+fn norm_key(value: &str) -> String {
+    value.trim().to_lowercase()
+}
 
 #[derive(Clone)]
 pub struct ExcelService {
@@ -108,20 +126,87 @@ impl ExcelService {
         }
     }
 
+    /// Build a single in-memory snapshot of every catalog the upload pipeline
+    /// touches. Without this, each row of the file would scan the full catalog
+    /// once (O(N×M) round-trips); with it the per-row hot path is pure CPU.
+    async fn build_catalog_index(&self) -> Result<CatalogIndex, DomainError> {
+        let (subjects, teachers, buildings, classrooms, groups) = futures_util::try_join!(
+            self.subject_service.find_all(),
+            self.teacher_service.find_all(),
+            self.building_service.find_all(),
+            self.classroom_service.find_all(),
+            self.group_service.find_all(),
+        )?;
+
+        let mut index = CatalogIndex::default();
+        for subject in subjects {
+            index
+                .subjects_by_code
+                .insert(norm_key(&subject.code), subject.id);
+        }
+        for teacher in teachers {
+            index
+                .teachers_by_employee
+                .insert(norm_key(&teacher.employee_number), teacher.id);
+        }
+        for building in buildings {
+            index
+                .buildings_by_name
+                .insert(norm_key(&building.name), building.id);
+        }
+        for classroom in classrooms {
+            if let Some(building_id) = classroom.building_id {
+                index
+                    .classrooms_by_building_and_name
+                    .insert((building_id, norm_key(&classroom.name)), classroom.id);
+            }
+        }
+        for group in groups {
+            index
+                .groups_by_parent_and_name
+                .insert((group.parent_id, norm_key(&group.name)), group);
+        }
+        Ok(index)
+    }
+
     pub async fn process_schedule_file(
         &self,
         file: &[u8],
         uploaded_by: Option<uuid::Uuid>,
     ) -> Result<ExcelImportResult, DomainError> {
         let ParsedScheduleTable { headers, rows } = parse_uploaded_schedule_table(file)?;
+        let index = Arc::new(self.build_catalog_index().await?);
+        let analyses = self.analyze_rows_concurrent(&headers, &rows, index.clone()).await?;
 
-        let mut processed = 0usize;
+        // Build the slot list in one pass. Groups created on the fly are memoized
+        // into a local cache so the same group is not re-resolved per row.
+        let mut group_cache: HashMap<(Option<i32>, String), Group> = HashMap::new();
         let mut errors = Vec::new();
-        for (idx, row) in rows.iter().enumerate() {
+        let mut slot_inputs: Vec<CreateScheduleSlot> = Vec::new();
+        for (idx, analysis) in analyses.into_iter().enumerate() {
             let row_number = idx + 2;
-            match self.process_row(&headers, row, uploaded_by).await {
-                Ok(_) => processed += 1,
+            if !analysis.errors.is_empty() {
+                errors.push(format!("Fila {row_number}: {}", analysis.errors.join("; ")));
+                continue;
+            }
+            match self
+                .build_slot_input(analysis.parsed, &index, &mut group_cache, uploaded_by)
+                .await
+            {
+                Ok(input) => slot_inputs.push(input),
                 Err(e) => errors.push(format!("Fila {row_number}: {}", e.msg())),
+            }
+        }
+
+        let processed = slot_inputs.len();
+        if !slot_inputs.is_empty() {
+            if let Err(e) = self.schedule_service.create_many_resolved(slot_inputs).await {
+                errors.push(format!("Error al guardar horarios: {}", e.msg()));
+                return Ok(ExcelImportResult {
+                    success: false,
+                    processed: 0,
+                    errors,
+                });
             }
         }
 
@@ -153,14 +238,15 @@ impl ExcelService {
         };
 
         let ParsedScheduleTable { headers, rows } = parsed_table;
+        let index = Arc::new(self.build_catalog_index().await?);
+        let analyses = self.analyze_rows_concurrent(&headers, &rows, index).await?;
 
         let mut processed = 0usize;
         let mut errors = Vec::new();
-        let mut preview_rows = Vec::new();
+        let mut preview_rows = Vec::with_capacity(analyses.len());
 
-        for (idx, row) in rows.iter().enumerate() {
+        for (idx, analysis) in analyses.into_iter().enumerate() {
             let row_number = idx + 2;
-            let analysis = self.analyze_row(&headers, row).await?;
 
             if analysis.errors.is_empty() {
                 processed += 1;
@@ -195,10 +281,32 @@ impl ExcelService {
         })
     }
 
+    async fn analyze_rows_concurrent(
+        &self,
+        headers: &[String],
+        rows: &[Vec<String>],
+        index: Arc<CatalogIndex>,
+    ) -> Result<Vec<RowAnalysis>, DomainError> {
+        let headers = Arc::new(headers.to_vec());
+        let futures = rows.iter().cloned().map(|row| {
+            let headers = headers.clone();
+            let index = index.clone();
+            async move { self.analyze_row(&headers, &row, &index).await }
+        });
+
+        stream::iter(futures)
+            .buffered(ROW_CONCURRENCY)
+            .collect::<Vec<_>>()
+            .await
+            .into_iter()
+            .collect()
+    }
+
     async fn analyze_row(
         &self,
         headers: &[String],
         row: &[String],
+        index: &CatalogIndex,
     ) -> Result<RowAnalysis, DomainError> {
         let value = |names: &[&str]| -> String {
             headers
@@ -231,7 +339,7 @@ impl ExcelService {
                     hora_fin: normalize_time(&value(&["HoraFin"])),
                 };
                 let mut warnings = Vec::new();
-                self.append_row_analysis(&parsed, &mut errors, &mut warnings).await?;
+                self.append_row_analysis(&parsed, index, &mut errors, &mut warnings).await?;
                 return Ok(RowAnalysis { parsed, errors, warnings });
             }
         };
@@ -254,7 +362,7 @@ impl ExcelService {
 
         let mut errors = Vec::new();
         let mut warnings = Vec::new();
-        self.append_row_analysis(&parsed, &mut errors, &mut warnings).await?;
+        self.append_row_analysis(&parsed, index, &mut errors, &mut warnings).await?;
 
         Ok(RowAnalysis { parsed, errors, warnings })
     }
@@ -262,6 +370,7 @@ impl ExcelService {
     async fn append_row_analysis(
         &self,
         parsed: &ParsedScheduleRow,
+        index: &CatalogIndex,
         errors: &mut Vec<String>,
         warnings: &mut Vec<String>,
     ) -> Result<(), DomainError> {
@@ -317,78 +426,95 @@ impl ExcelService {
         }
 
         if !parsed.clave_materia.is_empty() {
-            match self.find_subject_id(&parsed.clave_materia).await {
-                Ok(Some(_)) => {}
-                Ok(None) => {
-                    errors.push(format!("Materia no encontrada: {}", parsed.clave_materia));
-                }
-                Err(err) => {
-                    errors.push(err.msg());
-                }
+            if !index
+                .subjects_by_code
+                .contains_key(&norm_key(&parsed.clave_materia))
+            {
+                errors.push(format!("Materia no encontrada: {}", parsed.clave_materia));
             }
         }
 
         let mut teacher_id = None;
         if !parsed.no_empleado.is_empty() {
-            match self.find_teacher_id(&parsed.no_empleado).await {
-                Ok(Some(id)) => teacher_id = Some(id),
-                Ok(None) => errors.push(format!("Docente no encontrado: {}", parsed.no_empleado)),
-                Err(err) => errors.push(err.msg()),
+            match index
+                .teachers_by_employee
+                .get(&norm_key(&parsed.no_empleado))
+            {
+                Some(id) => teacher_id = Some(*id),
+                None => errors.push(format!("Docente no encontrado: {}", parsed.no_empleado)),
             }
         }
 
         let mut classroom_id = None;
         if !parsed.edificio.is_empty() {
-            match self.find_building_id(&parsed.edificio).await {
-                Ok(Some(building_id)) => {
+            match index.buildings_by_name.get(&norm_key(&parsed.edificio)) {
+                Some(building_id) => {
                     if !parsed.aula.is_empty() {
-                        match self.find_classroom_id(&parsed.aula, building_id).await {
-                            Ok(Some(id)) => classroom_id = Some(id),
-                            Ok(None) => errors.push(format!(
+                        match index
+                            .classrooms_by_building_and_name
+                            .get(&(*building_id, norm_key(&parsed.aula)))
+                        {
+                            Some(id) => classroom_id = Some(*id),
+                            None => errors.push(format!(
                                 "Salón no encontrado: {} en {}",
                                 parsed.aula, parsed.edificio
                             )),
-                            Err(err) => errors.push(err.msg()),
                         }
                     }
                 }
-                Ok(None) => errors.push(format!("Edificio no encontrado: {}", parsed.edificio)),
-                Err(err) => errors.push(err.msg()),
+                None => {
+                    errors.push(format!("Edificio no encontrado: {}", parsed.edificio));
+                    if !parsed.aula.is_empty() {
+                        // Surface the classroom error too so the upload popover can
+                        // queue both for creation in a single round-trip; otherwise
+                        // the user would have to create the building, re-preview,
+                        // and only then see the missing classroom.
+                        errors.push(format!(
+                            "Salón no encontrado: {} en {}",
+                            parsed.aula, parsed.edificio
+                        ));
+                    }
+                }
             }
         }
-        
-        if !has_time_error {
-            if let Some(c_id) = classroom_id {
-                if !parsed.grupo.is_empty() {
-                    match self
-                        .group_service
-                        .find_by_name_and_parent(&parsed.grupo, None)
-                        .await
-                    {
-                        Ok(Some(group)) => {
-                            let subgroup = if let Some(subgroup_name) = parsed.subgroup.as_deref() {
-                                match self
-                                    .group_service
-                                    .find_by_name_and_parent(subgroup_name, Some(group.id))
-                                    .await
-                                {
-                                    Ok(Some(existing)) => Some(existing.name),
-                                    Ok(None) => {
-                                        errors.push(format!(
-                                            "Subgrupo no encontrado: {} en {}",
-                                            subgroup_name, group.name
-                                        ));
-                                        None
-                                    }
-                                    Err(err) => {
-                                        errors.push(err.msg());
-                                        None
-                                    }
-                                }
-                            } else {
-                                None
-                            };
 
+        // Validate groups and subgroups independently of classroom existence
+        // so all missing items are reported in a single pass
+        if !parsed.grupo.is_empty() {
+            match index
+                .groups_by_parent_and_name
+                .get(&(None, norm_key(&parsed.grupo)))
+            {
+                Some(group) => {
+                    if let (Some(file_grade), Some(group_grade)) = (parsed.grade, group.grade) {
+                        if file_grade != group_grade {
+                            warnings.push(format!(
+                                "Grado del archivo ({}) no coincide con el del grupo {} ({}); se conservará el del grupo.",
+                                file_grade, group.name, group_grade
+                            ));
+                        }
+                    }
+                    let subgroup = if let Some(subgroup_name) = parsed.subgroup.as_deref() {
+                        match index
+                            .groups_by_parent_and_name
+                            .get(&(Some(group.id), norm_key(subgroup_name)))
+                        {
+                            Some(existing) => Some(existing.name.clone()),
+                            None => {
+                                errors.push(format!(
+                                    "Subgrupo no encontrado: {} en {}",
+                                    subgroup_name, group.name
+                                ));
+                                None
+                            }
+                        }
+                    } else {
+                        None
+                    };
+
+                    // Collision checking still requires classroom to exist
+                    if !has_time_error {
+                        if let Some(c_id) = classroom_id {
                             let collision_res = self.schedule_service.handle_collisions(
                                 teacher_id,
                                 c_id,
@@ -405,8 +531,15 @@ impl ExcelService {
                                 warnings.push(format!("{}, se sobreescribirá.", msg));
                             }
                         }
-                        Ok(None) => errors.push(format!("Grupo no encontrado: {}", parsed.grupo)),
-                        Err(err) => errors.push(err.msg()),
+                    }
+                }
+                None => {
+                    errors.push(format!("Grupo no encontrado: {}", parsed.grupo));
+                    if let Some(subgroup_name) = parsed.subgroup.as_deref() {
+                        errors.push(format!(
+                            "Subgrupo no encontrado: {} en {}",
+                            subgroup_name, parsed.grupo
+                        ));
                     }
                 }
             }
@@ -415,113 +548,79 @@ impl ExcelService {
         Ok(())
     }
 
-    async fn find_subject_id(&self, code: &str) -> Result<Option<i32>, DomainError> {
-        Ok(self
-            .subject_service
-            .find_all()
-            .await?
-            .into_iter()
-            .find(|subject| subject.code.eq_ignore_ascii_case(code))
-            .map(|subject| subject.id))
-    }
-
-    async fn find_teacher_id(&self, employee_number: &str) -> Result<Option<i32>, DomainError> {
-        Ok(self
-            .teacher_service
-            .find_all()
-            .await?
-            .into_iter()
-            .find(|teacher| {
-                teacher
-                    .employee_number
-                    .eq_ignore_ascii_case(employee_number)
-            })
-            .map(|teacher| teacher.id))
-    }
-
-    async fn find_building_id(&self, name: &str) -> Result<Option<i32>, DomainError> {
-        Ok(self
-            .building_service
-            .find_by_name(name)
-            .await?
-            .map(|building| building.id))
-    }
-
-    async fn find_classroom_id(
+    async fn build_slot_input(
         &self,
-        name: &str,
-        building_id: i32,
-    ) -> Result<Option<i32>, DomainError> {
-        Ok(self
-            .classroom_service
-            .find_by_name_and_building(name, building_id)
-            .await?
-            .map(|classroom| classroom.id))
-    }
-
-    async fn process_row(
-        &self,
-        headers: &[String],
-        row: &[String],
+        parsed: ParsedScheduleRow,
+        index: &CatalogIndex,
+        group_cache: &mut HashMap<(Option<i32>, String), Group>,
         uploaded_by: Option<uuid::Uuid>,
-    ) -> Result<(), DomainError> {
-        let analysis = self.analyze_row(headers, row).await?;
-
-        if !analysis.errors.is_empty() {
-            return Err(DomainError::BadRequest(analysis.errors.join("; ")));
-        }
-
-        let parsed = analysis.parsed;
-        let subject_id = self
-            .find_subject_id(&parsed.clave_materia)
-            .await?
+    ) -> Result<CreateScheduleSlot, DomainError> {
+        let subject_id = *index
+            .subjects_by_code
+            .get(&norm_key(&parsed.clave_materia))
             .ok_or_else(|| DomainError::NotFound("Materia no encontrada".to_string()))?;
-        let teacher_id = self
-            .find_teacher_id(&parsed.no_empleado)
-            .await?
+        let teacher_id = *index
+            .teachers_by_employee
+            .get(&norm_key(&parsed.no_empleado))
             .ok_or_else(|| DomainError::NotFound("Docente no encontrado".to_string()))?;
-        let building_id = self
-            .find_building_id(&parsed.edificio)
-            .await?
+        let building_id = *index
+            .buildings_by_name
+            .get(&norm_key(&parsed.edificio))
             .ok_or_else(|| DomainError::NotFound("Edificio no encontrado".to_string()))?;
-        let classroom_id = self
-            .find_classroom_id(&parsed.aula, building_id)
-            .await?
+        let classroom_id = *index
+            .classrooms_by_building_and_name
+            .get(&(building_id, norm_key(&parsed.aula)))
             .ok_or_else(|| DomainError::NotFound("Salón no encontrado".to_string()))?;
 
         let group = self
-            .group_service
-            .find_or_create(&parsed.grupo, None, parsed.grade)
+            .resolve_or_create_group(&parsed.grupo, None, parsed.grade, index, group_cache)
             .await?;
 
         let subgroup = if let Some(subgroup_name) = parsed.subgroup.as_deref() {
-            Some(
-                self.group_service
-                    .find_or_create(subgroup_name, Some(group.id), parsed.grade)
-                    .await?
-                    .name,
-            )
+            let subgroup = self
+                .resolve_or_create_group(subgroup_name, Some(group.id), None, index, group_cache)
+                .await?;
+            Some(subgroup.name)
         } else {
             None
         };
 
-        self.schedule_service
-            .create(CreateScheduleSlot {
-                teacher_id: Some(teacher_id),
-                subject_id,
-                classroom_id,
-                group_id: group.id,
-                day_of_week: parsed.day_of_week,
-                start_time: parsed.hora_inicio,
-                end_time: parsed.hora_fin,
-                subgroup,
-                is_published: false,
-                created_by_id: uploaded_by,
-                overwrite: true,
-            })
-            .await?;
+        Ok(CreateScheduleSlot {
+            teacher_id: Some(teacher_id),
+            subject_id,
+            classroom_id,
+            group_id: group.id,
+            day_of_week: parsed.day_of_week,
+            start_time: parsed.hora_inicio,
+            end_time: parsed.hora_fin,
+            subgroup,
+            is_published: false,
+            created_by_id: uploaded_by,
+            overwrite: true,
+        })
+    }
 
-        Ok(())
+    async fn resolve_or_create_group(
+        &self,
+        name: &str,
+        parent_id: Option<i32>,
+        grade: Option<i32>,
+        index: &CatalogIndex,
+        group_cache: &mut HashMap<(Option<i32>, String), Group>,
+    ) -> Result<Group, DomainError> {
+        let key = (parent_id, norm_key(name));
+        if let Some(group) = group_cache.get(&key) {
+            return Ok(group.clone());
+        }
+        if let Some(group) = index.groups_by_parent_and_name.get(&key) {
+            return Ok(group.clone());
+        }
+        let created = self
+            .group_service
+            .find_or_create(name, parent_id, grade)
+            .await?;
+        group_cache.insert(key, created.clone());
+        Ok(created)
     }
 }
 
@@ -680,11 +779,31 @@ fn normalize_header(value: String) -> String {
 fn cell_to_string(cell: &Data) -> String {
     match cell {
         Data::String(v) => v.clone(),
-        Data::Float(v) => v.to_string(),
+        Data::Float(v) => excel_fraction_to_time(*v).unwrap_or_else(|| v.to_string()),
         Data::Int(v) => v.to_string(),
         Data::Bool(v) => v.to_string(),
-        Data::DateTime(v) => v.to_string(),
-        Data::Empty => String::new(),
-        _ => String::new(),
+        Data::DateTime(v) => excel_fraction_to_time(v.as_f64()).unwrap_or_else(|| v.to_string()),
+        Data::DateTimeIso(v) => v.clone(),
+        Data::DurationIso(v) => v.clone(),
+        Data::Empty | Data::Error(_) => String::new(),
     }
+}
+
+// Excel encodes time-of-day as a fraction of a day in [0, 1). Datetimes >= 1
+// carry a date component; we keep only the fractional part to extract HH:MM:SS.
+// Returns None for plain integers and out-of-range values so non-time numerics
+// (e.g. grade "1") keep their numeric string form.
+fn excel_fraction_to_time(value: f64) -> Option<String> {
+    if !value.is_finite() || value < 0.0 {
+        return None;
+    }
+    let frac = value.fract();
+    if frac == 0.0 {
+        return None;
+    }
+    let total_secs = (frac * 86_400.0).round() as i64;
+    let h = (total_secs / 3600) % 24;
+    let m = (total_secs / 60) % 60;
+    let s = total_secs % 60;
+    Some(format!("{:02}:{:02}:{:02}", h, m, s))
 }

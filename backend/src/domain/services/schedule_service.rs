@@ -118,6 +118,110 @@ impl ScheduleService {
             .await
     }
 
+    /// Like `create`, but trusts that teacher/subject/classroom/group already exist —
+    /// the caller (e.g. the bulk upload path) has resolved their IDs against an
+    /// in-memory catalog and re-querying them per row is the dominant cost.
+    pub async fn create_resolved(
+        &self,
+        input: CreateScheduleSlot,
+    ) -> Result<ScheduleSlot, DomainError> {
+        self.validate_times(&input.start_time, &input.end_time)?;
+        let subgroup = Self::normalize_subgroup_key(input.subgroup.as_deref());
+        self.handle_collisions(
+            input.teacher_id,
+            input.classroom_id,
+            input.group_id,
+            subgroup.as_deref(),
+            input.day_of_week,
+            &input.start_time,
+            &input.end_time,
+            None,
+            input.overwrite,
+        )
+        .await?;
+
+        let now = Utc::now();
+        self.repo
+            .create(ScheduleSlot {
+                id: 0,
+                teacher_id: input.teacher_id,
+                subject_id: input.subject_id,
+                classroom_id: input.classroom_id,
+                group_id: input.group_id,
+                day_of_week: input.day_of_week,
+                start_time: input.start_time,
+                end_time: input.end_time,
+                subgroup: input.subgroup,
+                is_published: input.is_published,
+                created_by_id: input.created_by_id,
+                created_at: now,
+                updated_at: now,
+            })
+            .await
+    }
+
+    /// Bulk insert path for the Excel/CSV upload: skips per-slot dependency
+    /// re-validation (caller already verified existence via an in-memory index),
+    /// runs collision checks concurrently, and writes all rows in a single
+    /// multi-row INSERT. Collapses ~6 round-trips per row into ~1.
+    pub async fn create_many_resolved(
+        &self,
+        inputs: Vec<CreateScheduleSlot>,
+    ) -> Result<Vec<ScheduleSlot>, DomainError> {
+        if inputs.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        for input in &inputs {
+            self.validate_times(&input.start_time, &input.end_time)?;
+        }
+        for (index, current) in inputs.iter().enumerate() {
+            for previous in inputs.iter().take(index) {
+                self.ensure_batch_compatibility(previous, current)?;
+            }
+        }
+
+        let collision_futures = inputs.iter().map(|input| {
+            let subgroup = Self::normalize_subgroup_key(input.subgroup.as_deref());
+            async move {
+                self.handle_collisions(
+                    input.teacher_id,
+                    input.classroom_id,
+                    input.group_id,
+                    subgroup.as_deref(),
+                    input.day_of_week,
+                    &input.start_time,
+                    &input.end_time,
+                    None,
+                    input.overwrite,
+                )
+                .await
+            }
+        });
+        futures_util::future::try_join_all(collision_futures).await?;
+
+        let now = Utc::now();
+        let slots: Vec<ScheduleSlot> = inputs
+            .into_iter()
+            .map(|input| ScheduleSlot {
+                id: 0,
+                teacher_id: input.teacher_id,
+                subject_id: input.subject_id,
+                classroom_id: input.classroom_id,
+                group_id: input.group_id,
+                day_of_week: input.day_of_week,
+                start_time: input.start_time,
+                end_time: input.end_time,
+                subgroup: input.subgroup,
+                is_published: input.is_published,
+                created_by_id: input.created_by_id,
+                created_at: now,
+                updated_at: now,
+            })
+            .collect();
+        self.repo.create_many(slots).await
+    }
+
     pub async fn create_many(
         &self,
         inputs: Vec<CreateScheduleSlot>,
