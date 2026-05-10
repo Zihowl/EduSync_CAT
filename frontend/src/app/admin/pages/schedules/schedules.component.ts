@@ -951,7 +951,7 @@ export class SchedulesComponent implements OnInit {
                 this.OpenModal(schedule);
                 break;
             case 'toggle-publish':
-                this.TogglePublish(schedule);
+                void this.ConfirmTogglePublish(schedule);
                 break;
             case 'delete':
                 void this.Remove(schedule.id);
@@ -1642,6 +1642,24 @@ export class SchedulesComponent implements OnInit {
         this.selectionMode = false;
         this.selectedIds.clear();
         this.syncCalendarState();
+    }
+
+    async ConfirmTogglePublish(schedule: any): Promise<void> {
+        const newValue = !schedule.isPublished;
+        const confirmed = await this.notifications.confirm({
+            title: newValue ? 'Publicar horario' : 'Ocultar horario',
+            message: newValue ? '¿Publicar este horario?' : '¿Ocultar este horario?',
+            confirmText: newValue ? 'Publicar' : 'Ocultar',
+            cancelText: 'Cancelar',
+            confirmColor: newValue ? 'success' : 'warning',
+            styleType: newValue ? 'success' : 'warning'
+        });
+
+        if (!confirmed) {
+            return;
+        }
+
+        this.TogglePublish(schedule);
     }
 
     TogglePublish(schedule: any) {
