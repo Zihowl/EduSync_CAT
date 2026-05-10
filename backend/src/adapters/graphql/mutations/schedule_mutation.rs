@@ -80,7 +80,7 @@ impl ScheduleMutation {
                 .await;
             }
 
-            publish_realtime_event(ctx, &[RealtimeScope::Schedules]);
+            publish_realtime_event(ctx, &[RealtimeScope::Schedules, RealtimeScope::Groups]);
         }
         result
     }
@@ -142,7 +142,7 @@ impl ScheduleMutation {
             }
 
             if !created_schedules.is_empty() {
-                publish_realtime_event(ctx, &[RealtimeScope::Schedules]);
+                publish_realtime_event(ctx, &[RealtimeScope::Schedules, RealtimeScope::Groups]);
             }
         }
 
@@ -207,7 +207,7 @@ impl ScheduleMutation {
                 .await;
             }
 
-            publish_realtime_event(ctx, &[RealtimeScope::Schedules]);
+            publish_realtime_event(ctx, &[RealtimeScope::Schedules, RealtimeScope::Groups]);
         }
         result
     }
@@ -234,7 +234,7 @@ impl ScheduleMutation {
             )
             .await;
 
-            publish_realtime_event(ctx, &[RealtimeScope::Schedules]);
+            publish_realtime_event(ctx, &[RealtimeScope::Schedules, RealtimeScope::Groups]);
         }
         result
     }
@@ -266,7 +266,7 @@ impl ScheduleMutation {
             )
             .await;
 
-            publish_realtime_event(ctx, &[RealtimeScope::Schedules]);
+            publish_realtime_event(ctx, &[RealtimeScope::Schedules, RealtimeScope::Groups]);
         }
         result
     }

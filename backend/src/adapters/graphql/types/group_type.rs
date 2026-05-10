@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use async_graphql::{ComplexObject, Context, SimpleObject, ID};
+use async_graphql::{ComplexObject, Context, ID, SimpleObject};
 
 use crate::domain::models::group::Group;
 use crate::domain::services::group_service::GroupService;
@@ -36,5 +36,16 @@ impl GroupType {
         let parent = svc.find_one(parent_id).await?;
 
         Ok(parent.map(Into::into))
+    }
+
+    async fn has_schedule_slots(&self, ctx: &Context<'_>) -> async_graphql::Result<bool> {
+        let id = self
+            .id
+            .as_str()
+            .parse::<i32>()
+            .map_err(|_| async_graphql::Error::new("Identificador de grupo inválido"))?;
+        let svc = ctx.data::<Arc<GroupService>>()?;
+
+        Ok(svc.has_schedule_slots(id).await?)
     }
 }

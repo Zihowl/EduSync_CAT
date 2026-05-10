@@ -886,6 +886,10 @@ mod tests {
             })
         }
 
+        async fn has_schedule_slots(&self, _id: i32) -> Result<bool, DomainError> {
+            Ok(false)
+        }
+
         async fn delete(&self, _id: i32) -> Result<bool, DomainError> {
             Ok(true)
         }

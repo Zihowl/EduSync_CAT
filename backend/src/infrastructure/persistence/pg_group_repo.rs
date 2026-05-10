@@ -14,6 +14,38 @@ impl PgGroupRepository {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
+
+    async fn has_schedule_slots_for_group(&self, id: i32) -> Result<bool, DomainError> {
+        sqlx::query_scalar(
+            r#"
+            SELECT EXISTS (
+                SELECT 1
+                FROM "groups" g
+                WHERE g.id = $1
+                  AND (
+                      EXISTS (
+                          SELECT 1
+                          FROM schedule_slots s
+                          WHERE s.group_id = g.id
+                      )
+                      OR (
+                          g.parent_id IS NOT NULL
+                          AND EXISTS (
+                              SELECT 1
+                              FROM schedule_slots s
+                              WHERE s.group_id = g.parent_id
+                                AND COALESCE(NULLIF(BTRIM(s.subgroup), ''), '') = BTRIM(g.name)
+                          )
+                      )
+                  )
+            )
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(map_sqlx)
+    }
 }
 
 #[derive(FromRow)]
@@ -36,6 +68,12 @@ impl From<GroupRow> for Group {
 }
 
 fn map_sqlx(e: sqlx::Error) -> DomainError {
+    if let sqlx::Error::Database(db_err) = &e {
+        if db_err.code().as_deref() == Some("23503") {
+            return DomainError::Conflict(db_err.message().to_string());
+        }
+    }
+
     DomainError::Internal(format!("Error de base de datos en grupos: {e}"))
 }
 
@@ -78,7 +116,12 @@ impl GroupRepository for PgGroupRepository {
         Ok(row.map(Into::into))
     }
 
-    async fn create(&self, name: &str, parent_id: Option<i32>, grade: Option<i32>) -> Result<Group, DomainError> {
+    async fn create(
+        &self,
+        name: &str,
+        parent_id: Option<i32>,
+        grade: Option<i32>,
+    ) -> Result<Group, DomainError> {
         let row = sqlx::query_as::<_, GroupRow>(
             "INSERT INTO \"groups\" (name, parent_id, grade) VALUES ($1, $2, $3) RETURNING id, name, parent_id, grade",
         )
@@ -127,16 +170,14 @@ impl GroupRepository for PgGroupRepository {
         Ok(row.into())
     }
 
-    async fn delete(&self, id: i32) -> Result<bool, DomainError> {
-        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM schedule_slots WHERE group_id = $1")
-            .bind(id)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(map_sqlx)?;
+    async fn has_schedule_slots(&self, id: i32) -> Result<bool, DomainError> {
+        self.has_schedule_slots_for_group(id).await
+    }
 
-        if count > 0 {
+    async fn delete(&self, id: i32) -> Result<bool, DomainError> {
+        if self.has_schedule_slots_for_group(id).await? {
             return Err(DomainError::Conflict(
-                "No se puede eliminar el grupo porque tiene bloques de horario asociados. Elimina primero los horarios.".to_string(),
+                "No se puede eliminar el grupo o subgrupo porque tiene bloques de horario asociados. Elimina primero los horarios.".to_string(),
             ));
         }
 

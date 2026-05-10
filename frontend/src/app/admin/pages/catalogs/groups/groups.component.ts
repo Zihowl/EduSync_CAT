@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angul
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Apollo, gql } from 'apollo-angular';
-import { map } from 'rxjs';
+import { firstValueFrom, map } from 'rxjs';
 import {
     IonButton, IonChip, IonContent, IonIcon, IonItem,
     IonFab, IonFabButton, IonInput, IonLabel, IonList, IonSpinner
@@ -33,6 +33,7 @@ const GET_GROUPS = gql`
             id
             name
             grade
+            hasScheduleSlots
             parent {
                 id
                 name
@@ -40,6 +41,8 @@ const GET_GROUPS = gql`
         }
     }
 `;
+
+const GROUP_CACHE_SCOPES = [RealtimeScope.Groups, RealtimeScope.Schedules];
 
 const CREATE_GROUP = gql`
     mutation CreateGroup($input: CreateGroupInput!) {
@@ -313,14 +316,14 @@ export class GroupsComponent implements OnInit {
         const request$ = forceRefresh
             ? this.queryCache.refresh(
                 'admin-groups',
-                [RealtimeScope.Groups],
+                GROUP_CACHE_SCOPES,
                 () => this.apollo.query<any>({ query: GET_GROUPS, fetchPolicy: 'network-only' }).pipe(
                     map((res: any) => res?.data?.GetGroups ?? [])
                 )
             )
             : this.queryCache.load(
                 'admin-groups',
-                [RealtimeScope.Groups],
+                GROUP_CACHE_SCOPES,
                 () => this.apollo.query<any>({ query: GET_GROUPS, fetchPolicy: 'network-only' }).pipe(
                     map((res: any) => res?.data?.GetGroups ?? [])
                 )
@@ -352,7 +355,7 @@ export class GroupsComponent implements OnInit {
     }
 
     private setupRealtimeRefresh(): void {
-        this.realtimeSync.watchScopes([RealtimeScope.Groups])
+        this.realtimeSync.watchScopes(GROUP_CACHE_SCOPES)
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe(() => this.LoadGroups(true));
     }
@@ -510,9 +513,24 @@ export class GroupsComponent implements OnInit {
             return;
         }
 
+        const currentGroup = this.hasScheduleSlots(group)
+            ? await this.refreshGroupForDeletion(group.id)
+            : group;
+
+        if (!currentGroup) {
+            this.notifications.warning('El grupo ya no existe o no pudo actualizarse.', 'No se puede eliminar');
+            this.LoadGroups(true);
+            return;
+        }
+
+        if (this.hasScheduleSlots(currentGroup)) {
+            this.notifications.warning(`No se puede eliminar ${this.getGroupPath(currentGroup)} porque tiene bloques de horario asociados. Elimina primero los horarios.`, 'No se puede eliminar');
+            return;
+        }
+
         if (!(await this.notifications.confirm({
             title: 'Eliminar grupo',
-            message: `¿Seguro que desea eliminar ${this.getGroupPath(group)}? Si tiene bloques de horario asignados, no podrá eliminarse hasta que los remuevas primero.`,
+            message: `¿Seguro que desea eliminar ${this.getGroupPath(currentGroup)}? Si tiene bloques de horario asignados, no podrá eliminarse hasta que los remuevas primero.`,
             confirmText: 'Eliminar',
             cancelText: 'Cancelar',
             confirmColor: 'danger',
@@ -521,7 +539,7 @@ export class GroupsComponent implements OnInit {
 
         this.apollo.mutate({
             mutation: REMOVE_GROUP,
-            variables: { id: Number(group.id) },
+            variables: { id: Number(currentGroup.id) },
         }).subscribe({
             next: () => this.LoadGroups(true),
             error: (err) => {
@@ -533,6 +551,27 @@ export class GroupsComponent implements OnInit {
 
     hasChildren(groupId: any): boolean {
         return this.allGroups.some((group) => group.parent && Number(group.parent.id) === Number(groupId));
+    }
+
+    hasScheduleSlots(group: any): boolean {
+        return Boolean(group?.hasScheduleSlots);
+    }
+
+    private async refreshGroupForDeletion(groupId: any): Promise<any | null> {
+        const rawGroups = await firstValueFrom(this.queryCache.refresh(
+            'admin-groups',
+            GROUP_CACHE_SCOPES,
+            () => this.apollo.query<any>({ query: GET_GROUPS, fetchPolicy: 'network-only' }).pipe(
+                map((res: any) => res?.data?.GetGroups ?? [])
+            )
+        ));
+        const normalized = this.normalizeParents(rawGroups ?? []);
+        this.allGroups = [...normalized];
+        this.refreshGroupToolbarFilters();
+        this.ApplyFilter();
+        this.cdr.detectChanges();
+
+        return this.allGroups.find((candidate) => Number(candidate.id) === Number(groupId)) ?? null;
     }
 
     getParentName(id: any): string {

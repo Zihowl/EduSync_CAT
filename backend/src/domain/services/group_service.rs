@@ -42,10 +42,7 @@ impl GroupService {
 
         if let Some(existing) = self.repo.find_by_name_and_parent(&name, parent_id).await? {
             if grade.is_some() && existing.grade != grade {
-                return self
-                    .repo
-                    .update(existing.id, None, None, Some(grade))
-                    .await;
+                return self.repo.update(existing.id, None, None, Some(grade)).await;
             }
 
             return Ok(existing);
@@ -123,7 +120,25 @@ impl GroupService {
     }
 
     pub async fn delete(&self, id: i32) -> Result<bool, DomainError> {
+        if let Some(group) = self.repo.find_by_id(id).await? {
+            if self.repo.has_schedule_slots(id).await? {
+                let entity_name = if group.parent_id.is_some() {
+                    "subgrupo"
+                } else {
+                    "grupo"
+                };
+
+                return Err(DomainError::Conflict(format!(
+                    "No se puede eliminar el {entity_name} porque tiene bloques de horario asociados. Elimina primero los horarios."
+                )));
+            }
+        }
+
         self.repo.delete(id).await
+    }
+
+    pub async fn has_schedule_slots(&self, id: i32) -> Result<bool, DomainError> {
+        self.repo.has_schedule_slots(id).await
     }
 
     async fn validate_parent_link(
@@ -172,17 +187,23 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use crate::domain::{
-        errors::DomainError,
-        models::group::Group,
-        ports::group_repository::GroupRepository,
+        errors::DomainError, models::group::Group, ports::group_repository::GroupRepository,
     };
 
     #[derive(Default)]
     struct MockGroupRepository {
         existing: Option<Group>,
         parent: Option<Group>,
+        has_schedule_slots: bool,
         created: Mutex<Vec<(String, Option<i32>, Option<i32>)>>,
-        updated: Mutex<Vec<(i32, Option<String>, Option<Option<i32>>, Option<Option<i32>>)>>,
+        updated: Mutex<
+            Vec<(
+                i32,
+                Option<String>,
+                Option<Option<i32>>,
+                Option<Option<i32>>,
+            )>,
+        >,
     }
 
     impl MockGroupRepository {
@@ -241,10 +262,11 @@ mod tests {
             parent_id: Option<i32>,
             grade: Option<i32>,
         ) -> Result<Group, DomainError> {
-            self.created
-                .lock()
-                .expect("created mutex poisoned")
-                .push((name.to_string(), parent_id, grade));
+            self.created.lock().expect("created mutex poisoned").push((
+                name.to_string(),
+                parent_id,
+                grade,
+            ));
 
             Ok(Group {
                 id: 99,
@@ -261,10 +283,12 @@ mod tests {
             parent_id: Option<Option<i32>>,
             grade: Option<Option<i32>>,
         ) -> Result<Group, DomainError> {
-            self.updated
-                .lock()
-                .expect("updated mutex poisoned")
-                .push((id, name.map(str::to_string), parent_id, grade));
+            self.updated.lock().expect("updated mutex poisoned").push((
+                id,
+                name.map(str::to_string),
+                parent_id,
+                grade,
+            ));
 
             let mut group = self.existing.clone().unwrap_or(Group {
                 id,
@@ -284,6 +308,10 @@ mod tests {
             }
 
             Ok(group)
+        }
+
+        async fn has_schedule_slots(&self, _id: i32) -> Result<bool, DomainError> {
+            Ok(self.has_schedule_slots)
         }
 
         async fn delete(&self, _id: i32) -> Result<bool, DomainError> {
@@ -308,7 +336,10 @@ mod tests {
 
         assert_eq!(group.grade, Some(1));
         assert_eq!(repo.created.lock().expect("created mutex").len(), 1);
-        assert_eq!(repo.created.lock().expect("created mutex")[0], ("1".to_string(), Some(1), Some(1)));
+        assert_eq!(
+            repo.created.lock().expect("created mutex")[0],
+            ("1".to_string(), Some(1), Some(1))
+        );
     }
 
     #[tokio::test]
@@ -328,6 +359,34 @@ mod tests {
 
         assert_eq!(group.grade, Some(1));
         assert_eq!(repo.updated.lock().expect("updated mutex").len(), 1);
-        assert_eq!(repo.updated.lock().expect("updated mutex")[0].3, Some(Some(1)));
+        assert_eq!(
+            repo.updated.lock().expect("updated mutex")[0].3,
+            Some(Some(1))
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_rejects_subgroup_with_schedule_slots() {
+        let repo = Arc::new(MockGroupRepository {
+            existing: Some(Group {
+                id: 2,
+                name: "1".to_string(),
+                parent_id: Some(1),
+                grade: None,
+            }),
+            has_schedule_slots: true,
+            ..MockGroupRepository::default()
+        });
+        let service = GroupService::new(repo);
+
+        let err = service
+            .delete(2)
+            .await
+            .expect_err("el subgrupo con horarios no debe eliminarse");
+
+        match err {
+            DomainError::Conflict(message) => assert!(message.contains("subgrupo")),
+            other => panic!("se esperaba conflicto, se obtuvo {other:?}"),
+        }
     }
 }

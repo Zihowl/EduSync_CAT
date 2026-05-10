@@ -80,6 +80,9 @@ interface ExistingCatalogState {
     subgroups: Map<string, number>;
 }
 
+const MISSING_CATALOG_BATCH_SIZE = 75;
+const MISSING_CATALOG_DEPENDENT_BATCH_SIZE = 50;
+
 const GET_SUBJECTS = gql`
     query GetSubjects {
         GetSubjects {
@@ -735,108 +738,109 @@ export class UploadComponent implements OnInit {
                 }
 
                 // Phase 1: buildings + subjects + teachers + groups in parallel
-                const buildingsTask = Promise.all(buildings.map(async (b) => {
-                    const buildingName = b.row.edificio;
-                    const buildingKey = this.buildCatalogKey(buildingName);
-                    if (state.buildings.has(buildingKey)) return;
-                    try {
-                        const id = await this.createBuilding(buildingName);
-                        state.buildings.set(buildingKey, id);
-                    } catch (err: any) {
-                        if (this.isDuplicateCatalogError(err)) {
-                            const resolved = await this.findBuildingIdByName(buildingName);
-                            if (resolved !== null) state.buildings.set(buildingKey, resolved);
-                            else failures.push(`No se pudo crear el edificio ${buildingName}.`);
-                        } else {
-                            failures.push(getGraphQLErrorMessage(err, `No se pudo crear el edificio ${buildingName}.`));
-                        }
-                    }
-                }));
-
-                const subjectsTask = Promise.all(subjects.map(async (s) => {
-                    const subjectKey = this.buildCatalogKey(s.row.claveMateria);
-                    if (state.subjects.has(subjectKey)) return;
-                    try {
-                        await this.createSubject(s.row);
-                        state.subjects.set(subjectKey, 1);
-                    } catch (err: any) {
-                        if (!this.isDuplicateCatalogError(err)) failures.push(getGraphQLErrorMessage(err, `No se pudo crear la materia ${s.row.claveMateria}.`));
-                    }
-                }));
-
-                const teachersTask = Promise.all(teachers.map(async (t) => {
-                    const teacherKey = this.buildCatalogKey(t.row.noEmpleado);
-                    if (state.teachers.has(teacherKey)) return;
-                    try {
-                        await this.createTeacher(t.row);
-                        state.teachers.set(teacherKey, 1);
-                    } catch (err: any) {
-                        if (!this.isDuplicateCatalogError(err)) failures.push(getGraphQLErrorMessage(err, `No se pudo crear el docente ${t.row.noEmpleado}.`));
-                    }
-                }));
-
-                const groupsTask = Promise.all(groups.map(async (g) => {
-                    const groupKey = this.buildCatalogKey(g.row.grupo);
-                    if (state.groups.has(groupKey)) return;
-                    try {
-                        const id = await this.createGroup(g.row.grupo, null, g.row.grade ?? null);
-                        state.groups.set(groupKey, id);
-                    } catch (err: any) {
-                        if (this.isDuplicateCatalogError(err)) {
-                            const resolved = await this.findGroupIdByName(g.row.grupo, null);
-                            if (resolved !== null) state.groups.set(groupKey, resolved);
-                            else failures.push(`No se pudo crear el grupo ${g.row.grupo}.`);
-                        } else {
-                            failures.push(getGraphQLErrorMessage(err, `No se pudo crear el grupo ${g.row.grupo}.`));
-                        }
-                    }
-                }));
-
-                await Promise.all([buildingsTask, subjectsTask, teachersTask, groupsTask]);
+                const bCount = { count: 0 };
+                const sCount = { count: 0 };
+                const tCount = { count: 0 };
+                const gCount = { count: 0 };
+                await Promise.all([
+                    this.createItemsInBulk(
+                        buildings.filter(item => !state.buildings.has(this.buildCatalogKey(item.row.edificio))),
+                        'CreateBuilding',
+                        'CreateBuildingInput!',
+                        (item) => ({ name: item.row.edificio, description: null }),
+                        async (item) => await this.findBuildingIdByName(item.row.edificio),
+                        (item, id) => state.buildings.set(this.buildCatalogKey(item.row.edificio), id),
+                        (item) => `el edificio ${item.row.edificio}`,
+                        bCount,
+                        failures
+                    ),
+                    this.createItemsInBulk(
+                        subjects.filter(item => !state.subjects.has(this.buildCatalogKey(item.row.claveMateria))),
+                        'CreateSubject',
+                        'CreateSubjectInput!',
+                        (item) => ({ code: item.row.claveMateria, name: item.row.materia, grade: item.row.grade ?? null, division: null }),
+                        async () => 1,
+                        (item, id) => state.subjects.set(this.buildCatalogKey(item.row.claveMateria), 1),
+                        (item) => `la materia ${item.row.claveMateria}`,
+                        sCount,
+                        failures
+                    ),
+                    this.createItemsInBulk(
+                        teachers.filter(item => !state.teachers.has(this.buildCatalogKey(item.row.noEmpleado))),
+                        'CreateTeacher',
+                        'CreateTeacherInput!',
+                        (item) => ({ employeeNumber: item.row.noEmpleado, name: item.row.docente, email: null }),
+                        async () => 1,
+                        (item, id) => state.teachers.set(this.buildCatalogKey(item.row.noEmpleado), 1),
+                        (item) => `el docente ${item.row.noEmpleado}`,
+                        tCount,
+                        failures
+                    ),
+                    this.createItemsInBulk(
+                        groups.filter(item => !state.groups.has(this.buildCatalogKey(item.row.grupo))),
+                        'CreateGroup',
+                        'CreateGroupInput!',
+                        (item) => ({ name: item.row.grupo, parentId: null, grade: item.row.grade ?? null }),
+                        async (item) => await this.findGroupIdByName(item.row.grupo, null),
+                        (item, id) => state.groups.set(this.buildCatalogKey(item.row.grupo), id),
+                        (item) => `el grupo ${item.row.grupo}`,
+                        gCount,
+                        failures,
+                        MISSING_CATALOG_DEPENDENT_BATCH_SIZE
+                    ),
+                ]);
 
                 // Phase 2: classrooms (need building) + subgroups (need parent group) in parallel
-                const classroomsTask = Promise.all(classrooms.map(async (c) => {
+                const validClassrooms = classrooms.filter((c) => {
                     const buildingKey = this.buildCatalogKey(c.row.edificio);
                     const classroomKey = this.buildClassroomKey(c.row.edificio, c.row.aula);
                     const buildingId = state.buildings.get(buildingKey);
                     if (!buildingId) {
                         failures.push(`No se pudo resolver el edificio ${c.row.edificio} para crear el aula ${c.row.aula}.`);
-                        return;
+                        return false;
                     }
-                    if (state.classrooms.has(classroomKey)) return;
-                    try {
-                        await this.createClassroom(c.row, buildingId);
-                        state.classrooms.set(classroomKey, 1);
-                    } catch (err: any) {
-                        if (!this.isDuplicateCatalogError(err)) failures.push(getGraphQLErrorMessage(err, `No se pudo crear el aula ${c.row.aula} en ${c.row.edificio}.`));
-                    }
-                }));
+                    return !state.classrooms.has(classroomKey);
+                });
 
-                const subgroupsTask = Promise.all(subgroups.map(async (sg) => {
-                    if (!sg.row.subgroup) return;
+                const validSubgroups = subgroups.filter((sg) => {
+                    if (!sg.row.subgroup) return false;
                     const parentKey = this.buildCatalogKey(sg.row.grupo);
                     const subgroupKey = this.buildSubgroupKey(sg.row.grupo, sg.row.subgroup);
                     const parentId = state.groups.get(parentKey);
                     if (!parentId) {
                         failures.push(`No se pudo resolver el grupo padre ${sg.row.grupo} para crear el subgrupo ${sg.row.subgroup}.`);
-                        return;
+                        return false;
                     }
-                    if (state.subgroups.has(subgroupKey)) return;
-                    try {
-                        const id = await this.createGroup(sg.row.subgroup, parentId, null);
-                        state.subgroups.set(subgroupKey, id);
-                    } catch (err: any) {
-                        if (this.isDuplicateCatalogError(err)) {
-                            const resolved = await this.findGroupIdByName(sg.row.subgroup, parentId);
-                            if (resolved !== null) state.subgroups.set(subgroupKey, resolved);
-                            else failures.push(`No se pudo crear el subgrupo ${sg.row.subgroup}.`);
-                        } else {
-                            failures.push(getGraphQLErrorMessage(err, `No se pudo crear el subgrupo ${sg.row.subgroup}.`));
-                        }
-                    }
-                }));
-
-                await Promise.all([classroomsTask, subgroupsTask]);
+                    return !state.subgroups.has(subgroupKey);
+                });
+                const cCount = { count: 0 };
+                const sgCount = { count: 0 };
+                await Promise.all([
+                    this.createItemsInBulk(
+                        validClassrooms,
+                        'CreateClassroom',
+                        'CreateClassroomInput!',
+                        (item) => ({ name: item.row.aula, buildingId: state.buildings.get(this.buildCatalogKey(item.row.edificio))! }),
+                        async () => 1,
+                        (item, id) => state.classrooms.set(this.buildClassroomKey(item.row.edificio, item.row.aula), 1),
+                        (item) => `el aula ${item.row.aula} en ${item.row.edificio}`,
+                        cCount,
+                        failures,
+                        MISSING_CATALOG_DEPENDENT_BATCH_SIZE
+                    ),
+                    this.createItemsInBulk(
+                        validSubgroups,
+                        'CreateGroup',
+                        'CreateGroupInput!',
+                        (item) => ({ name: item.row.subgroup!, parentId: state.groups.get(this.buildCatalogKey(item.row.grupo))!, grade: null }),
+                        async (item) => await this.findGroupIdByName(item.row.subgroup!, state.groups.get(this.buildCatalogKey(item.row.grupo))!),
+                        (item, id) => state.subgroups.set(this.buildSubgroupKey(item.row.grupo, item.row.subgroup!), id),
+                        (item) => `el subgrupo ${item.row.subgroup}`,
+                        sgCount,
+                        failures,
+                        MISSING_CATALOG_DEPENDENT_BATCH_SIZE
+                    ),
+                ]);
 
                 // Update missing-items arrays locally from the in-memory state so the
                 // next iteration sees what we already created — re-running PreviewUpload
@@ -859,6 +863,95 @@ export class UploadComponent implements OnInit {
         } finally {
             this.isCreatingMissingCatalogs = false;
             this.refreshMissingCatalogItems();
+        }
+    }
+
+    private async createItemsInBulk<T>(
+        items: T[],
+        mutationName: string,
+        inputTypeName: string,
+        mapper: (item: T) => any,
+        duplicateResolver: (item: T) => Promise<number | null>,
+        stateSetter: (item: T, id: number) => void,
+        errorMessageDesc: (item: T) => string,
+        createdCounts: { count: number },
+        failures: string[],
+        batchSize: number = MISSING_CATALOG_BATCH_SIZE
+    ): Promise<void> {
+        const safeBatchSize = Math.max(1, batchSize);
+
+        for (let i = 0; i < items.length; i += safeBatchSize) {
+            const chunk = items.slice(i, i + safeBatchSize);
+            const variables: Record<string, any> = {};
+            const mutationDefs: string[] = [];
+            const calls: string[] = [];
+
+            chunk.forEach((item, index) => {
+                variables[`input${index}`] = mapper(item);
+                mutationDefs.push(`$input${index}: ${inputTypeName}`);
+                calls.push(`alias${index}: ${mutationName}(input: $input${index}) { id }`);
+            });
+
+            if (chunk.length === 0) continue;
+
+            const queryStr = `mutation Bulk${mutationName}${Math.floor(i / safeBatchSize)}(${mutationDefs.join(', ')}) {
+                ${calls.join('\n                ')}
+            }`;
+
+            try {
+                const response: any = await firstValueFrom(
+                    this.apollo.mutate({
+                        mutation: gql([`${queryStr}`] as any),
+                        variables,
+                        errorPolicy: 'all',
+                    })
+                );
+
+                const data = response.data || {};
+                const errors = response.errors || [];
+                const handledIndexes = new Set<number>();
+
+                if (errors.length > 0) {
+                    for (const err of errors) {
+                        const path = Array.isArray(err.path) && err.path.length > 0 ? String(err.path[0]) : '';
+                        const match = /^alias(\d+)$/.exec(path);
+                        if (match) {
+                            const idx = Number(match[1]);
+                            if (!Number.isInteger(idx) || !chunk[idx]) continue;
+                            handledIndexes.add(idx);
+                            const item = chunk[idx];
+                            const apolloErr = { graphQLErrors: [err] };
+                            if (this.isDuplicateCatalogError(apolloErr)) {
+                                const resolved = await duplicateResolver(item);
+                                if (resolved !== null) {
+                                    stateSetter(item, resolved);
+                                } else {
+                                    failures.push(`No se pudo resolver ${errorMessageDesc(item)} después de detectar un duplicado.`);
+                                }
+                            } else {
+                                failures.push(getGraphQLErrorMessage(apolloErr, `No se pudo crear ${errorMessageDesc(item)}.`));
+                            }
+                        }
+                    }
+                }
+
+                chunk.forEach((item, index) => {
+                    if (!handledIndexes.has(index)) {
+                        const aliasData = data[`alias${index}`];
+                        const createdId = Number(aliasData?.id ?? 0);
+                        if (Number.isFinite(createdId) && createdId > 0) {
+                            stateSetter(item, createdId);
+                            createdCounts.count += 1;
+                        } else if (!handledIndexes.has(index)) {
+                            failures.push(`La respuesta del backend no contiene información válida para ${errorMessageDesc(item)}`);
+                        }
+                    }
+                });
+            } catch (error) {
+                for (const item of chunk) {
+                    failures.push(getGraphQLErrorMessage(error, `Fallo de red al crear ${errorMessageDesc(item)}.`));
+                }
+            }
         }
     }
 
@@ -922,120 +1015,113 @@ export class UploadComponent implements OnInit {
                 const createdCounts = { subjects: 0, teachers: 0, buildings: 0, classrooms: 0, groups: 0, subgroups: 0 };
                 const failures: string[] = [];
 
-                // Phase 1: groups + buildings + subjects + teachers in parallel (independent).
-                const buildingsTask = Promise.all(missingBuildings.map(async (item) => {
+                // Phase 1: buildings, subjects, teachers, groups
+                const bCount = { count: createdCounts.buildings };
+                const sCount = { count: createdCounts.subjects };
+                const tCount = { count: createdCounts.teachers };
+                const gCount = { count: createdCounts.groups };
+                await Promise.all([
+                    this.createItemsInBulk(
+                        missingBuildings.filter(item => !state.buildings.has(this.buildCatalogKey(item.row.edificio))),
+                        'CreateBuilding',
+                        'CreateBuildingInput!',
+                        (item) => ({ name: item.row.edificio, description: null }),
+                        async (item) => await this.findBuildingIdByName(item.row.edificio),
+                        (item, id) => state.buildings.set(this.buildCatalogKey(item.row.edificio), id),
+                        (item) => `el edificio ${item.row.edificio}`,
+                        bCount,
+                        failures
+                    ),
+                    this.createItemsInBulk(
+                        missingSubjects.filter(item => !state.subjects.has(this.buildCatalogKey(item.row.claveMateria))),
+                        'CreateSubject',
+                        'CreateSubjectInput!',
+                        (item) => ({ code: item.row.claveMateria, name: item.row.materia, grade: item.row.grade ?? null, division: null }),
+                        async () => 1,
+                        (item, id) => state.subjects.set(this.buildCatalogKey(item.row.claveMateria), 1),
+                        (item) => `la materia ${item.row.claveMateria}`,
+                        sCount,
+                        failures
+                    ),
+                    this.createItemsInBulk(
+                        missingTeachers.filter(item => !state.teachers.has(this.buildCatalogKey(item.row.noEmpleado))),
+                        'CreateTeacher',
+                        'CreateTeacherInput!',
+                        (item) => ({ employeeNumber: item.row.noEmpleado, name: item.row.docente, email: null }),
+                        async () => 1,
+                        (item, id) => state.teachers.set(this.buildCatalogKey(item.row.noEmpleado), 1),
+                        (item) => `el docente ${item.row.noEmpleado}`,
+                        tCount,
+                        failures
+                    ),
+                    this.createItemsInBulk(
+                        missingGroups.filter(item => !state.groups.has(this.buildCatalogKey(item.row.grupo))),
+                        'CreateGroup',
+                        'CreateGroupInput!',
+                        (item) => ({ name: item.row.grupo, parentId: null, grade: item.row.grade ?? null }),
+                        async (item) => await this.findGroupIdByName(item.row.grupo, null),
+                        (item, id) => state.groups.set(this.buildCatalogKey(item.row.grupo), id),
+                        (item) => `el grupo ${item.row.grupo}`,
+                        gCount,
+                        failures,
+                        MISSING_CATALOG_DEPENDENT_BATCH_SIZE // Lote menor por la dependencia de grados
+                    ),
+                ]);
+                createdCounts.buildings = bCount.count;
+                createdCounts.subjects = sCount.count;
+                createdCounts.teachers = tCount.count;
+                createdCounts.groups = gCount.count;
+
+                // Phase 2: classrooms + subgroups
+                const validClassrooms = missingClassrooms.filter(item => {
                     const buildingKey = this.buildCatalogKey(item.row.edificio);
-                    if (state.buildings.has(buildingKey)) return;
-                    try {
-                        const buildingId = await this.createBuilding(item.row.edificio);
-                        state.buildings.set(buildingKey, buildingId);
-                        createdCounts.buildings += 1;
-                    } catch (error) {
-                        if (this.isDuplicateCatalogError(error)) {
-                            const resolved = await this.findBuildingIdByName(item.row.edificio);
-                            if (resolved !== null) state.buildings.set(buildingKey, resolved);
-                            else failures.push(`No se pudo resolver el edificio ${item.row.edificio} después de detectar un duplicado.`);
-                        } else {
-                            failures.push(getGraphQLErrorMessage(error, `No se pudo crear el edificio ${item.row.edificio}.`));
-                        }
-                    }
-                }));
-
-                const subjectsTask = Promise.all(missingSubjects.map(async (item) => {
-                    const subjectKey = this.buildCatalogKey(item.row.claveMateria);
-                    if (state.subjects.has(subjectKey)) return;
-                    try {
-                        await this.createSubject(item.row);
-                        state.subjects.set(subjectKey, 1);
-                        createdCounts.subjects += 1;
-                    } catch (error) {
-                        if (!this.isDuplicateCatalogError(error)) {
-                            failures.push(getGraphQLErrorMessage(error, `No se pudo crear la materia ${item.row.claveMateria}.`));
-                        }
-                    }
-                }));
-
-                const teachersTask = Promise.all(missingTeachers.map(async (item) => {
-                    const teacherKey = this.buildCatalogKey(item.row.noEmpleado);
-                    if (state.teachers.has(teacherKey)) return;
-                    try {
-                        await this.createTeacher(item.row);
-                        state.teachers.set(teacherKey, 1);
-                        createdCounts.teachers += 1;
-                    } catch (error) {
-                        if (!this.isDuplicateCatalogError(error)) {
-                            failures.push(getGraphQLErrorMessage(error, `No se pudo crear el docente ${item.row.noEmpleado}.`));
-                        }
-                    }
-                }));
-
-                const groupsTask = Promise.all(missingGroups.map(async (item) => {
-                    const groupKey = this.buildCatalogKey(item.row.grupo);
-                    if (state.groups.has(groupKey)) return;
-                    try {
-                        const groupId = await this.createGroup(item.row.grupo, null, item.row.grade ?? null);
-                        state.groups.set(groupKey, groupId);
-                        createdCounts.groups += 1;
-                    } catch (error) {
-                        if (this.isDuplicateCatalogError(error)) {
-                            const resolved = await this.findGroupIdByName(item.row.grupo, null);
-                            if (resolved !== null) state.groups.set(groupKey, resolved);
-                            else failures.push(`No se pudo resolver el grupo ${item.row.grupo} después de detectar un duplicado.`);
-                        } else {
-                            failures.push(getGraphQLErrorMessage(error, `No se pudo crear el grupo ${item.row.grupo}.`));
-                        }
-                    }
-                }));
-
-                await Promise.all([buildingsTask, subjectsTask, teachersTask, groupsTask]);
-
-                // Phase 2: classrooms (need building) + subgroups (need parent group) in parallel.
-                const classroomsTask = Promise.all(missingClassrooms.map(async (item) => {
-                    const buildingKey = this.buildCatalogKey(item.row.edificio);
-                    const classroomKey = this.buildClassroomKey(item.row.edificio, item.row.aula);
                     const buildingId = state.buildings.get(buildingKey);
                     if (!buildingId) {
                         failures.push(`No se pudo resolver el edificio ${item.row.edificio} para crear el aula ${item.row.aula}.`);
-                        return;
+                        return false;
                     }
-                    if (state.classrooms.has(classroomKey)) return;
-                    try {
-                        await this.createClassroom(item.row, buildingId);
-                        state.classrooms.set(classroomKey, 1);
-                        createdCounts.classrooms += 1;
-                    } catch (error) {
-                        if (!this.isDuplicateCatalogError(error)) {
-                            failures.push(getGraphQLErrorMessage(error, `No se pudo crear el aula ${item.row.aula} en ${item.row.edificio}.`));
-                        }
-                    }
-                }));
+                    return !state.classrooms.has(this.buildClassroomKey(item.row.edificio, item.row.aula));
+                });
+                const cCount = { count: createdCounts.classrooms };
 
-                const subgroupsTask = Promise.all(missingSubgroups.map(async (item) => {
-                    if (!item.row.subgroup) return;
-                    const parentKey = this.buildCatalogKey(item.row.grupo);
-                    const subgroupKey = this.buildSubgroupKey(item.row.grupo, item.row.subgroup);
-                    const parentId = state.groups.get(parentKey);
+                const validSubgroups = missingSubgroups.filter(item => {
+                    if (!item.row.subgroup) return false;
+                    const parentId = state.groups.get(this.buildCatalogKey(item.row.grupo));
                     if (!parentId) {
                         failures.push(`No se pudo resolver el grupo padre ${item.row.grupo} para crear el subgrupo ${item.row.subgroup}.`);
-                        return;
+                        return false;
                     }
-                    if (state.subgroups.has(subgroupKey)) return;
-                    try {
-                        const subId = await this.createGroup(item.row.subgroup, parentId, null);
-                        state.subgroups.set(subgroupKey, subId);
-                        createdCounts.subgroups += 1;
-                    } catch (error) {
-                        if (this.isDuplicateCatalogError(error)) {
-                            const resolved = await this.findGroupIdByName(item.row.subgroup, parentId);
-                            if (resolved !== null) state.subgroups.set(subgroupKey, resolved);
-                            else failures.push(`No se pudo resolver el subgrupo ${item.row.subgroup} después de detectar un duplicado.`);
-                        } else {
-                            failures.push(getGraphQLErrorMessage(error, `No se pudo crear el subgrupo ${item.row.subgroup}.`));
-                        }
-                    }
-                }));
-
-                await Promise.all([classroomsTask, subgroupsTask]);
+                    return !state.subgroups.has(this.buildSubgroupKey(item.row.grupo, item.row.subgroup));
+                });
+                const sgCount = { count: createdCounts.subgroups };
+                await Promise.all([
+                    this.createItemsInBulk(
+                        validClassrooms,
+                        'CreateClassroom',
+                        'CreateClassroomInput!',
+                        (item) => ({ name: item.row.aula, buildingId: state.buildings.get(this.buildCatalogKey(item.row.edificio))! }),
+                        async () => 1,
+                        (item, id) => state.classrooms.set(this.buildClassroomKey(item.row.edificio, item.row.aula), 1),
+                        (item) => `el aula ${item.row.aula} en ${item.row.edificio}`,
+                        cCount,
+                        failures,
+                        MISSING_CATALOG_DEPENDENT_BATCH_SIZE
+                    ),
+                    this.createItemsInBulk(
+                        validSubgroups,
+                        'CreateGroup',
+                        'CreateGroupInput!',
+                        (item) => ({ name: item.row.subgroup!, parentId: state.groups.get(this.buildCatalogKey(item.row.grupo))!, grade: null }),
+                        async (item) => await this.findGroupIdByName(item.row.subgroup!, state.groups.get(this.buildCatalogKey(item.row.grupo))!),
+                        (item, id) => state.subgroups.set(this.buildSubgroupKey(item.row.grupo, item.row.subgroup!), id),
+                        (item) => `el subgrupo ${item.row.subgroup}`,
+                        sgCount,
+                        failures,
+                        MISSING_CATALOG_DEPENDENT_BATCH_SIZE
+                    ),
+                ]);
+                createdCounts.classrooms = cCount.count;
+                createdCounts.subgroups = sgCount.count;
 
                 const iterationCreated = createdCounts.subjects > 0
                     || createdCounts.teachers > 0

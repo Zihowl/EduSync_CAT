@@ -24,5 +24,6 @@ pub trait GroupRepository: Send + Sync {
         parent_id: Option<Option<i32>>,
         grade: Option<Option<i32>>,
     ) -> Result<Group, DomainError>;
+    async fn has_schedule_slots(&self, id: i32) -> Result<bool, DomainError>;
     async fn delete(&self, id: i32) -> Result<bool, DomainError>;
 }
