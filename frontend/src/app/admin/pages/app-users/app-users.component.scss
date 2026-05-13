@@ -1,0 +1,222 @@
+.users-content {
+    --background: transparent;
+}
+
+.users-container {
+    width: 100%;
+    min-width: 0;
+}
+
+.app-users-segment {
+    margin-bottom: 0.9rem;
+}
+
+.user-item {
+    --padding-start: 0.75rem;
+    --padding-end: 1rem;
+    --min-height: 0;
+}
+
+.user-item::part(native) {
+    align-items: flex-start;
+    padding-top: 0.9rem;
+    padding-bottom: 0.9rem;
+}
+
+.user-role-icon {
+    flex: 0 0 auto;
+    flex-shrink: 0;
+    margin: 0;
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.user-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+}
+
+.user-role-icon--student {
+    color: rgba(var(--ion-color-primary-rgb), 0.98);
+}
+
+.user-role-icon--teacher {
+    color: rgba(var(--ion-color-success-rgb), 0.98);
+}
+
+.user-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    gap: 0.9rem;
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    align-items: start;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+    padding-top: 0.05rem;
+}
+
+.user-info h2 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: rgba(248, 250, 252, 0.98);
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+}
+
+.user-info p {
+    margin: 0;
+    color: var(--ion-color-medium);
+    font-size: 0.82rem;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.user-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.user-badges ion-badge {
+    --padding-start: 0.48rem;
+    --padding-end: 0.48rem;
+    --padding-top: 0.18rem;
+    --padding-bottom: 0.18rem;
+    --border-radius: 999px;
+    --border-style: solid;
+    --border-width: 1px;
+    font-size: 0.68rem;
+    letter-spacing: 0.01em;
+}
+
+.user-badges ion-badge[color='success'] {
+    --background: rgba(var(--ion-color-success-rgb), 0.14);
+    --color: rgba(236, 253, 245, 0.96);
+    --border-color: rgba(var(--ion-color-success-rgb), 0.22);
+}
+
+.user-badges ion-badge[color='medium'] {
+    --background: rgba(var(--ion-color-medium-rgb), 0.12);
+    --color: rgba(226, 232, 240, 0.92);
+    --border-color: rgba(var(--ion-color-medium-rgb), 0.2);
+}
+
+.user-badges ion-badge[color='warning'] {
+    --background: rgba(var(--ion-color-warning-rgb), 0.15);
+    --color: rgba(255, 251, 235, 0.96);
+    --border-color: rgba(var(--ion-color-warning-rgb), 0.22);
+}
+
+.user-actions {
+    display: grid;
+    grid-template-columns: repeat(2, max-content);
+    gap: 0.45rem;
+    align-items: stretch;
+    min-width: 0;
+    width: max-content;
+    margin-left: 0;
+    justify-self: end;
+    align-self: start;
+}
+
+.user-actions ion-button {
+    min-height: 2.25rem;
+    --background: rgba(15, 23, 42, 0.3);
+    --background-hover: rgba(15, 23, 42, 0.42);
+    --background-activated: rgba(15, 23, 42, 0.54);
+    --border-style: solid;
+    --border-width: 1px;
+    --border-color: rgba(148, 163, 184, 0.22);
+    --border-radius: 0.9rem;
+    --box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
+    --color: rgba(248, 250, 252, 0.94);
+    --padding-start: 0.7rem;
+    --padding-end: 0.7rem;
+    --padding-top: 0.48rem;
+    --padding-bottom: 0.48rem;
+    align-self: stretch;
+    min-width: 7rem;
+    width: auto;
+    font-size: 0.71rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    text-transform: none;
+    white-space: nowrap;
+}
+
+.user-actions ion-button::part(native) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    width: 100%;
+    line-height: 1.1;
+}
+
+.user-actions ion-button[color='success'] {
+    --background: rgba(var(--ion-color-success-rgb), 0.14);
+    --background-hover: rgba(var(--ion-color-success-rgb), 0.2);
+    --background-activated: rgba(var(--ion-color-success-rgb), 0.26);
+    --border-color: rgba(var(--ion-color-success-rgb), 0.3);
+    --color: rgba(236, 253, 245, 0.96);
+}
+
+.user-actions ion-button[color='warning'] {
+    --background: rgba(var(--ion-color-warning-rgb), 0.14);
+    --background-hover: rgba(var(--ion-color-warning-rgb), 0.2);
+    --background-activated: rgba(var(--ion-color-warning-rgb), 0.26);
+    --border-color: rgba(var(--ion-color-warning-rgb), 0.3);
+    --color: rgba(255, 251, 235, 0.96);
+}
+
+.user-actions ion-button[color='medium'] {
+    --background: rgba(var(--ion-color-medium-rgb), 0.13);
+    --background-hover: rgba(var(--ion-color-medium-rgb), 0.18);
+    --background-activated: rgba(var(--ion-color-medium-rgb), 0.24);
+    --border-color: rgba(var(--ion-color-medium-rgb), 0.26);
+    --color: rgba(226, 232, 240, 0.92);
+}
+
+.user-actions ion-button ion-icon {
+    font-size: 0.82rem;
+    margin: 0;
+}
+
+:host ::ng-deep app-data-list .data-list__scroll {
+    padding-top: 0.95rem;
+    padding-inline-end: 0.5rem;
+}
+
+:host ::ng-deep app-data-list .data-list__list {
+    gap: 0.95rem;
+    padding-bottom: 1rem;
+}
+
+@media (max-width: 640px) {
+    .user-body {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.65rem;
+    }
+
+    .user-actions {
+        width: 100%;
+        justify-self: stretch;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.35rem;
+    }
+
+    .user-actions ion-button {
+        width: 100%;
+        white-space: normal;
+    }
+}

@@ -34,6 +34,13 @@ pub trait UserRepository: Send + Sync {
         password_hash: &str,
         is_super_admin: bool,
     ) -> Result<User, DomainError>;
+    async fn create_user_with_role(
+        &self,
+        email: &str,
+        full_name: Option<&str>,
+        password_hash: &str,
+        role: &str,
+    ) -> Result<User, DomainError>;
     async fn increment_failed_login_attempts(&self, user_id: Uuid) -> Result<(), DomainError>;
     async fn reset_failed_login_attempts(&self, user_id: Uuid) -> Result<(), DomainError>;
     async fn set_lockout_until(

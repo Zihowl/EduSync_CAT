@@ -196,6 +196,18 @@ mod tests {
             Err(DomainError::Internal("create_admin not implemented".into()))
         }
 
+        async fn create_user_with_role(
+            &self,
+            _email: &str,
+            _full_name: Option<&str>,
+            _password_hash: &str,
+            _role: &str,
+        ) -> Result<User, DomainError> {
+            Err(DomainError::Internal(
+                "create_user_with_role not implemented".into(),
+            ))
+        }
+
         async fn increment_failed_login_attempts(&self, _user_id: Uuid) -> Result<(), DomainError> {
             Err(DomainError::Internal(
                 "increment_failed_login_attempts not implemented".into(),

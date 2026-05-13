@@ -12,13 +12,23 @@ use serde::{Deserialize, Serialize};
 use crate::domain::{
     errors::DomainError,
     models::user::{User, UserRole},
-    ports::user_repository::UserRepository,
+    ports::{
+        allowed_domain_repository::AllowedDomainRepository,
+        email_sender::{EmailMessage, EmailSender},
+        pending_registration_repository::PendingRegistrationRepository,
+        teacher_repository::TeacherRepository,
+        user_repository::UserRepository,
+    },
     validation::normalize_email,
 };
 
 #[derive(Clone)]
 pub struct AuthService {
     repo: Arc<dyn UserRepository>,
+    allowed_domain_repo: Option<Arc<dyn AllowedDomainRepository>>,
+    pending_repo: Option<Arc<dyn PendingRegistrationRepository>>,
+    teacher_repo: Option<Arc<dyn TeacherRepository>>,
+    email_sender: Option<Arc<dyn EmailSender>>,
     jwt_secret: String,
     jwt_expires_in_secs: i64,
 }
@@ -53,6 +63,13 @@ fn is_valid_email(email: &str) -> bool {
     email_regex().is_match(email)
 }
 
+fn generate_verification_code() -> String {
+    use rand::RngExt;
+    let mut rng = rand::rng();
+    let n: u32 = rng.random_range(0..1_000_000);
+    format!("{:06}", n)
+}
+
 fn password_meets_complexity(password: &str) -> bool {
     let mut categories = 0;
     if password.chars().any(|c| c.is_ascii_lowercase()) {
@@ -81,9 +98,165 @@ impl AuthService {
     ) -> Self {
         Self {
             repo,
+            allowed_domain_repo: None,
+            pending_repo: None,
+            teacher_repo: None,
+            email_sender: None,
             jwt_secret,
             jwt_expires_in_secs,
         }
+    }
+
+    pub fn with_registration_deps(
+        mut self,
+        allowed_domain_repo: Arc<dyn AllowedDomainRepository>,
+        pending_repo: Arc<dyn PendingRegistrationRepository>,
+        teacher_repo: Arc<dyn TeacherRepository>,
+        email_sender: Arc<dyn EmailSender>,
+    ) -> Self {
+        self.allowed_domain_repo = Some(allowed_domain_repo);
+        self.pending_repo = Some(pending_repo);
+        self.teacher_repo = Some(teacher_repo);
+        self.email_sender = Some(email_sender);
+        self
+    }
+
+    pub async fn register(
+        &self,
+        email: &str,
+        password: &str,
+        password_confirmation: &str,
+    ) -> Result<(uuid::Uuid, chrono::DateTime<Utc>), DomainError> {
+        let allowed = self.allowed_domain_repo.as_ref().ok_or_else(|| {
+            DomainError::Internal("Registro no disponible: dependencias no configuradas".into())
+        })?;
+        let pending = self.pending_repo.as_ref().ok_or_else(|| {
+            DomainError::Internal("Registro no disponible: dependencias no configuradas".into())
+        })?;
+        let mailer = self.email_sender.as_ref().ok_or_else(|| {
+            DomainError::Internal("Registro no disponible: dependencias no configuradas".into())
+        })?;
+
+        let email = normalize_email(email);
+        if email.is_empty() || !is_valid_email(&email) {
+            return Err(DomainError::BadRequest(
+                "Correo electrónico inválido".to_string(),
+            ));
+        }
+        if password != password_confirmation {
+            return Err(DomainError::BadRequest("Las contraseñas no coinciden".to_string()));
+        }
+        if password.len() < 8 || !password_meets_complexity(password) {
+            return Err(DomainError::BadRequest(
+                "La contraseña no cumple los criterios".to_string(),
+            ));
+        }
+
+        let domain = email
+            .split('@')
+            .nth(1)
+            .ok_or_else(|| DomainError::BadRequest("Correo electrónico inválido".to_string()))?;
+        let allowed_list = allowed.find_all().await?;
+        if !allowed_list
+            .iter()
+            .any(|d| d.domain.eq_ignore_ascii_case(domain))
+        {
+            return Err(DomainError::BadRequest(format!(
+                "El dominio @{domain} no está permitido"
+            )));
+        }
+
+        if self.repo.find_by_email(&email).await?.is_some() {
+            return Err(DomainError::Conflict(
+                "El correo ya está registrado".to_string(),
+            ));
+        }
+
+        let mut rng = OsRng;
+        let password_hash = Argon2::default()
+            .hash_password(password.as_bytes(), &SaltString::generate(&mut rng))
+            .map_err(|e| {
+                DomainError::Internal(format!("No se pudo generar el hash de la contraseña: {e}"))
+            })?
+            .to_string();
+
+        let code = generate_verification_code();
+        let token = uuid::Uuid::new_v4();
+        let expires_at = Utc::now() + Duration::minutes(10);
+
+        pending
+            .upsert(&email, &password_hash, token, &code, expires_at)
+            .await?;
+
+        let message = EmailMessage {
+            to_email: email.clone(),
+            to_name: None,
+            subject: "Código de verificación EduSync".to_string(),
+            text_content: format!(
+                "Tu código de verificación es: {code}\nExpira en 10 minutos."
+            ),
+            html_content: Some(format!(
+                "<p>Tu código de verificación es: <strong>{code}</strong></p><p>Expira en 10 minutos.</p>"
+            )),
+        };
+        if let Err(err) = mailer.send(message).await {
+            tracing::warn!(error = %err, "No se pudo enviar el correo de verificación");
+        }
+
+        Ok((token, expires_at))
+    }
+
+    pub async fn verify_email(
+        &self,
+        verification_token: &str,
+        code: &str,
+    ) -> Result<LoginResult, DomainError> {
+        let pending_repo = self.pending_repo.as_ref().ok_or_else(|| {
+            DomainError::Internal("Verificación no disponible: dependencias no configuradas".into())
+        })?;
+        let teacher_repo = self.teacher_repo.as_ref().ok_or_else(|| {
+            DomainError::Internal("Verificación no disponible: dependencias no configuradas".into())
+        })?;
+
+        let token = uuid::Uuid::parse_str(verification_token.trim())
+            .map_err(|_| DomainError::BadRequest("Código incorrecto o expirado".to_string()))?;
+        let entry = pending_repo
+            .find_by_token(token)
+            .await?
+            .ok_or_else(|| {
+                DomainError::BadRequest("Código incorrecto o expirado".to_string())
+            })?;
+
+        if entry.expires_at <= Utc::now() {
+            pending_repo.delete(entry.id).await.ok();
+            return Err(DomainError::BadRequest(
+                "Código incorrecto o expirado".to_string(),
+            ));
+        }
+
+        if entry.verification_code != code.trim() {
+            let attempts = pending_repo.increment_attempts(entry.id).await?;
+            if attempts >= 5 {
+                pending_repo.delete(entry.id).await.ok();
+            }
+            return Err(DomainError::BadRequest(
+                "Código incorrecto o expirado".to_string(),
+            ));
+        }
+
+        let role = if teacher_repo.find_by_email(&entry.email).await?.is_some() {
+            UserRole::Teacher
+        } else {
+            UserRole::Student
+        };
+
+        let user = self
+            .repo
+            .create_user_with_role(&entry.email, None, &entry.password_hash, role.as_str())
+            .await?;
+        pending_repo.delete(entry.id).await.ok();
+
+        self.login(user)
     }
 
     pub async fn validate_user(&self, email: &str, password: &str) -> Result<User, DomainError> {
@@ -390,6 +563,18 @@ mod tests {
             _is_super_admin: bool,
         ) -> Result<User, DomainError> {
             Err(DomainError::Internal("create_admin not implemented".into()))
+        }
+
+        async fn create_user_with_role(
+            &self,
+            _email: &str,
+            _full_name: Option<&str>,
+            _password_hash: &str,
+            _role: &str,
+        ) -> Result<User, DomainError> {
+            Err(DomainError::Internal(
+                "create_user_with_role not implemented".into(),
+            ))
         }
 
         async fn increment_failed_login_attempts(&self, user_id: Uuid) -> Result<(), DomainError> {

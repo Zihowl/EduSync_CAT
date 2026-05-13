@@ -6,6 +6,8 @@ use uuid::Uuid;
 pub enum UserRole {
     SuperAdmin,
     AdminHorarios,
+    Student,
+    Teacher,
 }
 
 impl UserRole {
@@ -13,12 +15,16 @@ impl UserRole {
         match self {
             Self::SuperAdmin => "SUPER_ADMIN",
             Self::AdminHorarios => "ADMIN_HORARIOS",
+            Self::Student => "STUDENT",
+            Self::Teacher => "TEACHER",
         }
     }
 
     pub fn from_str(value: &str) -> Self {
         match value {
             "SUPER_ADMIN" => Self::SuperAdmin,
+            "STUDENT" => Self::Student,
+            "TEACHER" => Self::Teacher,
             _ => Self::AdminHorarios,
         }
     }

@@ -9,3 +9,4 @@ pub mod school_year_repository;
 pub mod subject_repository;
 pub mod teacher_repository;
 pub mod user_repository;
+pub mod pending_registration_repository;

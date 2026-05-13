@@ -8,3 +8,4 @@ pub mod school_year;
 pub mod subject;
 pub mod teacher;
 pub mod user;
+pub mod pending_registration;

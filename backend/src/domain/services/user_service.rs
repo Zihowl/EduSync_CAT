@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 use crate::domain::{
     errors::DomainError,
-    models::user::User,
+    models::user::{User, UserRole},
     ports::{
         allowed_domain_repository::AllowedDomainRepository,
         email_sender::{EmailMessage, EmailSender},
@@ -44,6 +44,14 @@ impl UserService {
 
     pub async fn find_all(&self) -> Result<Vec<User>, DomainError> {
         self.repo.find_all().await
+    }
+
+    pub async fn find_by_roles(&self, roles: &[UserRole]) -> Result<Vec<User>, DomainError> {
+        let users = self.repo.find_all().await?;
+        Ok(users
+            .into_iter()
+            .filter(|u| roles.iter().any(|r| r == &u.role))
+            .collect())
     }
 
     pub async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, DomainError> {
@@ -150,6 +158,115 @@ impl UserService {
         );
 
         Ok((updated_user, temp_password))
+    }
+
+    pub async fn disable_app_user_access(
+        &self,
+        actor_user_id: Uuid,
+        target_user_id: Uuid,
+    ) -> Result<User, DomainError> {
+        self.toggle_app_user_access(actor_user_id, target_user_id, false)
+            .await
+    }
+
+    pub async fn reactivate_app_user_access(
+        &self,
+        actor_user_id: Uuid,
+        target_user_id: Uuid,
+    ) -> Result<User, DomainError> {
+        self.toggle_app_user_access(actor_user_id, target_user_id, true)
+            .await
+    }
+
+    pub async fn force_reset_app_user_password(
+        &self,
+        actor_user_id: Uuid,
+        target_user_id: Uuid,
+    ) -> Result<(User, String), DomainError> {
+        let target_user = self.ensure_manageable_app_user(target_user_id).await?;
+        let temp_password = self.generate_temp_password(16)?;
+        let hash = self.hash_password(&temp_password)?;
+
+        let updated_user = self
+            .repo
+            .update_credentials(target_user.id, &target_user.email, &hash, true)
+            .await?;
+
+        let recipient_name = updated_user
+            .full_name
+            .as_deref()
+            .unwrap_or(updated_user.email.as_str());
+
+        self.print_temp_password_delivery(&updated_user.email, &temp_password);
+        self.send_temp_password_email(
+            &updated_user.email,
+            recipient_name,
+            &temp_password,
+            "Restablecimiento de contraseña temporal",
+            "El administrador restableció tu acceso y generó una nueva contraseña temporal.",
+            "force_reset_app_user_password",
+        )
+        .await;
+
+        tracing::warn!(
+            actor_user_id = %actor_user_id,
+            target_user_id = %target_user.id,
+            target_email = %updated_user.email,
+            timestamp = %Utc::now().to_rfc3339(),
+            action = "force_reset_app_user_password",
+            "AUDITORÍA: restablecimiento forzado de contraseña de usuario de app"
+        );
+
+        Ok((updated_user, temp_password))
+    }
+
+    async fn toggle_app_user_access(
+        &self,
+        actor_user_id: Uuid,
+        target_user_id: Uuid,
+        is_active: bool,
+    ) -> Result<User, DomainError> {
+        let target_user = self.ensure_manageable_app_user(target_user_id).await?;
+
+        if target_user.is_active == is_active {
+            let message = if is_active {
+                "La cuenta ya está habilitada"
+            } else {
+                "La cuenta ya está inhabilitada"
+            };
+
+            return Err(DomainError::Conflict(message.to_string()));
+        }
+
+        let updated_user = self.repo.set_is_active(target_user.id, is_active).await?;
+
+        tracing::warn!(
+            actor_user_id = %actor_user_id,
+            target_user_id = %target_user.id,
+            target_email = %updated_user.email,
+            active = is_active,
+            timestamp = %Utc::now().to_rfc3339(),
+            action = if is_active { "reactivate_app_user_access" } else { "disable_app_user_access" },
+            "AUDITORÍA: cambio de acceso de usuario de app"
+        );
+
+        Ok(updated_user)
+    }
+
+    async fn ensure_manageable_app_user(&self, user_id: Uuid) -> Result<User, DomainError> {
+        let user = self
+            .repo
+            .find_by_id(user_id)
+            .await?
+            .ok_or_else(|| DomainError::NotFound("Usuario no encontrado".to_string()))?;
+
+        if !matches!(user.role, UserRole::Student | UserRole::Teacher) {
+            return Err(DomainError::BadRequest(
+                "Solo se pueden gestionar cuentas de alumnos o maestros".to_string(),
+            ));
+        }
+
+        Ok(user)
     }
 
     fn print_temp_password_delivery(&self, email: &str, temp_password: &str) {
@@ -492,6 +609,18 @@ mod tests {
             user.lockout_until = None;
             user.updated_at = Utc::now();
             Ok(user)
+        }
+
+        async fn create_user_with_role(
+            &self,
+            _email: &str,
+            _full_name: Option<&str>,
+            _password_hash: &str,
+            _role: &str,
+        ) -> Result<User, DomainError> {
+            Err(DomainError::Internal(
+                "create_user_with_role not implemented".into(),
+            ))
         }
 
         async fn increment_failed_login_attempts(&self, user_id: Uuid) -> Result<(), DomainError> {

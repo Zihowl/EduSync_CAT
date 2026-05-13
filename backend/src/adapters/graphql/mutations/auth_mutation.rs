@@ -4,9 +4,14 @@ use async_graphql::{Context, Object};
 
 use crate::{
     adapters::graphql::{
-        inputs::auth_input::{ChangeCredentialsInput, LoginInput},
+        inputs::auth_input::{
+            ChangeCredentialsInput, LoginInput, RegisterInput, VerifyEmailInput,
+        },
         schema::to_gql_error,
-        types::{auth_types::LoginResponseType, user_type::UserType},
+        types::{
+            auth_types::{LoginResponseType, RegisterResponseType, VerifyEmailResponseType},
+            user_type::UserType,
+        },
     },
     domain::services::auth_service::AuthService,
 };
@@ -42,6 +47,45 @@ impl AuthMutation {
         Ok(LoginResponseType {
             access_token: res.access_token,
             refresh_token: res.refresh_token,
+            expires_in: res.expires_in,
+            user: res.user.into(),
+        })
+    }
+
+    #[graphql(name = "Register")]
+    async fn register(
+        &self,
+        ctx: &Context<'_>,
+        register_input: RegisterInput,
+    ) -> async_graphql::Result<RegisterResponseType> {
+        let svc = ctx.data::<Arc<AuthService>>()?;
+        let (token, expires_at) = svc
+            .register(
+                &register_input.email,
+                &register_input.password,
+                &register_input.password_confirmation,
+            )
+            .await
+            .map_err(to_gql_error)?;
+        Ok(RegisterResponseType {
+            verification_token: token.to_string(),
+            expires_at,
+        })
+    }
+
+    #[graphql(name = "VerifyEmail")]
+    async fn verify_email(
+        &self,
+        ctx: &Context<'_>,
+        verify_input: VerifyEmailInput,
+    ) -> async_graphql::Result<VerifyEmailResponseType> {
+        let svc = ctx.data::<Arc<AuthService>>()?;
+        let res = svc
+            .verify_email(&verify_input.verification_token, &verify_input.code)
+            .await
+            .map_err(to_gql_error)?;
+        Ok(VerifyEmailResponseType {
+            access_token: res.access_token,
             expires_in: res.expires_in,
             user: res.user.into(),
         })

@@ -139,6 +139,124 @@ impl UserMutation {
         result
     }
 
+    #[graphql(name = "DisableAppUserAccess")]
+    async fn disable_app_user_access(
+        &self,
+        ctx: &Context<'_>,
+        user_id: ID,
+    ) -> async_graphql::Result<UserType> {
+        let auth_user = require_super_admin(ctx)?;
+        let svc = ctx.data::<Arc<UserService>>()?;
+        let target_user_id = Uuid::parse_str(user_id.as_str())
+            .map_err(|_| async_graphql::Error::new("Identificador de usuario inválido"))?;
+
+        let result: async_graphql::Result<UserType> = svc
+            .disable_app_user_access(auth_user.user_id, target_user_id)
+            .await
+            .map_err(to_gql_error)
+            .map(UserType::from);
+
+        if result.is_ok() {
+            if let Ok(user) = &result {
+                record_admin_audit(
+                    ctx,
+                    &auth_user,
+                    "disable_app_user_access",
+                    "user",
+                    Some(user.id.to_string()),
+                    json!({
+                        "email": user.email,
+                        "is_active": false
+                    }),
+                )
+                .await;
+            }
+
+            publish_realtime_event(ctx, &[RealtimeScope::Users]);
+        }
+
+        result
+    }
+
+    #[graphql(name = "ReactivateAppUserAccess")]
+    async fn reactivate_app_user_access(
+        &self,
+        ctx: &Context<'_>,
+        user_id: ID,
+    ) -> async_graphql::Result<UserType> {
+        let auth_user = require_super_admin(ctx)?;
+        let svc = ctx.data::<Arc<UserService>>()?;
+        let target_user_id = Uuid::parse_str(user_id.as_str())
+            .map_err(|_| async_graphql::Error::new("Identificador de usuario inválido"))?;
+
+        let result: async_graphql::Result<UserType> = svc
+            .reactivate_app_user_access(auth_user.user_id, target_user_id)
+            .await
+            .map_err(to_gql_error)
+            .map(UserType::from);
+
+        if result.is_ok() {
+            if let Ok(user) = &result {
+                record_admin_audit(
+                    ctx,
+                    &auth_user,
+                    "reactivate_app_user_access",
+                    "user",
+                    Some(user.id.to_string()),
+                    json!({
+                        "email": user.email,
+                        "is_active": true
+                    }),
+                )
+                .await;
+            }
+
+            publish_realtime_event(ctx, &[RealtimeScope::Users]);
+        }
+
+        result
+    }
+
+    #[graphql(name = "ForceResetAppUserPassword")]
+    async fn force_reset_app_user_password(
+        &self,
+        ctx: &Context<'_>,
+        user_id: ID,
+    ) -> async_graphql::Result<UserType> {
+        let auth_user = require_super_admin(ctx)?;
+        let svc = ctx.data::<Arc<UserService>>()?;
+        let target_user_id = Uuid::parse_str(user_id.as_str())
+            .map_err(|_| async_graphql::Error::new("Identificador de usuario inválido"))?;
+
+        let result: async_graphql::Result<UserType> = svc
+            .force_reset_app_user_password(auth_user.user_id, target_user_id)
+            .await
+            .map_err(to_gql_error)
+            .map(|(user, _temp_password)| UserType::from(user));
+
+        if result.is_ok() {
+            if let Ok(user) = &result {
+                record_admin_audit(
+                    ctx,
+                    &auth_user,
+                    "force_reset_app_user_password",
+                    "user",
+                    Some(user.id.to_string()),
+                    json!({
+                        "email": user.email,
+                        "is_temp_password": true,
+                        "reset_requested": true
+                    }),
+                )
+                .await;
+            }
+
+            publish_realtime_event(ctx, &[RealtimeScope::Users]);
+        }
+
+        result
+    }
+
     #[graphql(name = "ForceResetAdminPassword")]
     async fn force_reset_admin_password(
         &self,

@@ -68,7 +68,8 @@ export class DashboardComponent implements OnInit {
     cards: DashboardCard[] = [
         { title: 'Configuración', icon: 'settings-outline', route: '/admin/config', roles: ['SUPER_ADMIN'], description: 'Gestionar ciclo escolar y dominios.' },
         { title: 'Bitácora', icon: 'document-text-outline', route: '/admin/audit-logs', roles: ['SUPER_ADMIN'], description: 'Consultar acciones críticas registradas.' },
-        { title: 'Usuarios', icon: 'people-outline', route: '/admin/users', roles: ['SUPER_ADMIN'], description: 'Altas y bajas de administradores.' },
+        { title: 'Administradores', icon: 'shield-checkmark-outline', route: '/admin/users', roles: ['SUPER_ADMIN'], description: 'Altas y bajas de administradores.' },
+        { title: 'Usuarios', icon: 'people-outline', route: '/admin/app-users', roles: ['SUPER_ADMIN'], description: 'Alumnos y maestros registrados en la app DOG.' },
         { title: 'Horarios', icon: 'calendar-outline', route: '/admin/schedules', roles: ['ADMIN_HORARIOS'], description: 'Gestionar horarios de grupos y subgrupos.' },
         { title: 'Carga de Horarios', icon: 'cloud-upload-outline', route: '/admin/upload', roles: ['ADMIN_HORARIOS'], description: 'Importar archivos Excel masivos.' },
         { title: 'Docentes', icon: 'people-outline', route: '/admin/catalogs/teachers', roles: ['ADMIN_HORARIOS'], description: 'Catálogo de personal docente.' },

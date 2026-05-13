@@ -7,7 +7,7 @@ use crate::{
         auth::middleware::{require_admin, AuthUser},
         graphql::{schema::to_gql_error, types::user_type::UserType},
     },
-    domain::services::user_service::UserService,
+    domain::{models::user::UserRole, services::user_service::UserService},
 };
 
 #[derive(Default)]
@@ -16,11 +16,24 @@ pub struct UserQuery;
 #[Object]
 impl UserQuery {
     #[graphql(name = "GetUsers")]
-    async fn get_users(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<UserType>> {
+    async fn get_users(
+        &self,
+        ctx: &Context<'_>,
+        roles: Option<Vec<String>>,
+    ) -> async_graphql::Result<Vec<UserType>> {
         let _ = require_admin(ctx)?;
         let svc = ctx.data::<Arc<UserService>>()?;
-        svc.find_all()
-            .await
+
+        let users = match roles {
+            Some(role_strs) if !role_strs.is_empty() => {
+                let parsed: Vec<UserRole> =
+                    role_strs.iter().map(|r| UserRole::from_str(r)).collect();
+                svc.find_by_roles(&parsed).await
+            }
+            _ => svc.find_all().await,
+        };
+
+        users
             .map(|v| v.into_iter().map(Into::into).collect())
             .map_err(to_gql_error)
     }

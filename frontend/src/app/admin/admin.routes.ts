@@ -38,8 +38,14 @@ export const adminRoutes: Routes = [
             {
                 path: 'users',
                 canActivate: [SuperAdminGuard],
-                loadComponent: () => 
+                loadComponent: () =>
                     import('./pages/users/users.component').then(m => m.UsersComponent)
+            },
+            {
+                path: 'app-users',
+                canActivate: [SuperAdminGuard],
+                loadComponent: () =>
+                    import('./pages/app-users/app-users.component').then(m => m.AppUsersComponent)
             },
             {
                 path: 'catalogs/teachers',

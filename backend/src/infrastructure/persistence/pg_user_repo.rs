@@ -145,6 +145,30 @@ impl UserRepository for PgUserRepository {
         Ok(row.into())
     }
 
+    async fn create_user_with_role(
+        &self,
+        email: &str,
+        full_name: Option<&str>,
+        password_hash: &str,
+        role: &str,
+    ) -> Result<User, DomainError> {
+        let email = normalize_email(email);
+        let row = sqlx::query_as::<_, UserRow>(
+            "INSERT INTO users (email, full_name, password_hash, role, is_active, is_temp_password, failed_login_attempts, lockout_until)
+             VALUES ($1, $2, $3, $4::user_role, TRUE, FALSE, 0, NULL)
+             RETURNING id, email, full_name, password_hash, role::text AS role, is_active, is_temp_password, failed_login_attempts, lockout_until, created_at, updated_at",
+        )
+        .bind(email)
+        .bind(full_name)
+        .bind(password_hash)
+        .bind(role)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+
+        Ok(row.into())
+    }
+
     async fn increment_failed_login_attempts(&self, user_id: Uuid) -> Result<(), DomainError> {
         sqlx::query(
             "UPDATE users SET failed_login_attempts = failed_login_attempts + 1 WHERE id = $1",

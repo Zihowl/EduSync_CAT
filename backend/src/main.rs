@@ -19,7 +19,7 @@ use axum::{
     http::HeaderValue,
     response::{Html, IntoResponse},
     routing::{get, get_service, post},
-    Extension, Router,
+    Extension, Json, Router,
 };
 use backend::config::AppConfig;
 use backend::domain::{
@@ -27,6 +27,7 @@ use backend::domain::{
         allowed_domain_repository::AllowedDomainRepository,
         audit_log_repository::AuditLogRepository, building_repository::BuildingRepository,
         classroom_repository::ClassroomRepository, group_repository::GroupRepository,
+        pending_registration_repository::PendingRegistrationRepository,
         schedule_slot_repository::ScheduleSlotRepository,
         school_year_repository::SchoolYearRepository, subject_repository::SubjectRepository,
         teacher_repository::TeacherRepository, user_repository::UserRepository,
@@ -43,7 +44,9 @@ use backend::infrastructure::email::brevo_sender::BrevoEmailSender;
 use backend::infrastructure::persistence::{
     pg_allowed_domain_repo::PgAllowedDomainRepository, pg_audit_log_repo::PgAuditLogRepository,
     pg_building_repo::PgBuildingRepository, pg_classroom_repo::PgClassroomRepository,
-    pg_group_repo::PgGroupRepository, pg_schedule_slot_repo::PgScheduleSlotRepository,
+    pg_group_repo::PgGroupRepository,
+    pg_pending_registration_repo::PgPendingRegistrationRepository,
+    pg_schedule_slot_repo::PgScheduleSlotRepository,
     pg_school_year_repo::PgSchoolYearRepository, pg_subject_repo::PgSubjectRepository,
     pg_teacher_repo::PgTeacherRepository, pg_user_repo::PgUserRepository,
 };
@@ -94,6 +97,8 @@ async fn main() -> anyhow::Result<()> {
     let group_repo: Arc<dyn GroupRepository> = Arc::new(PgGroupRepository::new(pool.clone()));
     let schedule_repo: Arc<dyn ScheduleSlotRepository> =
         Arc::new(PgScheduleSlotRepository::new(pool.clone()));
+    let pending_registration_repo: Arc<dyn PendingRegistrationRepository> =
+        Arc::new(PgPendingRegistrationRepository::new(pool.clone()));
 
     genesis_protocol(user_repo.clone()).await?;
 
@@ -112,13 +117,21 @@ async fn main() -> anyhow::Result<()> {
     let user_service = Arc::new(UserService::new(
         user_repo.clone(),
         allowed_domain_repo.clone(),
-        brevo_email_sender,
+        brevo_email_sender.clone(),
     ));
-    let auth_service = Arc::new(AuthService::new(
-        user_repo.clone(),
-        config.jwt_secret.clone(),
-        config.jwt_expires_in_secs,
-    ));
+    let auth_service = Arc::new(
+        AuthService::new(
+            user_repo.clone(),
+            config.jwt_secret.clone(),
+            config.jwt_expires_in_secs,
+        )
+        .with_registration_deps(
+            allowed_domain_repo.clone(),
+            pending_registration_repo.clone(),
+            teacher_repo.clone(),
+            brevo_email_sender.clone(),
+        ),
+    );
     let config_service = Arc::new(ConfigService::new(
         allowed_domain_repo.clone(),
         user_repo.clone(),
@@ -182,6 +195,7 @@ async fn main() -> anyhow::Result<()> {
     let cors = build_cors_layer(&config.cors_origin)?;
 
     let app = Router::new()
+        .route("/health", get(health_handler))
         .route("/graphql", post(graphql_handler).get(graphql_playground))
         .route(
             "/graphql/ws",
@@ -204,6 +218,10 @@ async fn main() -> anyhow::Result<()> {
     axum::serve(listener, app).await?;
 
     Ok(())
+}
+
+async fn health_handler() -> Json<serde_json::Value> {
+    Json(serde_json::json!({ "status": "ok" }))
 }
 
 async fn graphql_handler(

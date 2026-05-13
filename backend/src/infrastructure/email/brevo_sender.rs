@@ -70,6 +70,17 @@ impl EmailSender for BrevoEmailSender {
                 target_email = %to_email,
                 "Destino .test detectado; se omite el envío real con Brevo"
             );
+            println!("================ CORREO SIMULADO (.test) ================");
+            println!("Para:    {}", to_email);
+            if let Some(name) = to_name.as_deref() {
+                if !name.trim().is_empty() {
+                    println!("Nombre:  {}", name);
+                }
+            }
+            println!("Asunto:  {}", subject);
+            println!("---------------------- Contenido ----------------------");
+            println!("{}", text_content);
+            println!("=======================================================");
             return Ok(());
         }
 

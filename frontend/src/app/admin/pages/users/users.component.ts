@@ -37,8 +37,8 @@ interface AdminUserRow {
 }
 
 const GET_USERS = gql`
-    query GetUsers {
-        GetUsers {
+    query GetUsers($roles: [String!]) {
+        GetUsers(roles: $roles) {
             id
             fullName
             email
@@ -48,6 +48,8 @@ const GET_USERS = gql`
         }
     }
 `;
+
+const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN_HORARIOS'];
 
 const CREATE_ADMIN = gql`
     mutation CreateAdmin($input: CreateAdminInput!) {
@@ -118,7 +120,7 @@ const GET_ALLOWED_DOMAINS = gql`
         DataListComponent
     ],
     template: `
-        <app-page-header title="Gestión de Usuarios" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
+        <app-page-header title="Administradores" [showBackButton]="true" backDefaultHref="/admin"></app-page-header>
 
         <ion-content class="ion-padding users-content">
             <div class="users-container app-page-shell app-page-shell--medium">
@@ -334,7 +336,11 @@ export class UsersComponent implements OnInit {
     }
 
     LoadUsers(forceRefresh: boolean = false) {
-        const loadUsers = () => this.apollo.query<any>({ query: GET_USERS, fetchPolicy: 'network-only' }).pipe(
+        const loadUsers = () => this.apollo.query<any>({
+            query: GET_USERS,
+            variables: { roles: ADMIN_ROLES },
+            fetchPolicy: 'network-only'
+        }).pipe(
             map((res: any) => this.sortUsers(res?.data?.GetUsers ?? []))
         );
 
