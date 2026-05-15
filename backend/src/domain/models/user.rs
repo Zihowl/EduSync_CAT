@@ -28,6 +28,12 @@ impl UserRole {
             _ => Self::AdminHorarios,
         }
     }
+
+    /// `true` para roles administrativos (acceso a la plataforma web CAT),
+    /// `false` para alumnos/docentes (acceso a la app móvil DOG).
+    pub fn is_admin(&self) -> bool {
+        matches!(self, Self::SuperAdmin | Self::AdminHorarios)
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

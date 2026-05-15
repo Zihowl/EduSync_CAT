@@ -56,4 +56,12 @@ pub trait UserRepository: Send + Sync {
         password_hash: &str,
         is_temp_password: bool,
     ) -> Result<User, DomainError>;
+
+    /// Cambia únicamente el rol del usuario. El repositorio real lo
+    /// implementa; los mocks de prueba usan el comportamiento por defecto.
+    async fn update_role(&self, _user_id: Uuid, _role: &str) -> Result<User, DomainError> {
+        Err(DomainError::Internal(
+            "update_role no implementado".to_string(),
+        ))
+    }
 }

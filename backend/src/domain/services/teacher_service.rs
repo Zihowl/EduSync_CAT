@@ -2,10 +2,11 @@ use std::sync::Arc;
 
 use crate::domain::{
     errors::DomainError,
-    models::teacher::Teacher,
+    models::{teacher::Teacher, user::UserRole},
     ports::{
         allowed_domain_repository::AllowedDomainRepository,
         teacher_repository::TeacherRepository,
+        user_repository::UserRepository,
     },
     validation::{normalize_optional_email, normalize_required_text},
 };
@@ -15,6 +16,7 @@ use regex::Regex;
 pub struct TeacherService {
     repo: Arc<dyn TeacherRepository>,
     allowed_domain_repo: Arc<dyn AllowedDomainRepository>,
+    user_repo: Option<Arc<dyn UserRepository>>,
 }
 
 impl TeacherService {
@@ -25,6 +27,47 @@ impl TeacherService {
         Self {
             repo,
             allowed_domain_repo,
+            user_repo: None,
+        }
+    }
+
+    /// Inyecta el repositorio de usuarios para sincronizar el rol Alumno/Docente
+    /// cuando el catálogo de docentes cambia.
+    pub fn with_user_repo(mut self, user_repo: Arc<dyn UserRepository>) -> Self {
+        self.user_repo = Some(user_repo);
+        self
+    }
+
+    /// Si existe un usuario con ese correo y rol Alumno, lo asciende a Docente.
+    /// Nunca toca cuentas administrativas.
+    async fn promote_if_user_exists(&self, email: Option<&str>) {
+        let (Some(user_repo), Some(email)) = (self.user_repo.as_ref(), email) else {
+            return;
+        };
+        if let Ok(Some(user)) = user_repo.find_by_email(email).await {
+            if user.role == UserRole::Student {
+                if let Err(err) = user_repo.update_role(user.id, UserRole::Teacher.as_str()).await {
+                    tracing::warn!(error = %err, "No se pudo ascender el rol a Docente");
+                }
+            }
+        }
+    }
+
+    /// Si ya no queda ningún docente con ese correo y existe un usuario con
+    /// rol Docente, lo regresa a Alumno. Nunca toca cuentas administrativas.
+    async fn demote_if_orphan(&self, email: Option<&str>) {
+        let (Some(user_repo), Some(email)) = (self.user_repo.as_ref(), email) else {
+            return;
+        };
+        if matches!(self.repo.find_by_email(email).await, Ok(Some(_))) {
+            return;
+        }
+        if let Ok(Some(user)) = user_repo.find_by_email(email).await {
+            if user.role == UserRole::Teacher {
+                if let Err(err) = user_repo.update_role(user.id, UserRole::Student.as_str()).await {
+                    tracing::warn!(error = %err, "No se pudo regresar el rol a Alumno");
+                }
+            }
         }
     }
 
@@ -65,9 +108,12 @@ impl TeacherService {
             }
         }
 
-        self.repo
+        let teacher = self
+            .repo
             .create(&employee_number, &name, email.as_deref())
-            .await
+            .await?;
+        self.promote_if_user_exists(teacher.email.as_deref()).await;
+        Ok(teacher)
     }
 
     pub async fn update(
@@ -82,6 +128,7 @@ impl TeacherService {
             .find_by_id(id)
             .await?
             .ok_or_else(|| DomainError::NotFound("Docente no encontrado".to_string()))?;
+        let old_email = current.email.clone();
 
         if let Some(employee_number) = employee_number {
             let employee_number = normalize_required_text("Número de empleado", employee_number)?;
@@ -115,18 +162,31 @@ impl TeacherService {
             }
         }
 
-        self.repo
+        let updated = self
+            .repo
             .update(
                 id,
                 Some(&current.employee_number),
                 Some(&current.name),
                 Some(current.email.as_deref()),
             )
-            .await
+            .await?;
+
+        if updated.email != old_email {
+            self.demote_if_orphan(old_email.as_deref()).await;
+            self.promote_if_user_exists(updated.email.as_deref()).await;
+        }
+
+        Ok(updated)
     }
 
     pub async fn delete(&self, id: i32) -> Result<bool, DomainError> {
-        self.repo.delete(id).await
+        let email = self.repo.find_by_id(id).await?.and_then(|t| t.email);
+        let deleted = self.repo.delete(id).await?;
+        if deleted {
+            self.demote_if_orphan(email.as_deref()).await;
+        }
+        Ok(deleted)
     }
 
     async fn normalize_and_validate_email(

@@ -19,6 +19,7 @@ const LOGIN_MUTATION = gql`
       loginInput: {
         email: $email
         password: $password
+        platform: WEB
       }
     ) {
       accessToken

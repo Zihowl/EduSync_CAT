@@ -252,6 +252,44 @@ app-auth-card {
     box-shadow: var(--auth-focus-ring);
   }
 
+  /* ── Mostrar/ocultar contraseña ────────────────────────────────── */
+  .password-field {
+    position: relative;
+    display: block;
+  }
+
+  .native-login-input.has-toggle {
+    padding-right: 2.6rem;
+  }
+
+  .password-toggle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 2.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--auth-text-muted);
+    font-size: 1.15rem;
+    cursor: pointer;
+    transition: color var(--auth-speed) ease;
+
+    &:hover {
+      color: var(--auth-text);
+    }
+
+    &:focus-visible {
+      outline: none;
+      color: var(--auth-focus-color);
+    }
+  }
+
   /* ── Submit button ─────────────────────────────────────────────── */
   ion-button {
     --padding-top: 0.72rem;

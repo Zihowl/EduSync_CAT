@@ -27,6 +27,7 @@ use backend::domain::{
         allowed_domain_repository::AllowedDomainRepository,
         audit_log_repository::AuditLogRepository, building_repository::BuildingRepository,
         classroom_repository::ClassroomRepository, group_repository::GroupRepository,
+        password_reset_repository::PasswordResetRepository,
         pending_registration_repository::PendingRegistrationRepository,
         schedule_slot_repository::ScheduleSlotRepository,
         school_year_repository::SchoolYearRepository, subject_repository::SubjectRepository,
@@ -45,6 +46,7 @@ use backend::infrastructure::persistence::{
     pg_allowed_domain_repo::PgAllowedDomainRepository, pg_audit_log_repo::PgAuditLogRepository,
     pg_building_repo::PgBuildingRepository, pg_classroom_repo::PgClassroomRepository,
     pg_group_repo::PgGroupRepository,
+    pg_password_reset_repo::PgPasswordResetRepository,
     pg_pending_registration_repo::PgPendingRegistrationRepository,
     pg_schedule_slot_repo::PgScheduleSlotRepository,
     pg_school_year_repo::PgSchoolYearRepository, pg_subject_repo::PgSubjectRepository,
@@ -99,6 +101,8 @@ async fn main() -> anyhow::Result<()> {
         Arc::new(PgScheduleSlotRepository::new(pool.clone()));
     let pending_registration_repo: Arc<dyn PendingRegistrationRepository> =
         Arc::new(PgPendingRegistrationRepository::new(pool.clone()));
+    let password_reset_repo: Arc<dyn PasswordResetRepository> =
+        Arc::new(PgPasswordResetRepository::new(pool.clone()));
 
     genesis_protocol(user_repo.clone()).await?;
 
@@ -130,17 +134,18 @@ async fn main() -> anyhow::Result<()> {
             pending_registration_repo.clone(),
             teacher_repo.clone(),
             brevo_email_sender.clone(),
-        ),
+        )
+        .with_password_reset_repo(password_reset_repo.clone()),
     );
     let config_service = Arc::new(ConfigService::new(
         allowed_domain_repo.clone(),
         user_repo.clone(),
         school_year_repo.clone(),
     ));
-    let teacher_service = Arc::new(TeacherService::new(
-        teacher_repo.clone(),
-        allowed_domain_repo.clone(),
-    ));
+    let teacher_service = Arc::new(
+        TeacherService::new(teacher_repo.clone(), allowed_domain_repo.clone())
+            .with_user_repo(user_repo.clone()),
+    );
     let subject_service = Arc::new(SubjectService::new(subject_repo.clone()));
     let building_service = Arc::new(BuildingService::new(building_repo.clone()));
     let classroom_service = Arc::new(ClassroomService::new(classroom_repo.clone()));

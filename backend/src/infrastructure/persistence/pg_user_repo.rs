@@ -253,4 +253,21 @@ impl UserRepository for PgUserRepository {
 
         Ok(row.into())
     }
+
+    async fn update_role(&self, user_id: Uuid, role: &str) -> Result<User, DomainError> {
+        let row = sqlx::query_as::<_, UserRow>(
+            "UPDATE users
+             SET role = $2::user_role,
+                 updated_at = NOW()
+             WHERE id = $1
+             RETURNING id, email, full_name, password_hash, role::text AS role, is_active, is_temp_password, failed_login_attempts, lockout_until, created_at, updated_at",
+        )
+        .bind(user_id)
+        .bind(role)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+
+        Ok(row.into())
+    }
 }

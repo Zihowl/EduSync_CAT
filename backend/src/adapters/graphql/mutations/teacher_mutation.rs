@@ -34,7 +34,14 @@ impl TeacherMutation {
             .map(Into::into)
             .map_err(to_gql_error);
         if result.is_ok() {
-            publish_realtime_event(ctx, &[RealtimeScope::Teachers, RealtimeScope::Schedules]);
+            publish_realtime_event(
+                ctx,
+                &[
+                    RealtimeScope::Teachers,
+                    RealtimeScope::Schedules,
+                    RealtimeScope::Users,
+                ],
+            );
         }
         result
     }
@@ -58,7 +65,14 @@ impl TeacherMutation {
             .map(Into::into)
             .map_err(to_gql_error);
         if result.is_ok() {
-            publish_realtime_event(ctx, &[RealtimeScope::Teachers, RealtimeScope::Schedules]);
+            publish_realtime_event(
+                ctx,
+                &[
+                    RealtimeScope::Teachers,
+                    RealtimeScope::Schedules,
+                    RealtimeScope::Users,
+                ],
+            );
         }
         result
     }
@@ -69,7 +83,14 @@ impl TeacherMutation {
         let svc = ctx.data::<Arc<TeacherService>>()?;
         let result = svc.delete(id).await.map_err(to_gql_error);
         if result.is_ok() {
-            publish_realtime_event(ctx, &[RealtimeScope::Teachers, RealtimeScope::Schedules]);
+            publish_realtime_event(
+                ctx,
+                &[
+                    RealtimeScope::Teachers,
+                    RealtimeScope::Schedules,
+                    RealtimeScope::Users,
+                ],
+            );
         }
         result
     }

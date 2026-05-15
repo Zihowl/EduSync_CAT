@@ -17,6 +17,12 @@ pub struct RegisterResponseType {
 }
 
 #[derive(SimpleObject, Clone)]
+pub struct PasswordResetResponseType {
+    pub verification_token: String,
+    pub expires_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(SimpleObject, Clone)]
 pub struct VerifyEmailResponseType {
     pub access_token: String,
     pub expires_in: i64,

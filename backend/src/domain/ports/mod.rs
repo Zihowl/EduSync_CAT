@@ -10,3 +10,4 @@ pub mod subject_repository;
 pub mod teacher_repository;
 pub mod user_repository;
 pub mod pending_registration_repository;
+pub mod password_reset_repository;

@@ -15,6 +15,7 @@ use crate::domain::{
     ports::{
         allowed_domain_repository::AllowedDomainRepository,
         email_sender::{EmailMessage, EmailSender},
+        password_reset_repository::PasswordResetRepository,
         pending_registration_repository::PendingRegistrationRepository,
         teacher_repository::TeacherRepository,
         user_repository::UserRepository,
@@ -29,6 +30,7 @@ pub struct AuthService {
     pending_repo: Option<Arc<dyn PendingRegistrationRepository>>,
     teacher_repo: Option<Arc<dyn TeacherRepository>>,
     email_sender: Option<Arc<dyn EmailSender>>,
+    password_reset_repo: Option<Arc<dyn PasswordResetRepository>>,
     jwt_secret: String,
     jwt_expires_in_secs: i64,
 }
@@ -102,6 +104,7 @@ impl AuthService {
             pending_repo: None,
             teacher_repo: None,
             email_sender: None,
+            password_reset_repo: None,
             jwt_secret,
             jwt_expires_in_secs,
         }
@@ -118,6 +121,14 @@ impl AuthService {
         self.pending_repo = Some(pending_repo);
         self.teacher_repo = Some(teacher_repo);
         self.email_sender = Some(email_sender);
+        self
+    }
+
+    pub fn with_password_reset_repo(
+        mut self,
+        password_reset_repo: Arc<dyn PasswordResetRepository>,
+    ) -> Self {
+        self.password_reset_repo = Some(password_reset_repo);
         self
     }
 
@@ -259,6 +270,187 @@ impl AuthService {
         self.login(user)
     }
 
+    /// Solicita el restablecimiento de contraseña: verifica que el correo
+    /// exista (RQNF-APP-13), genera un código de 6 dígitos con expiración de
+    /// 10 minutos (RQNF-APP-14) y lo envía por correo.
+    pub async fn request_password_reset(
+        &self,
+        email: &str,
+    ) -> Result<(uuid::Uuid, chrono::DateTime<Utc>), DomainError> {
+        let reset_repo = self.password_reset_repo.as_ref().ok_or_else(|| {
+            DomainError::Internal(
+                "Restablecimiento no disponible: dependencias no configuradas".into(),
+            )
+        })?;
+        let mailer = self.email_sender.as_ref().ok_or_else(|| {
+            DomainError::Internal(
+                "Restablecimiento no disponible: dependencias no configuradas".into(),
+            )
+        })?;
+
+        let email = normalize_email(email);
+        if email.is_empty() || !is_valid_email(&email) {
+            return Err(DomainError::BadRequest(
+                "Correo electrónico inválido".to_string(),
+            ));
+        }
+
+        // RQNF-APP-13: el correo debe existir en la base de datos.
+        if self.repo.find_by_email(&email).await?.is_none() {
+            return Err(DomainError::NotFound(
+                "No existe una cuenta registrada con ese correo".to_string(),
+            ));
+        }
+
+        let code = generate_verification_code();
+        let token = uuid::Uuid::new_v4();
+        let expires_at = Utc::now() + Duration::minutes(10);
+
+        reset_repo.upsert(&email, token, &code, expires_at).await?;
+
+        let message = EmailMessage {
+            to_email: email.clone(),
+            to_name: None,
+            subject: "Restablecimiento de contraseña EduSync".to_string(),
+            text_content: format!(
+                "Tu código para restablecer la contraseña es: {code}\nExpira en 10 minutos."
+            ),
+            html_content: Some(format!(
+                "<p>Tu código para restablecer la contraseña es: <strong>{code}</strong></p><p>Expira en 10 minutos.</p>"
+            )),
+        };
+        if let Err(err) = mailer.send(message).await {
+            tracing::warn!(error = %err, "No se pudo enviar el correo de restablecimiento");
+        }
+
+        Ok((token, expires_at))
+    }
+
+    /// Valida el código de 6 dígitos del restablecimiento (RQNF-APP-15) y, si
+    /// es correcto, marca la solicitud como verificada.
+    pub async fn verify_password_reset_code(
+        &self,
+        verification_token: &str,
+        code: &str,
+    ) -> Result<(), DomainError> {
+        let reset_repo = self.password_reset_repo.as_ref().ok_or_else(|| {
+            DomainError::Internal(
+                "Restablecimiento no disponible: dependencias no configuradas".into(),
+            )
+        })?;
+
+        let token = uuid::Uuid::parse_str(verification_token.trim())
+            .map_err(|_| DomainError::BadRequest("Código incorrecto o expirado".to_string()))?;
+        let entry = reset_repo
+            .find_by_token(token)
+            .await?
+            .ok_or_else(|| DomainError::BadRequest("Código incorrecto o expirado".to_string()))?;
+
+        if entry.expires_at <= Utc::now() {
+            reset_repo.delete(entry.id).await.ok();
+            return Err(DomainError::BadRequest(
+                "Código incorrecto o expirado".to_string(),
+            ));
+        }
+
+        if entry.verification_code != code.trim() {
+            let attempts = reset_repo.increment_attempts(entry.id).await?;
+            if attempts >= 5 {
+                reset_repo.delete(entry.id).await.ok();
+            }
+            return Err(DomainError::BadRequest(
+                "Código incorrecto o expirado".to_string(),
+            ));
+        }
+
+        reset_repo.mark_code_verified(entry.id).await?;
+        Ok(())
+    }
+
+    /// Completa el restablecimiento: exige que el código haya sido verificado,
+    /// valida la nueva contraseña (RQNF-APP-16/17/18) y la persiste.
+    pub async fn complete_password_reset(
+        &self,
+        verification_token: &str,
+        new_password: &str,
+        new_password_confirmation: &str,
+    ) -> Result<(), DomainError> {
+        let reset_repo = self.password_reset_repo.as_ref().ok_or_else(|| {
+            DomainError::Internal(
+                "Restablecimiento no disponible: dependencias no configuradas".into(),
+            )
+        })?;
+
+        let token = uuid::Uuid::parse_str(verification_token.trim())
+            .map_err(|_| DomainError::BadRequest("Código incorrecto o expirado".to_string()))?;
+        let entry = reset_repo
+            .find_by_token(token)
+            .await?
+            .ok_or_else(|| DomainError::BadRequest("Código incorrecto o expirado".to_string()))?;
+
+        if entry.expires_at <= Utc::now() {
+            reset_repo.delete(entry.id).await.ok();
+            return Err(DomainError::BadRequest(
+                "Código incorrecto o expirado".to_string(),
+            ));
+        }
+
+        if !entry.code_verified {
+            return Err(DomainError::BadRequest(
+                "Debes verificar el código antes de cambiar la contraseña".to_string(),
+            ));
+        }
+
+        // RQNF-APP-17: la contraseña y su confirmación deben coincidir.
+        if new_password != new_password_confirmation {
+            return Err(DomainError::BadRequest(
+                "Las contraseñas no coinciden".to_string(),
+            ));
+        }
+
+        // RQNF-APP-16: longitud mínima de 8 y al menos 3 de 4 categorías.
+        if new_password.len() < 8 || !password_meets_complexity(new_password) {
+            return Err(DomainError::BadRequest(
+                "La contraseña no cumple los criterios".to_string(),
+            ));
+        }
+
+        let user = self
+            .repo
+            .find_by_email(&entry.email)
+            .await?
+            .ok_or_else(|| {
+                DomainError::NotFound("No existe una cuenta registrada con ese correo".to_string())
+            })?;
+
+        // RQNF-APP-18: la nueva contraseña no puede coincidir con la anterior.
+        if let Ok(parsed) = PasswordHash::new(&user.password_hash) {
+            if Argon2::default()
+                .verify_password(new_password.as_bytes(), &parsed)
+                .is_ok()
+            {
+                return Err(DomainError::BadRequest(
+                    "La nueva contraseña no puede ser igual a la anterior".to_string(),
+                ));
+            }
+        }
+
+        let mut rng = OsRng;
+        let new_password_hash = Argon2::default()
+            .hash_password(new_password.as_bytes(), &SaltString::generate(&mut rng))
+            .map_err(|e| {
+                DomainError::Internal(format!("No se pudo generar el hash de la contraseña: {e}"))
+            })?
+            .to_string();
+
+        self.repo
+            .update_credentials(user.id, &user.email, &new_password_hash, false)
+            .await?;
+        reset_repo.delete(entry.id).await.ok();
+
+        Ok(())
+    }
+
     pub async fn validate_user(&self, email: &str, password: &str) -> Result<User, DomainError> {
         let normalized_email = normalize_email(email);
         if normalized_email.is_empty() {
@@ -392,6 +584,24 @@ impl AuthService {
             expires_in: self.jwt_expires_in_secs,
             user,
         })
+    }
+
+    /// Re-emite el JWT de un usuario ya autenticado tomando su rol actual de
+    /// la base de datos. Permite que la app refleje cambios de rol sin
+    /// requerir un nuevo inicio de sesión.
+    pub async fn refresh_session(
+        &self,
+        user_id: uuid::Uuid,
+    ) -> Result<LoginResult, DomainError> {
+        let user = self
+            .repo
+            .find_by_id(user_id)
+            .await?
+            .ok_or_else(|| DomainError::Unauthorized("Sesión inválida".to_string()))?;
+        if !user.is_active {
+            return Err(DomainError::Unauthorized("Cuenta inactiva".to_string()));
+        }
+        self.login(user)
     }
 
     pub async fn change_credentials(

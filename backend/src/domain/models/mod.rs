@@ -9,3 +9,4 @@ pub mod subject;
 pub mod teacher;
 pub mod user;
 pub mod pending_registration;
+pub mod password_reset;

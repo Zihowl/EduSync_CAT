@@ -9,6 +9,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../shared/services/notification.service';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { AuthCardComponent } from '../../components/auth-card/auth-card.component';
+import { PasswordToggleDirective } from '../../../shared/directives/password-toggle.directive';
 
 const STRICT_EMAIL_WITH_TLD_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -30,6 +31,7 @@ type ChangePasswordForm = {
         IonButton,
         PageHeaderComponent,
         AuthCardComponent,
+        PasswordToggleDirective,
     ],
     templateUrl: './change-password.component.html',
     styleUrls: ['./change-password.component.scss'],
