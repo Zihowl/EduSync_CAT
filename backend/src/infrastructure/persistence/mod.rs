@@ -8,5 +8,6 @@ pub mod pg_school_year_repo;
 pub mod pg_subject_repo;
 pub mod pg_teacher_repo;
 pub mod pg_user_repo;
+pub mod pg_user_backup_repo;
 pub mod pg_pending_registration_repo;
 pub mod pg_password_reset_repo;

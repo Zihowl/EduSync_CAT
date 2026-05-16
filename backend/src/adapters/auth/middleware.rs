@@ -78,6 +78,12 @@ pub fn require_admin(ctx: &Context<'_>) -> Result<AuthUser, GqlError> {
     Ok(user)
 }
 
+pub fn require_auth(ctx: &Context<'_>) -> Result<AuthUser, GqlError> {
+    ctx.data_opt::<AuthUser>()
+        .cloned()
+        .ok_or_else(|| GqlError::new("No autorizado"))
+}
+
 pub fn require_super_admin(ctx: &Context<'_>) -> Result<AuthUser, GqlError> {
     let user = ctx
         .data_opt::<AuthUser>()

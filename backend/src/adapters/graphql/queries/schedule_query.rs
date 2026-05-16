@@ -4,13 +4,16 @@ use async_graphql::{Context, Object};
 
 use crate::{
     adapters::{
-        auth::middleware::require_admin,
+        auth::middleware::{require_admin, require_auth},
         graphql::{
             inputs::schedule_input::ScheduleFilterInput, schema::to_gql_error,
             types::schedule_slot_type::ScheduleSlotType,
         },
     },
-    domain::{models::schedule_slot::ScheduleFilter, services::schedule_service::ScheduleService},
+    domain::{
+        models::schedule_slot::ScheduleFilter,
+        services::{schedule_service::ScheduleService, teacher_service::TeacherService},
+    },
 };
 
 #[derive(Default)]
@@ -63,5 +66,67 @@ impl ScheduleQuery {
             .await
             .map(|v| v.map(Into::into))
             .map_err(to_gql_error)
+    }
+
+    /// Horario publicado de uno o varios grupos/subgrupos, accesible a
+    /// cualquier usuario autenticado. `is_published` se fuerza a `true`, así
+    /// los borradores nunca se exponen al alumno.
+    #[graphql(name = "GetPublishedSchedule")]
+    async fn get_published_schedule(
+        &self,
+        ctx: &Context<'_>,
+        group_ids: Vec<i32>,
+    ) -> async_graphql::Result<Vec<ScheduleSlotType>> {
+        let _ = require_auth(ctx)?;
+        let svc = ctx.data::<Arc<ScheduleService>>()?;
+
+        let mut slots = Vec::new();
+        for group_id in group_ids {
+            let mut found = svc
+                .find_all(ScheduleFilter {
+                    group_id: Some(group_id),
+                    is_published: Some(true),
+                    page: Some(1),
+                    limit: Some(500),
+                    ..Default::default()
+                })
+                .await
+                .map_err(to_gql_error)?;
+            slots.append(&mut found);
+        }
+
+        Ok(slots.into_iter().map(Into::into).collect())
+    }
+
+    /// Horario publicado del docente autenticado. Resuelve al docente por el
+    /// correo de la sesión contra el catálogo de docentes; si el correo no
+    /// pertenece a un docente devuelve una lista vacía.
+    #[graphql(name = "GetMyTeacherSchedule")]
+    async fn get_my_teacher_schedule(
+        &self,
+        ctx: &Context<'_>,
+    ) -> async_graphql::Result<Vec<ScheduleSlotType>> {
+        let user = require_auth(ctx)?;
+        let teacher_svc = ctx.data::<Arc<TeacherService>>()?;
+
+        let teacher = teacher_svc
+            .find_by_email(&user.email.to_lowercase())
+            .await
+            .map_err(to_gql_error)?;
+        let Some(teacher) = teacher else {
+            return Ok(Vec::new());
+        };
+
+        let svc = ctx.data::<Arc<ScheduleService>>()?;
+        svc.find_all(ScheduleFilter {
+            teacher_id: Some(teacher.id),
+            is_published: Some(true),
+            page: Some(1),
+            limit: Some(500),
+            ..Default::default()
+        })
+        .await
+        .map(|v| v.into_iter().map(Into::into).collect())
+        .map_err(to_gql_error)
     }
 }

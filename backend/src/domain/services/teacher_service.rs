@@ -79,6 +79,10 @@ impl TeacherService {
         self.repo.find_by_id(id).await
     }
 
+    pub async fn find_by_email(&self, email: &str) -> Result<Option<Teacher>, DomainError> {
+        self.repo.find_by_email(email).await
+    }
+
     pub async fn create(
         &self,
         employee_number: &str,

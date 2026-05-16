@@ -4,7 +4,7 @@ use async_graphql::{Context, Object};
 
 use crate::{
     adapters::{
-        auth::middleware::require_admin,
+        auth::middleware::{require_admin, require_auth},
         graphql::{schema::to_gql_error, types::group_type::GroupType},
     },
     domain::services::group_service::GroupService,
@@ -18,6 +18,21 @@ impl GroupQuery {
     #[graphql(name = "GetGroups")]
     async fn get_groups(&self, ctx: &Context<'_>) -> async_graphql::Result<Vec<GroupType>> {
         let _ = require_admin(ctx)?;
+        let svc = ctx.data::<Arc<GroupService>>()?;
+        svc.find_all()
+            .await
+            .map(|v| v.into_iter().map(Into::into).collect())
+            .map_err(to_gql_error)
+    }
+
+    /// Catálogo de grupos accesible a cualquier usuario autenticado (alumno o
+    /// docente). El cliente arma la jerarquía grupo/subgrupo con `parentId`.
+    #[graphql(name = "GetGroupCatalog")]
+    async fn get_group_catalog(
+        &self,
+        ctx: &Context<'_>,
+    ) -> async_graphql::Result<Vec<GroupType>> {
+        let _ = require_auth(ctx)?;
         let svc = ctx.data::<Arc<GroupService>>()?;
         svc.find_all()
             .await

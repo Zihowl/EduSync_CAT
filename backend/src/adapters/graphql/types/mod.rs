@@ -9,3 +9,4 @@ pub mod school_year_type;
 pub mod subject_type;
 pub mod teacher_type;
 pub mod user_type;
+pub mod user_backup_type;

@@ -4,14 +4,15 @@ use crate::domain::errors::DomainError;
 
 use super::{
     mutations::{
-        auth_mutation::AuthMutation, building_mutation::BuildingMutation,
+        auth_mutation::AuthMutation, backup_mutation::BackupMutation,
+        building_mutation::BuildingMutation,
         classroom_mutation::ClassroomMutation, config_mutation::ConfigMutation,
         group_mutation::GroupMutation, schedule_mutation::ScheduleMutation,
         subject_mutation::SubjectMutation, teacher_mutation::TeacherMutation,
         user_mutation::UserMutation,
     },
     queries::{
-        audit_log_query::AuditLogQuery, building_query::BuildingQuery,
+        audit_log_query::AuditLogQuery, backup_query::BackupQuery, building_query::BuildingQuery,
         classroom_query::ClassroomQuery, config_query::ConfigQuery, group_query::GroupQuery,
         schedule_query::ScheduleQuery, subject_query::SubjectQuery, teacher_query::TeacherQuery,
         user_query::UserQuery,
@@ -30,6 +31,7 @@ pub struct MergedQuery(
     ClassroomQuery,
     GroupQuery,
     ScheduleQuery,
+    BackupQuery,
 );
 
 #[derive(MergedObject, Default)]
@@ -43,6 +45,7 @@ pub struct MergedMutation(
     ClassroomMutation,
     GroupMutation,
     ScheduleMutation,
+    BackupMutation,
 );
 
 pub type AppSchema = Schema<MergedQuery, MergedMutation, RealtimeSubscription>;

@@ -7,3 +7,4 @@ pub mod schedule_query;
 pub mod subject_query;
 pub mod teacher_query;
 pub mod user_query;
+pub mod backup_query;

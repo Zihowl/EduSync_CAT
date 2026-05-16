@@ -31,7 +31,8 @@ use backend::domain::{
         pending_registration_repository::PendingRegistrationRepository,
         schedule_slot_repository::ScheduleSlotRepository,
         school_year_repository::SchoolYearRepository, subject_repository::SubjectRepository,
-        teacher_repository::TeacherRepository, user_repository::UserRepository,
+        teacher_repository::TeacherRepository,
+        user_backup_repository::UserBackupRepository, user_repository::UserRepository,
     },
     services::{
         auth_service::AuthService, building_service::BuildingService,
@@ -50,7 +51,8 @@ use backend::infrastructure::persistence::{
     pg_pending_registration_repo::PgPendingRegistrationRepository,
     pg_schedule_slot_repo::PgScheduleSlotRepository,
     pg_school_year_repo::PgSchoolYearRepository, pg_subject_repo::PgSubjectRepository,
-    pg_teacher_repo::PgTeacherRepository, pg_user_repo::PgUserRepository,
+    pg_teacher_repo::PgTeacherRepository,
+    pg_user_backup_repo::PgUserBackupRepository, pg_user_repo::PgUserRepository,
 };
 use rand::prelude::{IndexedRandom, SliceRandom};
 use rand::RngExt;
@@ -103,6 +105,8 @@ async fn main() -> anyhow::Result<()> {
         Arc::new(PgPendingRegistrationRepository::new(pool.clone()));
     let password_reset_repo: Arc<dyn PasswordResetRepository> =
         Arc::new(PgPasswordResetRepository::new(pool.clone()));
+    let user_backup_repo: Arc<dyn UserBackupRepository> =
+        Arc::new(PgUserBackupRepository::new(pool.clone()));
 
     genesis_protocol(user_repo.clone()).await?;
 
@@ -180,6 +184,7 @@ async fn main() -> anyhow::Result<()> {
         .data(classroom_service.clone())
         .data(group_service.clone())
         .data(schedule_service.clone())
+        .data(user_backup_repo.clone())
         .data(config.clone())
         .data(realtime.clone())
         .finish();
