@@ -129,4 +129,26 @@ impl ScheduleQuery {
         .map(|v| v.into_iter().map(Into::into).collect())
         .map_err(to_gql_error)
     }
+
+    /// Todos los bloques de horario publicados del plantel, accesibles a
+    /// cualquier usuario autenticado. Permite al alumno consultar los horarios
+    /// de los docentes (RQF-APP-54). `is_published` se fuerza a `true`, así los
+    /// borradores nunca se exponen.
+    #[graphql(name = "GetTeacherSchedules")]
+    async fn get_teacher_schedules(
+        &self,
+        ctx: &Context<'_>,
+    ) -> async_graphql::Result<Vec<ScheduleSlotType>> {
+        let _ = require_auth(ctx)?;
+        let svc = ctx.data::<Arc<ScheduleService>>()?;
+        svc.find_all(ScheduleFilter {
+            is_published: Some(true),
+            page: Some(1),
+            limit: Some(1000),
+            ..Default::default()
+        })
+        .await
+        .map(|v| v.into_iter().map(Into::into).collect())
+        .map_err(to_gql_error)
+    }
 }
