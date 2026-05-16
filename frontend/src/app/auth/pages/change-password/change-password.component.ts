@@ -14,8 +14,6 @@ import { PasswordToggleDirective } from '../../../shared/directives/password-tog
 const STRICT_EMAIL_WITH_TLD_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 type ChangePasswordForm = {
-  current_email: string;
-  current_password: string;
   new_email: string;
   new_password: string;
   confirm_password: string;
@@ -41,6 +39,7 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
       authCard!: AuthCardComponent;
 
   canChangeEmail = false;
+  accountEmail = '';
 
   private fb = inject(NonNullableFormBuilder);
   private authService = inject(AuthService);
@@ -49,21 +48,15 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   form = this.fb.group({
-      current_email: ['', [Validators.required, Validators.pattern(STRICT_EMAIL_WITH_TLD_REGEX)]],
-      current_password: ['', [Validators.required, Validators.minLength(8)]],
       new_email: ['', [Validators.required, Validators.pattern(STRICT_EMAIL_WITH_TLD_REGEX), this.emailExtensionValidator]],
       new_password: ['', [Validators.required, Validators.minLength(8), this.complexityValidator]],
       confirm_password: ['', [Validators.required]],
-  }, { validators: [this.passwordsMatchValidator, this.passwordsNotEqualValidator] });
+  }, { validators: [this.passwordsMatchValidator] });
 
   private isLoadingSignal = signal(false);
 
   get isLoading(): boolean {
       return this.isLoadingSignal();
-  }
-
-  get currentPasswordControl() {
-      return this.form.get('current_password');
   }
 
   get newPasswordControl() {
@@ -96,20 +89,13 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
       | undefined;
 
       this.canChangeEmail = currentUser?.role === 'SUPER_ADMIN' || !!state?.changeEmailAllowed;
+      this.accountEmail = state?.email ?? currentUser?.email ?? '';
 
-      if (currentUser?.email) {
-          this.form.patchValue({ current_email: currentUser.email });
+      if (this.accountEmail) {
+          this.form.patchValue({ new_email: this.accountEmail });
           if (!this.canChangeEmail) {
-              this.form.patchValue({ new_email: currentUser.email });
               this.form.get('new_email')?.clearValidators();
               this.form.get('new_email')?.updateValueAndValidity();
-          }
-      }
-
-      if (state?.email) {
-          this.form.patchValue({ current_email: state.email });
-          if (!this.canChangeEmail) {
-              this.form.patchValue({ new_email: state.email });
           }
       }
 
@@ -128,35 +114,6 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
       const newPassword = group.get('new_password')?.value;
       const confirmPassword = group.get('confirm_password')?.value;
       return newPassword === confirmPassword ? null : { passwordMismatch: true };
-  }
-
-  private passwordsNotEqualValidator(control: AbstractControl): ValidationErrors | null {
-      const group = control as FormGroup;
-      const currentPassword = group.get('current_password')?.value;
-      const newPassword = group.get('new_password')?.value;
-      const newPasswordControl = group.get('new_password');
-
-      if (!currentPassword || !newPassword) {
-          if (newPasswordControl?.hasError('sameAsCurrent')) {
-              const errors = { ...newPasswordControl.errors };
-              delete errors['sameAsCurrent'];
-              newPasswordControl.setErrors(Object.keys(errors).length ? errors : null);
-          }
-          return null;
-      }
-
-      if (currentPassword === newPassword) {
-          newPasswordControl?.setErrors({ ...newPasswordControl.errors, ['sameAsCurrent']: true });
-          return { passwordSame: true };
-      }
-
-      if (newPasswordControl?.hasError('sameAsCurrent')) {
-          const errors = { ...newPasswordControl.errors };
-          delete errors['sameAsCurrent'];
-          newPasswordControl.setErrors(Object.keys(errors).length ? errors : null);
-      }
-
-      return null;
   }
 
   private emailExtensionValidator(control: AbstractControl): ValidationErrors | null {
@@ -216,24 +173,16 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
       this.isLoadingSignal.set(true);
       this.resetError();
 
-      const { current_email, current_password, new_email, new_password } = this.form.value as {
-      current_email: string;
-      current_password: string;
+      const { new_email, new_password } = this.form.value as {
       new_email: string;
       new_password: string;
       confirm_password: string;
     };
 
-      const payloadNewEmail = this.canChangeEmail ? new_email : current_email;
-
-      if (current_password === new_password) {
-          this.isLoadingSignal.set(false);
-          this.setError('Contraseña inválida', 'La nueva contraseña debe ser distinta de la actual.', 'alert-circle', 'warning');
-          return;
-      }
+      const payloadNewEmail = this.canChangeEmail ? new_email : this.accountEmail;
 
       this.authService
-          .changeCredentials({ currentEmail: current_email, currentPassword: current_password, newEmail: payloadNewEmail, newPassword: new_password })
+          .changeCredentials({ newEmail: payloadNewEmail, newPassword: new_password })
           .pipe(takeUntil(this.destroy$))
           .subscribe({
               next: () => {
@@ -251,6 +200,18 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
 
                   if (parsed.lockoutSeconds && parsed.lockoutSeconds > 0) {
                       this.authCard.startLockoutCountdown(parsed.lockoutSeconds);
+                  }
+
+                  // Token expirado/ inválido: la sesión de cambio ya no sirve,
+                  // hay que volver a iniciar sesión.
+                  if (this.authService.isSessionError(err)) {
+                      this.router.navigateByUrl('/auth/login', {
+                          state: {
+                              message: 'Tu sesión expiró, vuelve a iniciar sesión.',
+                              showOnce: true,
+                          },
+                      });
+                      return;
                   }
 
                   this.setError(parsed.title, parsed.message, parsed.lockoutSeconds ? 'lock-closed' : 'alert-circle', parsed.style);

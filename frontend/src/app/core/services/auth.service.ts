@@ -54,19 +54,9 @@ const REFRESH_TOKEN_MUTATION = gql`
 `;
 
 const CHANGE_CREDENTIALS_MUTATION = gql`
-  mutation ChangeCredentials(
-    $currentEmail: String!
-    $currentPassword: String!
-    $newEmail: String!
-    $newPassword: String!
-  ) {
+  mutation ChangeCredentials($newEmail: String!, $newPassword: String!) {
     ChangeCredentials(
-      input: {
-        currentEmail: $currentEmail
-        currentPassword: $currentPassword
-        newEmail: $newEmail
-        newPassword: $newPassword
-      }
+      input: { newEmail: $newEmail, newPassword: $newPassword }
     ) {
       id
       email
@@ -104,6 +94,10 @@ export class AuthService {
     private userSubject = new BehaviorSubject<User | null>(null);
     private accessTokenSignal = signal<string | null>(null);
     private refreshTokenSignal = signal<string | null>(null);
+    // Token acotado emitido al iniciar sesión con contraseña temporal: solo
+    // autoriza ChangeCredentials. Vive en memoria (no se persiste): si se
+    // recarga la página, basta con volver a iniciar sesión.
+    private credentialChangeTokenSignal = signal<string | null>(null);
     private tokenExpirySignal = signal<number | null>(null);
     private readonly sessionRevalidationIntervalMs = 5000;
     private sessionRevalidationTimerId: number | null = null;
@@ -136,6 +130,9 @@ export class AuthService {
                     }
 
                     if (data.user.isTempPassword) {
+                        // El backend emite un token acotado para autorizar el
+                        // cambio de credenciales sin reingresar la contraseña.
+                        this.credentialChangeTokenSignal.set(data.accessToken || null);
                         return data.user;
                     }
 
@@ -186,6 +183,10 @@ export class AuthService {
 
     getRefreshToken(): string | null {
         return this.refreshTokenSignal();
+    }
+
+    getCredentialChangeToken(): string | null {
+        return this.credentialChangeTokenSignal();
     }
 
     verifySession(): Observable<User | null> {
@@ -293,6 +294,7 @@ export class AuthService {
 
         this.accessTokenSignal.set(null);
         this.refreshTokenSignal.set(null);
+        this.credentialChangeTokenSignal.set(null);
         this.tokenExpirySignal.set(null);
         this.userSignal.set(null);
         this.userSubject.next(null);
@@ -440,6 +442,10 @@ export class AuthService {
         localStorage.setItem(this.USER_KEY, JSON.stringify(normalizedUser));
         this.userSignal.set(normalizedUser);
         this.userSubject.next(normalizedUser);
+    }
+
+    isSessionError(error: unknown): boolean {
+        return this.isSessionValidationError(error);
     }
 
     private isSessionValidationError(error: unknown): boolean {

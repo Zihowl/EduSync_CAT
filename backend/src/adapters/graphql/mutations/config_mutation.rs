@@ -365,6 +365,8 @@ mod tests {
             user_id: Uuid::new_v4(),
             email: "admin@example.com".to_string(),
             role: role.to_string(),
+            scope: None,
+            issued_at: 0,
         }
     }
 

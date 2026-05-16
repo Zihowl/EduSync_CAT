@@ -15,9 +15,20 @@ export class AuthInterceptor implements HttpInterceptor {
         const body = (request as any).body;
         const opName = body?.operationName as string | undefined;
 
-        const isAuthMutation = opName === 'Login' || opName === 'RefreshToken' || opName === 'ChangeCredentials';
+        const isAuthMutation = opName === 'Login' || opName === 'RefreshToken';
         if (isAuthMutation) {
             return next.handle(request);
+        }
+
+        // ChangeCredentials se autoriza con el token de sesión completa o,
+        // en el flujo de contraseña temporal, con el token acotado emitido
+        // por el login. No dispara el reintento/refresh de sesión.
+        if (opName === 'ChangeCredentials') {
+            const credentialToken = this.authService.getAccessToken() ?? this.authService.getCredentialChangeToken();
+            const credentialRequest = credentialToken
+                ? request.clone({ headers: request.headers.set('Authorization', `Bearer ${credentialToken}`) })
+                : request;
+            return next.handle(credentialRequest);
         }
 
         const token = this.authService.getAccessToken();

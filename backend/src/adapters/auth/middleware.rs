@@ -15,7 +15,14 @@ pub struct AuthUser {
     #[allow(dead_code)]
     pub email: String,
     pub role: String,
+    /// Alcance acotado del token. `None` = sesión completa.
+    pub scope: Option<String>,
+    /// Momento de emisión del token (epoch seconds).
+    pub issued_at: i64,
 }
+
+/// Alcance del token de un solo propósito para cambiar credenciales.
+const CREDENTIAL_CHANGE_SCOPE: &str = "credential_change";
 
 impl AuthUser {
     pub fn is_admin_horarios(&self) -> bool {
@@ -24,6 +31,11 @@ impl AuthUser {
 
     pub fn is_super_admin(&self) -> bool {
         self.role == "SUPER_ADMIN"
+    }
+
+    /// `true` si el token solo autoriza la mutation `ChangeCredentials`.
+    pub fn is_credential_change_only(&self) -> bool {
+        self.scope.as_deref() == Some(CREDENTIAL_CHANGE_SCOPE)
     }
 }
 
@@ -40,6 +52,8 @@ pub fn read_auth_user_from_headers(
         user_id,
         email: claims.email,
         role: claims.role,
+        scope: claims.scope,
+        issued_at: claims.iat,
     })
 }
 
@@ -49,6 +63,16 @@ pub async fn read_active_auth_user_from_headers(
     user_repo: Arc<dyn UserRepository>,
 ) -> Option<AuthUser> {
     let auth_user = read_auth_user_from_headers(headers, config)?;
+
+    // Rechaza tokens emitidos antes de un cambio de credenciales: al cambiarlas
+    // se fija `tokens_invalid_before`, invalidando toda sesión previa.
+    match user_repo.tokens_invalid_before(auth_user.user_id).await {
+        Ok(Some(invalid_before)) if auth_user.issued_at < invalid_before.timestamp() => {
+            return None;
+        }
+        Err(_) => return None,
+        _ => {}
+    }
 
     match user_repo.find_by_id(auth_user.user_id).await {
         Ok(Some(User {
@@ -61,6 +85,8 @@ pub async fn read_active_auth_user_from_headers(
             user_id: id,
             email,
             role: role.as_str().to_string(),
+            scope: auth_user.scope,
+            issued_at: auth_user.issued_at,
         }),
         Ok(Some(_)) => None,
         Ok(None) | Err(_) => None,
@@ -72,16 +98,21 @@ pub fn require_admin(ctx: &Context<'_>) -> Result<AuthUser, GqlError> {
         .data_opt::<AuthUser>()
         .cloned()
         .ok_or_else(|| GqlError::new("No autorizado"))?;
-    if !user.is_admin_horarios() {
+    if user.is_credential_change_only() || !user.is_admin_horarios() {
         return Err(GqlError::new("Acceso denegado"));
     }
     Ok(user)
 }
 
 pub fn require_auth(ctx: &Context<'_>) -> Result<AuthUser, GqlError> {
-    ctx.data_opt::<AuthUser>()
+    let user = ctx
+        .data_opt::<AuthUser>()
         .cloned()
-        .ok_or_else(|| GqlError::new("No autorizado"))
+        .ok_or_else(|| GqlError::new("No autorizado"))?;
+    if user.is_credential_change_only() {
+        return Err(GqlError::new("Acceso denegado"));
+    }
+    Ok(user)
 }
 
 pub fn require_super_admin(ctx: &Context<'_>) -> Result<AuthUser, GqlError> {
@@ -89,7 +120,7 @@ pub fn require_super_admin(ctx: &Context<'_>) -> Result<AuthUser, GqlError> {
         .data_opt::<AuthUser>()
         .cloned()
         .ok_or_else(|| GqlError::new("No autorizado"))?;
-    if !user.is_super_admin() {
+    if user.is_credential_change_only() || !user.is_super_admin() {
         return Err(GqlError::new("Acceso denegado"));
     }
     Ok(user)

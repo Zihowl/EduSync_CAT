@@ -41,7 +41,21 @@ pub struct Claims {
     pub email: String,
     pub role: String,
     pub exp: i64,
+    /// Momento de emisión (epoch seconds). Se compara contra
+    /// `tokens_invalid_before` del usuario para descartar sesiones previas a
+    /// un cambio de credenciales.
+    #[serde(default)]
+    pub iat: i64,
+    /// Alcance acotado del token. `None` = sesión completa. Opcional para
+    /// mantener compatibilidad con tokens previos a este campo.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
 }
+
+/// Alcance del token de un solo propósito que permite únicamente la mutation
+/// `ChangeCredentials`. Vigencia corta para limitar la ventana de uso.
+pub const CREDENTIAL_CHANGE_SCOPE: &str = "credential_change";
+const CREDENTIAL_CHANGE_TOKEN_SECS: i64 = 600;
 
 #[derive(Clone)]
 pub struct LoginResult {
@@ -562,13 +576,22 @@ impl AuthService {
         Ok(())
     }
 
-    pub fn login(&self, user: User) -> Result<LoginResult, DomainError> {
-        let exp = (Utc::now() + Duration::seconds(self.jwt_expires_in_secs)).timestamp();
+    /// Firma un JWT para el usuario con el alcance y vigencia indicados.
+    fn sign_token(
+        &self,
+        user: User,
+        scope: Option<String>,
+        expires_in: i64,
+    ) -> Result<LoginResult, DomainError> {
+        let now = Utc::now();
+        let exp = (now + Duration::seconds(expires_in)).timestamp();
         let claims = Claims {
             sub: user.id.to_string(),
             email: user.email.clone(),
             role: user.role.as_str().to_string(),
             exp,
+            iat: now.timestamp(),
+            scope,
         };
 
         let token = encode(
@@ -581,9 +604,27 @@ impl AuthService {
         Ok(LoginResult {
             access_token: token,
             refresh_token: None,
-            expires_in: self.jwt_expires_in_secs,
+            expires_in,
             user,
         })
+    }
+
+    pub fn login(&self, user: User) -> Result<LoginResult, DomainError> {
+        self.sign_token(user, None, self.jwt_expires_in_secs)
+    }
+
+    /// Emite un token de un solo propósito (alcance `credential_change`) para
+    /// que un usuario con contraseña temporal pueda invocar `ChangeCredentials`
+    /// sin reingresar sus credenciales. Vigencia corta (10 min).
+    pub fn issue_credential_change_token(
+        &self,
+        user: &User,
+    ) -> Result<LoginResult, DomainError> {
+        self.sign_token(
+            user.clone(),
+            Some(CREDENTIAL_CHANGE_SCOPE.to_string()),
+            CREDENTIAL_CHANGE_TOKEN_SECS,
+        )
     }
 
     /// Re-emite el JWT de un usuario ya autenticado tomando su rol actual de
@@ -604,29 +645,17 @@ impl AuthService {
         self.login(user)
     }
 
+    /// Cambia el correo y/o la contraseña del usuario identificado por su id
+    /// (tomado del JWT). La autenticación ya ocurrió al iniciar sesión, por lo
+    /// que aquí no se reingresa la contraseña actual.
     pub async fn change_credentials(
         &self,
-        current_email: &str,
-        current_password: &str,
+        user_id: uuid::Uuid,
         new_email: &str,
         new_password: &str,
     ) -> Result<User, DomainError> {
-        let current_email = normalize_email(current_email);
-        let current_password = current_password.trim();
         let new_email = normalize_email(new_email);
         let new_password = new_password.trim();
-
-        if current_email.is_empty() || current_password.is_empty() {
-            return Err(DomainError::BadRequest(
-                "Correo y contraseña actual son requeridos".to_string(),
-            ));
-        }
-
-        if !is_valid_email(&current_email) {
-            return Err(DomainError::BadRequest(
-                "Correo electrónico inválido".to_string(),
-            ));
-        }
 
         if new_email.is_empty() || new_password.is_empty() {
             return Err(DomainError::BadRequest(
@@ -636,16 +665,15 @@ impl AuthService {
 
         let user = self
             .repo
-            .find_by_email(&current_email)
+            .find_by_id(user_id)
             .await?
-            .ok_or_else(|| DomainError::Unauthorized("Credenciales inválidas".to_string()))?;
+            .ok_or_else(|| DomainError::Unauthorized("Sesión inválida".to_string()))?;
 
         if !user.is_active {
             return Err(DomainError::Unauthorized("Cuenta inactiva".to_string()));
         }
 
-        self.verify_user_password(&user, current_password, true)
-            .await?;
+        let current_email = normalize_email(&user.email);
 
         if !is_valid_email(&new_email) {
             return Err(DomainError::BadRequest("Nuevo correo inválido".to_string()));
@@ -1003,18 +1031,14 @@ mod tests {
     async fn test_change_credentials_transitions_from_temp_password() {
         let (auth_service, repo) = setup_auth_service().await;
 
-        {
+        let user_id = {
             let mut user = repo.user.lock().unwrap();
             user.is_temp_password = true;
-        }
+            user.id
+        };
 
         let result = auth_service
-            .change_credentials(
-                "admin@example.com",
-                TEST_PASSWORD,
-                "admin2@example.com",
-                "NewStrongPass1!",
-            )
+            .change_credentials(user_id, "admin2@example.com", "NewStrongPass1!")
             .await;
 
         assert!(result.is_ok());
@@ -1036,18 +1060,14 @@ mod tests {
     async fn test_change_credentials_normalizes_new_email_to_lowercase() {
         let (auth_service, repo) = setup_auth_service().await;
 
-        {
+        let user_id = {
             let mut user = repo.user.lock().unwrap();
             user.role = UserRole::SuperAdmin;
-        }
+            user.id
+        };
 
         let result = auth_service
-            .change_credentials(
-                "ADMIN@EXAMPLE.COM",
-                TEST_PASSWORD,
-                "New-Admin@Example.COM",
-                "NewStrongPass1!",
-            )
+            .change_credentials(user_id, "New-Admin@Example.COM", "NewStrongPass1!")
             .await;
 
         assert!(result.is_ok());
@@ -1064,15 +1084,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_change_credentials_rejects_same_password() {
-        let (auth_service, _repo) = setup_auth_service().await;
+        let (auth_service, repo) = setup_auth_service().await;
+
+        let user_id = repo
+            .find_by_email("admin@example.com")
+            .await
+            .unwrap()
+            .unwrap()
+            .id;
 
         let result = auth_service
-            .change_credentials(
-                "admin@example.com",
-                TEST_PASSWORD,
-                "admin@example.com",
-                TEST_PASSWORD,
-            )
+            .change_credentials(user_id, "admin@example.com", TEST_PASSWORD)
             .await;
 
         assert!(
@@ -1084,18 +1106,14 @@ mod tests {
     async fn test_change_credentials_rejects_email_change_for_non_superadmin() {
         let (auth_service, repo) = setup_auth_service().await;
 
-        {
+        let user_id = {
             let mut user = repo.user.lock().unwrap();
             user.role = UserRole::AdminHorarios;
-        }
+            user.id
+        };
 
         let result = auth_service
-            .change_credentials(
-                "admin@example.com",
-                TEST_PASSWORD,
-                "new-admin@example.com",
-                "NewStrongPass1!",
-            )
+            .change_credentials(user_id, "new-admin@example.com", "NewStrongPass1!")
             .await;
 
         assert!(
@@ -1107,7 +1125,7 @@ mod tests {
     async fn test_change_credentials_with_specific_temp_user_fails_email_change() {
         let (auth_service, repo) = setup_auth_service().await;
 
-        {
+        let user_id = {
             let mut user = repo.user.lock().unwrap();
             user.role = UserRole::AdminHorarios;
             user.email = "test@test.com".to_string();
@@ -1117,15 +1135,11 @@ mod tests {
                 .unwrap()
                 .to_string();
             user.password_hash = hash;
-        }
+            user.id
+        };
 
         let result = auth_service
-            .change_credentials(
-                "test@test.com",
-                "4wemEhG1n7MB8lm?",
-                "target@test.com",
-                "NewStrongPass1!",
-            )
+            .change_credentials(user_id, "target@test.com", "NewStrongPass1!")
             .await;
 
         assert!(
@@ -1158,6 +1172,8 @@ mod tests {
             email: "admin@example.com".to_string(),
             role: "SUPER_ADMIN".to_string(),
             exp: (Utc::now() + Duration::seconds(3600)).timestamp(),
+            iat: Utc::now().timestamp(),
+            scope: None,
         };
         let token =
             crate::adapters::auth::jwt::encode_jwt(&claims, "secret").expect("JWT debe generarse");

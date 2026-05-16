@@ -64,4 +64,15 @@ pub trait UserRepository: Send + Sync {
             "update_role no implementado".to_string(),
         ))
     }
+
+    /// Instante a partir del cual los JWT de la cuenta son válidos. Todo token
+    /// emitido antes (campo `iat`) se considera revocado. `None` = sin
+    /// revocaciones. El repositorio real lo implementa; los mocks usan el
+    /// comportamiento por defecto (no hay revocaciones).
+    async fn tokens_invalid_before(
+        &self,
+        _user_id: Uuid,
+    ) -> Result<Option<chrono::DateTime<Utc>>, DomainError> {
+        Ok(None)
+    }
 }

@@ -9,6 +9,14 @@ pub struct JwtClaims {
     pub email: String,
     pub role: String,
     pub exp: i64,
+    /// Momento de emisión (epoch seconds). Permite invalidar tokens previos a
+    /// un cambio de credenciales. `default` para tolerar tokens sin el campo.
+    #[serde(default)]
+    pub iat: i64,
+    /// Alcance acotado del token. `None` = sesión completa. Es opcional para
+    /// mantener compatibilidad con tokens emitidos antes de este campo.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
 }
 
 #[allow(dead_code)]

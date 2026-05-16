@@ -18,8 +18,6 @@ export interface LoginCredentials {
 }
 
 export interface ChangeCredentialsPayload {
-  currentEmail: string;
-  currentPassword: string;
   newEmail: string;
   newPassword: string;
 }

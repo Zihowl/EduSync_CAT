@@ -59,10 +59,15 @@ impl AuthMutation {
         }
 
         if user.is_temp_password {
+            // Emite un token de un solo propósito para que el usuario pueda
+            // cambiar sus credenciales sin reingresar la contraseña temporal.
+            let res = svc
+                .issue_credential_change_token(&user)
+                .map_err(to_gql_error)?;
             return Ok(LoginResponseType {
-                access_token: String::new(),
+                access_token: res.access_token,
                 refresh_token: None,
-                expires_in: 0,
+                expires_in: res.expires_in,
                 user: user.into(),
             });
         }
@@ -174,6 +179,11 @@ impl AuthMutation {
             .data_opt::<AuthUser>()
             .cloned()
             .ok_or_else(|| to_gql_error(DomainError::Unauthorized("No autorizado".to_string())))?;
+        if auth_user.is_credential_change_only() {
+            return Err(to_gql_error(DomainError::Unauthorized(
+                "No autorizado".to_string(),
+            )));
+        }
         let svc = ctx.data::<Arc<AuthService>>()?;
         let res = svc
             .refresh_session(auth_user.user_id)
@@ -193,14 +203,15 @@ impl AuthMutation {
         ctx: &Context<'_>,
         input: ChangeCredentialsInput,
     ) -> async_graphql::Result<UserType> {
+        // Acepta tanto un token de sesión completa como el token acotado
+        // `credential_change` emitido al iniciar sesión con contraseña temporal.
+        let auth_user = ctx
+            .data_opt::<AuthUser>()
+            .cloned()
+            .ok_or_else(|| to_gql_error(DomainError::Unauthorized("No autorizado".to_string())))?;
         let svc = ctx.data::<Arc<AuthService>>()?;
         let user = svc
-            .change_credentials(
-                &input.current_email,
-                &input.current_password,
-                &input.new_email,
-                &input.new_password,
-            )
+            .change_credentials(auth_user.user_id, &input.new_email, &input.new_password)
             .await
             .map_err(to_gql_error)?;
 

@@ -239,6 +239,7 @@ impl UserRepository for PgUserRepository {
                  is_temp_password = $4,
                  failed_login_attempts = 0,
                  lockout_until = NULL,
+                 tokens_invalid_before = NOW(),
                  updated_at = NOW()
              WHERE id = $1
              RETURNING id, email, full_name, password_hash, role::text AS role, is_active, is_temp_password, failed_login_attempts, lockout_until, created_at, updated_at",
@@ -252,6 +253,20 @@ impl UserRepository for PgUserRepository {
         .map_err(map_sqlx)?;
 
         Ok(row.into())
+    }
+
+    async fn tokens_invalid_before(
+        &self,
+        user_id: Uuid,
+    ) -> Result<Option<DateTime<Utc>>, DomainError> {
+        let ts = sqlx::query_scalar::<_, Option<DateTime<Utc>>>(
+            "SELECT tokens_invalid_before FROM users WHERE id = $1",
+        )
+        .bind(user_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+        Ok(ts.flatten())
     }
 
     async fn update_role(&self, user_id: Uuid, role: &str) -> Result<User, DomainError> {
