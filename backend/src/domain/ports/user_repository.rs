@@ -9,6 +9,8 @@ pub trait UserRepository: Send + Sync {
     async fn find_all(&self) -> Result<Vec<User>, DomainError>;
     async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, DomainError>;
     async fn find_by_email(&self, email: &str) -> Result<Option<User>, DomainError>;
+    /// Búsqueda case-insensitive por nombre de usuario único.
+    async fn find_by_username(&self, username: &str) -> Result<Option<User>, DomainError>;
     async fn has_active_user_with_domain(&self, domain: &str) -> Result<bool, DomainError> {
         let target_domain = domain.trim().to_ascii_lowercase();
         if target_domain.is_empty() {
@@ -30,6 +32,7 @@ pub trait UserRepository: Send + Sync {
     async fn create_admin(
         &self,
         email: &str,
+        username: &str,
         full_name: &str,
         password_hash: &str,
         is_super_admin: bool,
@@ -37,7 +40,8 @@ pub trait UserRepository: Send + Sync {
     async fn create_user_with_role(
         &self,
         email: &str,
-        full_name: Option<&str>,
+        username: &str,
+        full_name: &str,
         password_hash: &str,
         role: &str,
     ) -> Result<User, DomainError>;

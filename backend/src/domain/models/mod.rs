@@ -4,6 +4,7 @@ pub mod building;
 pub mod classroom;
 pub mod group;
 pub mod schedule_slot;
+pub mod shared_task;
 pub mod school_year;
 pub mod subject;
 pub mod teacher;

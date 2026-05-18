@@ -28,3 +28,12 @@ pub struct VerifyEmailResponseType {
     pub expires_in: i64,
     pub user: UserType,
 }
+
+/// Perfil de registro de un correo: si pertenece a un docente del catálogo
+/// CAT, `is_teacher` es `true` y `suggested_full_name` trae el nombre
+/// institucional (no editable por el usuario).
+#[derive(SimpleObject, Clone)]
+pub struct RegistrationProfileType {
+    pub is_teacher: bool,
+    pub suggested_full_name: Option<String>,
+}

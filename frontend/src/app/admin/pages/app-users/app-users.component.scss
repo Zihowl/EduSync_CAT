@@ -81,6 +81,11 @@
     word-break: break-word;
 }
 
+.user-info p.user-handle {
+    color: var(--ion-color-primary);
+    font-weight: 600;
+}
+
 .user-badges {
     display: flex;
     flex-wrap: wrap;

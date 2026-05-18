@@ -2,6 +2,7 @@ pub mod pg_allowed_domain_repo;
 pub mod pg_audit_log_repo;
 pub mod pg_building_repo;
 pub mod pg_classroom_repo;
+pub mod pg_collaboration_repo;
 pub mod pg_group_repo;
 pub mod pg_schedule_slot_repo;
 pub mod pg_school_year_repo;

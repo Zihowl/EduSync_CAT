@@ -2,6 +2,7 @@ pub mod allowed_domain_repository;
 pub mod audit_log_repository;
 pub mod building_repository;
 pub mod classroom_repository;
+pub mod collaboration_repository;
 pub mod email_sender;
 pub mod group_repository;
 pub mod schedule_slot_repository;

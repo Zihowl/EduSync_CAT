@@ -6,7 +6,8 @@ use crate::domain::models::user::User;
 pub struct UserType {
     pub id: ID,
     pub email: String,
-    pub full_name: Option<String>,
+    pub username: String,
+    pub full_name: String,
     pub role: String,
     pub is_active: bool,
     pub is_temp_password: bool,
@@ -19,6 +20,7 @@ impl From<User> for UserType {
         Self {
             id: ID(v.id.to_string()),
             email: v.email,
+            username: v.username,
             full_name: v.full_name,
             role: v.role.as_str().to_string(),
             is_active: v.is_active,

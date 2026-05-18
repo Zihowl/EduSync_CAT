@@ -10,6 +10,9 @@ use crate::domain::{
     validation::normalize_email,
 };
 
+/// Lista de columnas compartida por todos los `SELECT`/`RETURNING` de usuarios.
+const USER_COLUMNS: &str = "id, email, username, full_name, password_hash, role::text AS role, is_active, is_temp_password, failed_login_attempts, lockout_until, created_at, updated_at";
+
 #[derive(Clone)]
 pub struct PgUserRepository {
     pool: PgPool,
@@ -25,7 +28,8 @@ impl PgUserRepository {
 struct UserRow {
     id: Uuid,
     email: String,
-    full_name: Option<String>,
+    username: String,
+    full_name: String,
     password_hash: String,
     role: String,
     is_active: bool,
@@ -41,6 +45,7 @@ impl From<UserRow> for User {
         Self {
             id: v.id,
             email: v.email.to_ascii_lowercase(),
+            username: v.username,
             full_name: v.full_name,
             password_hash: v.password_hash,
             role: UserRole::from_str(&v.role),
@@ -61,9 +66,9 @@ fn map_sqlx(e: sqlx::Error) -> DomainError {
 #[async_trait]
 impl UserRepository for PgUserRepository {
     async fn find_all(&self) -> Result<Vec<User>, DomainError> {
-        let rows = sqlx::query_as::<_, UserRow>(
-            "SELECT id, email, full_name, password_hash, role::text AS role, is_active, is_temp_password, failed_login_attempts, lockout_until, created_at, updated_at FROM users ORDER BY created_at DESC",
-        )
+        let rows = sqlx::query_as::<_, UserRow>(&format!(
+            "SELECT {USER_COLUMNS} FROM users ORDER BY created_at DESC"
+        ))
         .fetch_all(&self.pool)
         .await
         .map_err(map_sqlx)?;
@@ -71,9 +76,9 @@ impl UserRepository for PgUserRepository {
     }
 
     async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, DomainError> {
-        let row = sqlx::query_as::<_, UserRow>(
-            "SELECT id, email, full_name, password_hash, role::text AS role, is_active, is_temp_password, failed_login_attempts, lockout_until, created_at, updated_at FROM users WHERE id = $1",
-        )
+        let row = sqlx::query_as::<_, UserRow>(&format!(
+            "SELECT {USER_COLUMNS} FROM users WHERE id = $1"
+        ))
         .bind(id)
         .fetch_optional(&self.pool)
         .await
@@ -83,10 +88,25 @@ impl UserRepository for PgUserRepository {
 
     async fn find_by_email(&self, email: &str) -> Result<Option<User>, DomainError> {
         let email = normalize_email(email);
-        let row = sqlx::query_as::<_, UserRow>(
-            "SELECT id, email, full_name, password_hash, role::text AS role, is_active, is_temp_password, failed_login_attempts, lockout_until, created_at, updated_at FROM users WHERE lower(email) = $1",
-        )
+        let row = sqlx::query_as::<_, UserRow>(&format!(
+            "SELECT {USER_COLUMNS} FROM users WHERE lower(email) = $1"
+        ))
         .bind(email)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+        Ok(row.map(Into::into))
+    }
+
+    async fn find_by_username(&self, username: &str) -> Result<Option<User>, DomainError> {
+        let username = username.trim().to_ascii_lowercase();
+        if username.is_empty() {
+            return Ok(None);
+        }
+        let row = sqlx::query_as::<_, UserRow>(&format!(
+            "SELECT {USER_COLUMNS} FROM users WHERE lower(username) = $1"
+        ))
+        .bind(username)
         .fetch_optional(&self.pool)
         .await
         .map_err(map_sqlx)?;
@@ -118,6 +138,7 @@ impl UserRepository for PgUserRepository {
     async fn create_admin(
         &self,
         email: &str,
+        username: &str,
         full_name: &str,
         password_hash: &str,
         is_super_admin: bool,
@@ -129,12 +150,13 @@ impl UserRepository for PgUserRepository {
             "ADMIN_HORARIOS"
         };
 
-        let row = sqlx::query_as::<_, UserRow>(
-            "INSERT INTO users (email, full_name, password_hash, role, is_active, is_temp_password, failed_login_attempts, lockout_until)
-             VALUES ($1, $2, $3, $4::user_role, TRUE, TRUE, 0, NULL)
-             RETURNING id, email, full_name, password_hash, role::text AS role, is_active, is_temp_password, failed_login_attempts, lockout_until, created_at, updated_at",
-        )
+        let row = sqlx::query_as::<_, UserRow>(&format!(
+            "INSERT INTO users (email, username, full_name, password_hash, role, is_active, is_temp_password, failed_login_attempts, lockout_until)
+             VALUES ($1, $2, $3, $4, $5::user_role, TRUE, TRUE, 0, NULL)
+             RETURNING {USER_COLUMNS}"
+        ))
         .bind(email)
+        .bind(username)
         .bind(full_name)
         .bind(password_hash)
         .bind(role)
@@ -148,17 +170,19 @@ impl UserRepository for PgUserRepository {
     async fn create_user_with_role(
         &self,
         email: &str,
-        full_name: Option<&str>,
+        username: &str,
+        full_name: &str,
         password_hash: &str,
         role: &str,
     ) -> Result<User, DomainError> {
         let email = normalize_email(email);
-        let row = sqlx::query_as::<_, UserRow>(
-            "INSERT INTO users (email, full_name, password_hash, role, is_active, is_temp_password, failed_login_attempts, lockout_until)
-             VALUES ($1, $2, $3, $4::user_role, TRUE, FALSE, 0, NULL)
-             RETURNING id, email, full_name, password_hash, role::text AS role, is_active, is_temp_password, failed_login_attempts, lockout_until, created_at, updated_at",
-        )
+        let row = sqlx::query_as::<_, UserRow>(&format!(
+            "INSERT INTO users (email, username, full_name, password_hash, role, is_active, is_temp_password, failed_login_attempts, lockout_until)
+             VALUES ($1, $2, $3, $4, $5::user_role, TRUE, FALSE, 0, NULL)
+             RETURNING {USER_COLUMNS}"
+        ))
         .bind(email)
+        .bind(username)
         .bind(full_name)
         .bind(password_hash)
         .bind(role)
@@ -206,15 +230,15 @@ impl UserRepository for PgUserRepository {
     }
 
     async fn set_is_active(&self, user_id: Uuid, is_active: bool) -> Result<User, DomainError> {
-        let row = sqlx::query_as::<_, UserRow>(
+        let row = sqlx::query_as::<_, UserRow>(&format!(
             "UPDATE users
              SET is_active = $2,
                  failed_login_attempts = 0,
                  lockout_until = NULL,
                  updated_at = NOW()
              WHERE id = $1
-             RETURNING id, email, full_name, password_hash, role::text AS role, is_active, is_temp_password, failed_login_attempts, lockout_until, created_at, updated_at",
-        )
+             RETURNING {USER_COLUMNS}"
+        ))
         .bind(user_id)
         .bind(is_active)
         .fetch_one(&self.pool)
@@ -232,7 +256,7 @@ impl UserRepository for PgUserRepository {
         is_temp_password: bool,
     ) -> Result<User, DomainError> {
         let email = normalize_email(email);
-        let row = sqlx::query_as::<_, UserRow>(
+        let row = sqlx::query_as::<_, UserRow>(&format!(
             "UPDATE users
              SET email = $2,
                  password_hash = $3,
@@ -242,8 +266,8 @@ impl UserRepository for PgUserRepository {
                  tokens_invalid_before = NOW(),
                  updated_at = NOW()
              WHERE id = $1
-             RETURNING id, email, full_name, password_hash, role::text AS role, is_active, is_temp_password, failed_login_attempts, lockout_until, created_at, updated_at",
-        )
+             RETURNING {USER_COLUMNS}"
+        ))
         .bind(user_id)
         .bind(email)
         .bind(password_hash)
@@ -270,13 +294,13 @@ impl UserRepository for PgUserRepository {
     }
 
     async fn update_role(&self, user_id: Uuid, role: &str) -> Result<User, DomainError> {
-        let row = sqlx::query_as::<_, UserRow>(
+        let row = sqlx::query_as::<_, UserRow>(&format!(
             "UPDATE users
              SET role = $2::user_role,
                  updated_at = NOW()
              WHERE id = $1
-             RETURNING id, email, full_name, password_hash, role::text AS role, is_active, is_temp_password, failed_login_attempts, lockout_until, created_at, updated_at",
-        )
+             RETURNING {USER_COLUMNS}"
+        ))
         .bind(user_id)
         .bind(role)
         .fetch_one(&self.pool)

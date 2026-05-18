@@ -25,6 +25,8 @@ impl PgPendingRegistrationRepository {
 struct PendingRow {
     id: Uuid,
     email: String,
+    full_name: String,
+    username: String,
     password_hash: String,
     verification_token: Uuid,
     verification_code: String,
@@ -38,6 +40,8 @@ impl From<PendingRow> for PendingRegistration {
         Self {
             id: v.id,
             email: v.email,
+            full_name: v.full_name,
+            username: v.username,
             password_hash: v.password_hash,
             verification_token: v.verification_token,
             verification_code: v.verification_code,
@@ -57,6 +61,8 @@ impl PendingRegistrationRepository for PgPendingRegistrationRepository {
     async fn upsert(
         &self,
         email: &str,
+        full_name: &str,
+        username: &str,
         password_hash: &str,
         verification_token: Uuid,
         verification_code: &str,
@@ -72,11 +78,13 @@ impl PendingRegistrationRepository for PgPendingRegistrationRepository {
             .map_err(map_sqlx)?;
 
         let row = sqlx::query_as::<_, PendingRow>(
-            "INSERT INTO pending_registrations (email, password_hash, verification_token, verification_code, expires_at, attempts)
-             VALUES ($1, $2, $3, $4, $5, 0)
-             RETURNING id, email, password_hash, verification_token, verification_code, expires_at, attempts, created_at",
+            "INSERT INTO pending_registrations (email, full_name, username, password_hash, verification_token, verification_code, expires_at, attempts)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, 0)
+             RETURNING id, email, full_name, username, password_hash, verification_token, verification_code, expires_at, attempts, created_at",
         )
         .bind(email)
+        .bind(full_name)
+        .bind(username)
         .bind(password_hash)
         .bind(verification_token)
         .bind(verification_code)
@@ -93,7 +101,7 @@ impl PendingRegistrationRepository for PgPendingRegistrationRepository {
         token: Uuid,
     ) -> Result<Option<PendingRegistration>, DomainError> {
         let row = sqlx::query_as::<_, PendingRow>(
-            "SELECT id, email, password_hash, verification_token, verification_code, expires_at, attempts, created_at
+            "SELECT id, email, full_name, username, password_hash, verification_token, verification_code, expires_at, attempts, created_at
              FROM pending_registrations WHERE verification_token = $1",
         )
         .bind(token)

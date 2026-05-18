@@ -1,6 +1,7 @@
 pub mod auth_service;
 pub mod building_service;
 pub mod classroom_service;
+pub mod collaboration_service;
 pub mod config_service;
 pub mod excel_service;
 pub mod group_service;

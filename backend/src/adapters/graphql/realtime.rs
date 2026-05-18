@@ -16,6 +16,8 @@ pub enum RealtimeScope {
     Classrooms,
     Groups,
     Schedules,
+    /// Cambios en la colaboración de tareas (compartir, responder, recordar).
+    Collaboration,
 }
 
 #[derive(SimpleObject, Clone)]

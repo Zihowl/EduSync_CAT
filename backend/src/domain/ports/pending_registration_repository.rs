@@ -9,6 +9,8 @@ pub trait PendingRegistrationRepository: Send + Sync {
     async fn upsert(
         &self,
         email: &str,
+        full_name: &str,
+        username: &str,
         password_hash: &str,
         verification_token: Uuid,
         verification_code: &str,

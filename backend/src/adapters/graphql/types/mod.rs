@@ -3,6 +3,7 @@ pub mod audit_log_type;
 pub mod auth_types;
 pub mod building_type;
 pub mod classroom_type;
+pub mod collaboration_type;
 pub mod group_type;
 pub mod schedule_slot_type;
 pub mod school_year_type;

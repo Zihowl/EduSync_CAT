@@ -261,9 +261,23 @@ mod tests {
                 .cloned())
         }
 
+        async fn find_by_username(
+            &self,
+            username: &str,
+        ) -> Result<Option<User>, DomainError> {
+            Ok(self
+                .users
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|user| user.username.eq_ignore_ascii_case(username))
+                .cloned())
+        }
+
         async fn create_admin(
             &self,
             _email: &str,
+            _username: &str,
             _full_name: &str,
             _password_hash: &str,
             _is_super_admin: bool,
@@ -274,7 +288,8 @@ mod tests {
         async fn create_user_with_role(
             &self,
             _email: &str,
-            _full_name: Option<&str>,
+            _username: &str,
+            _full_name: &str,
             _password_hash: &str,
             _role: &str,
         ) -> Result<User, DomainError> {
@@ -324,7 +339,8 @@ mod tests {
         User {
             id: Uuid::new_v4(),
             email: email.to_string(),
-            full_name: Some("Admin".to_string()),
+            username: "admin".to_string(),
+            full_name: "Admin".to_string(),
             password_hash: "hash".to_string(),
             role: UserRole::AdminHorarios,
             is_active,

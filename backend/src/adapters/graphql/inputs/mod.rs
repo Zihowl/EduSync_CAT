@@ -2,6 +2,7 @@ pub mod audit_log_input;
 pub mod auth_input;
 pub mod building_input;
 pub mod classroom_input;
+pub mod collaboration_input;
 pub mod group_input;
 pub mod schedule_input;
 pub mod subject_input;

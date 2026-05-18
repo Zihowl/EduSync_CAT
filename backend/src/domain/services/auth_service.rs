@@ -20,7 +20,7 @@ use crate::domain::{
         teacher_repository::TeacherRepository,
         user_repository::UserRepository,
     },
-    validation::normalize_email,
+    validation::{normalize_email, normalize_required_text},
 };
 
 #[derive(Clone)]
@@ -146,9 +146,33 @@ impl AuthService {
         self
     }
 
+    /// Indica si un nombre de usuario está disponible (no registrado).
+    pub async fn username_available(&self, username: &str) -> Result<bool, DomainError> {
+        let username = crate::domain::validation::normalize_username(username)?;
+        Ok(self.repo.find_by_username(&username).await?.is_none())
+    }
+
+    /// Perfil de registro para un correo: indica si pertenece a un docente del
+    /// catálogo y, de ser así, el nombre institucional sugerido (no editable).
+    pub async fn registration_profile(
+        &self,
+        email: &str,
+    ) -> Result<(bool, Option<String>), DomainError> {
+        let email = normalize_email(email);
+        let Some(teacher_repo) = self.teacher_repo.as_ref() else {
+            return Ok((false, None));
+        };
+        match teacher_repo.find_by_email(&email).await? {
+            Some(teacher) => Ok((true, Some(teacher.name))),
+            None => Ok((false, None)),
+        }
+    }
+
     pub async fn register(
         &self,
         email: &str,
+        full_name: &str,
+        username: &str,
         password: &str,
         password_confirmation: &str,
     ) -> Result<(uuid::Uuid, chrono::DateTime<Utc>), DomainError> {
@@ -168,6 +192,25 @@ impl AuthService {
                 "Correo electrónico inválido".to_string(),
             ));
         }
+
+        // Nombre de usuario: validar formato y unicidad case-insensitive.
+        let username = crate::domain::validation::normalize_username(username)?;
+        if self.repo.find_by_username(&username).await?.is_some() {
+            return Err(DomainError::Conflict(
+                "El nombre de usuario ya está en uso".to_string(),
+            ));
+        }
+
+        // Nombre completo: si el correo pertenece a un docente del catálogo
+        // CAT, el nombre lo define la institución e ignora el valor recibido.
+        let resolved_full_name = match self.teacher_repo.as_ref() {
+            Some(teacher_repo) => match teacher_repo.find_by_email(&email).await? {
+                Some(teacher) => teacher.name,
+                None => normalize_required_text("nombre completo", full_name)?,
+            },
+            None => normalize_required_text("nombre completo", full_name)?,
+        };
+
         if password != password_confirmation {
             return Err(DomainError::BadRequest("Las contraseñas no coinciden".to_string()));
         }
@@ -210,7 +253,15 @@ impl AuthService {
         let expires_at = Utc::now() + Duration::minutes(10);
 
         pending
-            .upsert(&email, &password_hash, token, &code, expires_at)
+            .upsert(
+                &email,
+                &resolved_full_name,
+                &username,
+                &password_hash,
+                token,
+                &code,
+                expires_at,
+            )
             .await?;
 
         let message = EmailMessage {
@@ -277,7 +328,13 @@ impl AuthService {
 
         let user = self
             .repo
-            .create_user_with_role(&entry.email, None, &entry.password_hash, role.as_str())
+            .create_user_with_role(
+                &entry.email,
+                &entry.username,
+                &entry.full_name,
+                &entry.password_hash,
+                role.as_str(),
+            )
             .await?;
         pending_repo.delete(entry.id).await.ok();
 
@@ -793,9 +850,19 @@ mod tests {
             }
         }
 
+        async fn find_by_username(&self, username: &str) -> Result<Option<User>, DomainError> {
+            let user = self.user.lock().unwrap().clone();
+            if user.username.eq_ignore_ascii_case(username) {
+                Ok(Some(user))
+            } else {
+                Ok(None)
+            }
+        }
+
         async fn create_admin(
             &self,
             _email: &str,
+            _username: &str,
             _full_name: &str,
             _password_hash: &str,
             _is_super_admin: bool,
@@ -806,7 +873,8 @@ mod tests {
         async fn create_user_with_role(
             &self,
             _email: &str,
-            _full_name: Option<&str>,
+            _username: &str,
+            _full_name: &str,
             _password_hash: &str,
             _role: &str,
         ) -> Result<User, DomainError> {
@@ -895,7 +963,8 @@ mod tests {
         let user = User {
             id: Uuid::new_v4(),
             email: "admin@example.com".to_string(),
-            full_name: Some("Admin".to_string()),
+            username: "admin".to_string(),
+            full_name: "Admin".to_string(),
             password_hash: hash,
             role: UserRole::SuperAdmin,
             is_active: true,

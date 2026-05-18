@@ -40,7 +40,8 @@ impl UserRole {
 pub struct User {
     pub id: Uuid,
     pub email: String,
-    pub full_name: Option<String>,
+    pub username: String,
+    pub full_name: String,
     pub password_hash: String,
     pub role: UserRole,
     pub is_active: bool,

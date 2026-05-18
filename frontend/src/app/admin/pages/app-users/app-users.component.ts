@@ -26,6 +26,7 @@ import { RealtimeQueryCacheService } from '../../../core/services/realtime-query
 interface AppUserRow {
     id: string;
     fullName: string | null;
+    username: string | null;
     email: string;
     role: 'STUDENT' | 'TEACHER' | string;
     isActive: boolean;
@@ -41,6 +42,7 @@ const GET_APP_USERS = gql`
         GetUsers(roles: $roles) {
             id
             fullName
+            username
             email
             role
             isActive
@@ -131,6 +133,9 @@ const FORCE_RESET_APP_USER_PASSWORD = gql`
                                         <h2>{{ u.fullName || 'Sin Nombre' }}</h2>
                                     </div>
                                     <p>{{ u.email }}</p>
+                                    @if (u.username) {
+                                        <p class="user-handle">{{ '@' + u.username }}</p>
+                                    }
                                     <div class="user-badges">
                                         <ion-badge [color]="u.isActive ? 'success' : 'medium'">
                                             {{ u.isActive ? 'Activo' : 'Inhabilitado' }}

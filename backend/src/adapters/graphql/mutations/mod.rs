@@ -1,6 +1,7 @@
 pub mod auth_mutation;
 pub mod building_mutation;
 pub mod classroom_mutation;
+pub mod collaboration_mutation;
 pub mod config_mutation;
 pub mod group_mutation;
 pub mod schedule_mutation;

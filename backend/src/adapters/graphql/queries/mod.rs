@@ -1,6 +1,8 @@
 pub mod audit_log_query;
+pub mod auth_query;
 pub mod building_query;
 pub mod classroom_query;
+pub mod collaboration_query;
 pub mod config_query;
 pub mod group_query;
 pub mod schedule_query;

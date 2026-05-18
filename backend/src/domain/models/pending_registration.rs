@@ -5,6 +5,8 @@ use uuid::Uuid;
 pub struct PendingRegistration {
     pub id: Uuid,
     pub email: String,
+    pub full_name: String,
+    pub username: String,
     pub password_hash: String,
     pub verification_token: Uuid,
     pub verification_code: String,

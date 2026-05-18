@@ -19,7 +19,7 @@ use crate::domain::{
         email_sender::{EmailMessage, EmailSender},
         user_repository::UserRepository,
     },
-    validation::normalize_email,
+    validation::{normalize_email, username_from_email},
 };
 
 #[derive(Clone)]
@@ -81,9 +81,10 @@ impl UserService {
 
         let temp_password = self.generate_temp_password(16)?;
         let hash = self.hash_password(&temp_password)?;
+        let username = self.generate_unique_username(&email).await?;
         let user = self
             .repo
-            .create_admin(&email, full_name, &hash, false)
+            .create_admin(&email, &username, full_name, &hash, false)
             .await?;
 
         self.print_temp_password_delivery(&email, &temp_password);
@@ -132,10 +133,11 @@ impl UserService {
             .update_credentials(target_user.id, &target_user.email, &hash, true)
             .await?;
 
-        let recipient_name = updated_user
-            .full_name
-            .as_deref()
-            .unwrap_or(updated_user.email.as_str());
+        let recipient_name = if updated_user.full_name.trim().is_empty() {
+            updated_user.email.as_str()
+        } else {
+            updated_user.full_name.as_str()
+        };
 
         self.print_temp_password_delivery(&updated_user.email, &temp_password);
         self.send_temp_password_email(
@@ -192,10 +194,11 @@ impl UserService {
             .update_credentials(target_user.id, &target_user.email, &hash, true)
             .await?;
 
-        let recipient_name = updated_user
-            .full_name
-            .as_deref()
-            .unwrap_or(updated_user.email.as_str());
+        let recipient_name = if updated_user.full_name.trim().is_empty() {
+            updated_user.email.as_str()
+        } else {
+            updated_user.full_name.as_str()
+        };
 
         self.print_temp_password_delivery(&updated_user.email, &temp_password);
         self.send_temp_password_email(
@@ -438,6 +441,24 @@ impl UserService {
             })
     }
 
+    /// Deriva un nombre de usuario único para una cuenta administrativa (que
+    /// no lo elige) a partir del correo, anexando un sufijo si ya existe.
+    async fn generate_unique_username(&self, email: &str) -> Result<String, DomainError> {
+        let base = username_from_email(email);
+        if self.repo.find_by_username(&base).await?.is_none() {
+            return Ok(base);
+        }
+        for suffix in 1..=999 {
+            let candidate = format!("{base}{suffix}");
+            if self.repo.find_by_username(&candidate).await?.is_none() {
+                return Ok(candidate);
+            }
+        }
+        Err(DomainError::Internal(
+            "No se pudo generar un nombre de usuario único".to_string(),
+        ))
+    }
+
     fn generate_temp_password(&self, length: usize) -> Result<String, DomainError> {
         if length < 4 {
             return Err(DomainError::BadRequest(
@@ -588,16 +609,27 @@ mod tests {
             }
         }
 
+        async fn find_by_username(&self, username: &str) -> Result<Option<User>, DomainError> {
+            let user = self.user.lock().unwrap().clone();
+            if user.username.eq_ignore_ascii_case(username) {
+                Ok(Some(user))
+            } else {
+                Ok(None)
+            }
+        }
+
         async fn create_admin(
             &self,
             email: &str,
+            username: &str,
             full_name: &str,
             password_hash: &str,
             is_super_admin: bool,
         ) -> Result<User, DomainError> {
             let mut user = self.user.lock().unwrap().clone();
             user.email = email.to_string();
-            user.full_name = Some(full_name.to_string());
+            user.username = username.to_string();
+            user.full_name = full_name.to_string();
             user.password_hash = password_hash.to_string();
             user.role = if is_super_admin {
                 UserRole::SuperAdmin
@@ -614,7 +646,8 @@ mod tests {
         async fn create_user_with_role(
             &self,
             _email: &str,
-            _full_name: Option<&str>,
+            _username: &str,
+            _full_name: &str,
             _password_hash: &str,
             _role: &str,
         ) -> Result<User, DomainError> {
@@ -704,7 +737,8 @@ mod tests {
         User {
             id: Uuid::new_v4(),
             email: email.to_string(),
-            full_name: Some("Usuario".to_string()),
+            username: "usuario".to_string(),
+            full_name: "Usuario".to_string(),
             password_hash: make_password_hash(TEST_PASSWORD),
             role,
             is_active,
@@ -803,7 +837,7 @@ mod tests {
             .expect("debe crear usuario");
 
         assert_eq!(created_user.email, "new.admin@example.com");
-        assert_eq!(created_user.full_name.as_deref(), Some("Nuevo Admin"));
+        assert_eq!(created_user.full_name, "Nuevo Admin");
         assert!(created_user.is_temp_password);
         assert!(!temp_password.is_empty());
         assert_eq!(email_sender.messages().len(), 1);

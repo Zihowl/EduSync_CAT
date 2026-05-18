@@ -92,6 +92,8 @@ impl AuthMutation {
         let (token, expires_at) = svc
             .register(
                 &register_input.email,
+                &register_input.full_name,
+                &register_input.username,
                 &register_input.password,
                 &register_input.password_confirmation,
             )

@@ -26,7 +26,8 @@ use backend::domain::{
     ports::{
         allowed_domain_repository::AllowedDomainRepository,
         audit_log_repository::AuditLogRepository, building_repository::BuildingRepository,
-        classroom_repository::ClassroomRepository, group_repository::GroupRepository,
+        classroom_repository::ClassroomRepository,
+        collaboration_repository::CollaborationRepository, group_repository::GroupRepository,
         password_reset_repository::PasswordResetRepository,
         pending_registration_repository::PendingRegistrationRepository,
         schedule_slot_repository::ScheduleSlotRepository,
@@ -36,7 +37,8 @@ use backend::domain::{
     },
     services::{
         auth_service::AuthService, building_service::BuildingService,
-        classroom_service::ClassroomService, config_service::ConfigService,
+        classroom_service::ClassroomService,
+        collaboration_service::CollaborationService, config_service::ConfigService,
         excel_service::ExcelService, group_service::GroupService,
         schedule_service::ScheduleService, subject_service::SubjectService,
         teacher_service::TeacherService, user_service::UserService,
@@ -46,7 +48,7 @@ use backend::infrastructure::email::brevo_sender::BrevoEmailSender;
 use backend::infrastructure::persistence::{
     pg_allowed_domain_repo::PgAllowedDomainRepository, pg_audit_log_repo::PgAuditLogRepository,
     pg_building_repo::PgBuildingRepository, pg_classroom_repo::PgClassroomRepository,
-    pg_group_repo::PgGroupRepository,
+    pg_collaboration_repo::PgCollaborationRepository, pg_group_repo::PgGroupRepository,
     pg_password_reset_repo::PgPasswordResetRepository,
     pg_pending_registration_repo::PgPendingRegistrationRepository,
     pg_schedule_slot_repo::PgScheduleSlotRepository,
@@ -107,6 +109,8 @@ async fn main() -> anyhow::Result<()> {
         Arc::new(PgPasswordResetRepository::new(pool.clone()));
     let user_backup_repo: Arc<dyn UserBackupRepository> =
         Arc::new(PgUserBackupRepository::new(pool.clone()));
+    let collaboration_repo: Arc<dyn CollaborationRepository> =
+        Arc::new(PgCollaborationRepository::new(pool.clone()));
 
     genesis_protocol(user_repo.clone()).await?;
 
@@ -169,6 +173,10 @@ async fn main() -> anyhow::Result<()> {
         group_service.clone(),
         schedule_service.clone(),
     ));
+    let collaboration_service = Arc::new(CollaborationService::new(
+        collaboration_repo.clone(),
+        user_repo.clone(),
+    ));
     let realtime = Arc::new(RealtimeBroadcaster::new());
 
     spawn_audit_retention_task(audit_log_repo.clone());
@@ -185,6 +193,7 @@ async fn main() -> anyhow::Result<()> {
         .data(group_service.clone())
         .data(schedule_service.clone())
         .data(user_backup_repo.clone())
+        .data(collaboration_service.clone())
         .data(config.clone())
         .data(realtime.clone())
         .finish();
@@ -287,7 +296,13 @@ async fn genesis_protocol(user_repo: Arc<dyn UserRepository>) -> anyhow::Result<
         tracing::warn!("Protocolo Génesis: Usuario existente setup.local actualizado.");
     } else {
         user_repo
-            .create_admin(&email, "Súper Administrador", &hash, true)
+            .create_admin(
+                &email,
+                &backend::domain::validation::username_from_email(&email),
+                "Súper Administrador",
+                &hash,
+                true,
+            )
             .await
             .map_err(anyhow::Error::msg)?;
         tracing::warn!("Protocolo Génesis: Súper Administrador creado.");
