@@ -114,6 +114,14 @@ export class AuthService {
         this.setupSessionRevalidationWatcher();
     }
 
+    /**
+     * Ruta de inicio según el rol del usuario (RQNF-WEB-07/08).
+     * SUPER_ADMIN aterriza en configuración; el resto, en gestión de horarios.
+     */
+    static homeRouteForRole(role: string | null | undefined): string {
+        return role === 'SUPER_ADMIN' ? '/admin/config' : '/admin/schedules';
+    }
+
     login(email: string, password: string): Observable<User> {
         this.clearSession();
 

@@ -18,7 +18,7 @@ export class SuperAdminGuard implements CanActivate {
 
                 return user.role === 'SUPER_ADMIN'
                     ? true
-                    : this.router.createUrlTree(['/admin']);
+                    : this.router.createUrlTree(['/admin/schedules']);
             }),
             catchError(() => of(this.router.createUrlTree(['/auth/login'])))
         );

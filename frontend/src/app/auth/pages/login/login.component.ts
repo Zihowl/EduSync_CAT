@@ -143,7 +143,7 @@ export class LoginComponent implements OnInit, OnDestroy {
                   }
 
                   sessionStorage.removeItem('returnUrl');
-                  this.router.navigateByUrl(this.returnUrl);
+                  this.router.navigateByUrl(AuthService.homeRouteForRole(user.role));
               },
               error: (err: unknown) => {
                   this.isLoadingSignal.set(false);

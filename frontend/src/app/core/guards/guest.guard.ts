@@ -15,7 +15,7 @@ export class GuestGuard implements CanActivate {
                     return true;
                 }
 
-                this.router.navigateByUrl('/admin');
+                this.router.navigateByUrl(AuthService.homeRouteForRole(user.role));
                 return false;
             }),
             catchError(() => of(true))

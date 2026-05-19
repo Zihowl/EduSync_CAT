@@ -39,10 +39,10 @@ describe('GuestGuard', () => {
         const can = await firstValueFrom(guard.canActivate({} as any, {} as any));
 
         expect(can).toBeFalse();
-        expect(router.navigateByUrl).toHaveBeenCalledWith('/admin');
+        expect(router.navigateByUrl).toHaveBeenCalledWith('/admin/config');
     });
 
-    it('should redirect horario admins to the admin panel', async () => {
+    it('should redirect horario admins to the schedules panel', async () => {
         authService.verifySession.and.returnValue(of({
             id: '1',
             email: 'admin@example.com',
@@ -54,7 +54,7 @@ describe('GuestGuard', () => {
         const can = await firstValueFrom(guard.canActivate({} as any, {} as any));
 
         expect(can).toBeFalse();
-        expect(router.navigateByUrl).toHaveBeenCalledWith('/admin');
+        expect(router.navigateByUrl).toHaveBeenCalledWith('/admin/schedules');
     });
 
     it('should allow the login page when the session cannot be verified', async () => {
