@@ -19,8 +19,9 @@ pub struct LoginInput {
 #[derive(InputObject, Clone)]
 pub struct RegisterInput {
     pub email: String,
-    /// Nombre completo. Para correos de docentes lo define el catálogo CAT y
-    /// el servidor ignora lo que se envíe aquí.
+    /// Nombre completo. Obsoleto: los alumnos no registran nombre y el de los
+    /// docentes lo define el catálogo CAT. El servidor ignora este valor; el
+    /// cliente envía cadena vacía.
     pub full_name: String,
     /// Nombre de usuario único (3-30 caracteres: letras, números, `.`, `_`).
     pub username: String,

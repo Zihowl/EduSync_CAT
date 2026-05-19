@@ -20,7 +20,7 @@ use crate::domain::{
         teacher_repository::TeacherRepository,
         user_repository::UserRepository,
     },
-    validation::{normalize_email, normalize_required_text},
+    validation::normalize_email,
 };
 
 #[derive(Clone)]
@@ -171,7 +171,9 @@ impl AuthService {
     pub async fn register(
         &self,
         email: &str,
-        full_name: &str,
+        // Conservado por compatibilidad de la API: los alumnos ya no envían
+        // nombre y el de los docentes lo define el catálogo CAT.
+        _full_name: &str,
         username: &str,
         password: &str,
         password_confirmation: &str,
@@ -202,13 +204,14 @@ impl AuthService {
         }
 
         // Nombre completo: si el correo pertenece a un docente del catálogo
-        // CAT, el nombre lo define la institución e ignora el valor recibido.
+        // CAT, el nombre lo define la institución. Los alumnos no registran
+        // nombre (basta su username): se guarda vacío.
         let resolved_full_name = match self.teacher_repo.as_ref() {
             Some(teacher_repo) => match teacher_repo.find_by_email(&email).await? {
                 Some(teacher) => teacher.name,
-                None => normalize_required_text("nombre completo", full_name)?,
+                None => String::new(),
             },
-            None => normalize_required_text("nombre completo", full_name)?,
+            None => String::new(),
         };
 
         if password != password_confirmation {

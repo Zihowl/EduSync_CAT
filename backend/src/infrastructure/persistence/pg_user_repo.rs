@@ -29,7 +29,7 @@ struct UserRow {
     id: Uuid,
     email: String,
     username: String,
-    full_name: String,
+    full_name: Option<String>,
     password_hash: String,
     role: String,
     is_active: bool,
@@ -46,7 +46,7 @@ impl From<UserRow> for User {
             id: v.id,
             email: v.email.to_ascii_lowercase(),
             username: v.username,
-            full_name: v.full_name,
+            full_name: v.full_name.unwrap_or_default(),
             password_hash: v.password_hash,
             role: UserRole::from_str(&v.role),
             is_active: v.is_active,
@@ -183,7 +183,8 @@ impl UserRepository for PgUserRepository {
         ))
         .bind(email)
         .bind(username)
-        .bind(full_name)
+        // El alumno no registra nombre: `""` se guarda como NULL.
+        .bind(Some(full_name).filter(|s| !s.is_empty()))
         .bind(password_hash)
         .bind(role)
         .fetch_one(&self.pool)

@@ -109,7 +109,7 @@ impl CollaborationRepository for PgCollaborationRepository {
             .filter(|s| !s.is_empty())
             .map(|s| format!("%{s}%"));
 
-        let rows: Vec<(Uuid, String, String, String)> = sqlx::query_as(
+        let rows: Vec<(Uuid, String, Option<String>, String)> = sqlx::query_as(
             "SELECT DISTINCT u.id, u.username, u.full_name, u.role::text AS role
              FROM users u
              LEFT JOIN user_academic_profiles p ON p.user_id = u.id
@@ -137,7 +137,7 @@ impl CollaborationRepository for PgCollaborationRepository {
             .map(|(user_id, username, full_name, role)| ShareCandidate {
                 user_id,
                 username,
-                full_name,
+                full_name: full_name.unwrap_or_default(),
                 role,
             })
             .collect())
@@ -207,7 +207,7 @@ impl CollaborationRepository for PgCollaborationRepository {
             DateTime<Utc>,
             String,
             String,
-            String,
+            Option<String>,
         )> = sqlx::query_as(
             "SELECT t.id, t.owner_user_id, t.ciphertext, t.enc_key, t.scope, t.title_preview,
                     t.created_at, r.status, o.username, o.full_name
@@ -249,7 +249,7 @@ impl CollaborationRepository for PgCollaborationRepository {
                     },
                     status,
                     owner_username,
-                    owner_full_name,
+                    owner_full_name: owner_full_name.unwrap_or_default(),
                 },
             )
             .collect())
@@ -267,7 +267,7 @@ impl CollaborationRepository for PgCollaborationRepository {
 
         let mut items = Vec::with_capacity(tasks.len());
         for task in tasks {
-            let recipients: Vec<(Uuid, String, String, String, i64)> = sqlx::query_as(
+            let recipients: Vec<(Uuid, String, Option<String>, String, i64)> = sqlx::query_as(
                 "SELECT r.recipient_user_id, u.username, u.full_name, r.status,
                         (SELECT COUNT(*) FROM task_reminders tr
                          WHERE tr.shared_task_id = r.shared_task_id
@@ -294,7 +294,7 @@ impl CollaborationRepository for PgCollaborationRepository {
                             RecipientStatus {
                                 user_id,
                                 username,
-                                full_name,
+                                full_name: full_name.unwrap_or_default(),
                                 status,
                                 reminders_sent_24h,
                             }
