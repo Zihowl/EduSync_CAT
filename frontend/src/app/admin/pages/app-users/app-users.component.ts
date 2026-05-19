@@ -130,10 +130,10 @@ const FORCE_RESET_APP_USER_PASSWORD = gql`
                                             [name]="u.role === 'TEACHER' ? 'briefcase-outline' : 'school-outline'"
                                             [attr.aria-label]="u.role === 'TEACHER' ? 'Maestro' : 'Alumno'">
                                         </ion-icon>
-                                        <h2>{{ u.fullName || 'Sin Nombre' }}</h2>
+                                        <h2>{{ u.fullName || (u.username ? '@' + u.username : 'Sin Nombre') }}</h2>
                                     </div>
                                     <p>{{ u.email }}</p>
-                                    @if (u.username) {
+                                    @if (u.fullName && u.username) {
                                         <p class="user-handle">{{ '@' + u.username }}</p>
                                     }
                                     <div class="user-badges">
