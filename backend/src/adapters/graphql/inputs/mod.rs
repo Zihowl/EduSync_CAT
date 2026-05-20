@@ -8,3 +8,4 @@ pub mod schedule_input;
 pub mod subject_input;
 pub mod teacher_input;
 pub mod user_input;
+pub mod user_file_input;

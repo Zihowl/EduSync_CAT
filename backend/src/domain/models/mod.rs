@@ -10,5 +10,6 @@ pub mod subject;
 pub mod teacher;
 pub mod user;
 pub mod user_backup;
+pub mod user_file;
 pub mod pending_registration;
 pub mod password_reset;

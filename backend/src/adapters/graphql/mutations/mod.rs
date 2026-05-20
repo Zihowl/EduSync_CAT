@@ -9,3 +9,4 @@ pub mod subject_mutation;
 pub mod teacher_mutation;
 pub mod user_mutation;
 pub mod backup_mutation;
+pub mod file_mutation;

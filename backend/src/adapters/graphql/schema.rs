@@ -8,6 +8,7 @@ use super::{
         building_mutation::BuildingMutation,
         classroom_mutation::ClassroomMutation,
         collaboration_mutation::CollaborationMutation, config_mutation::ConfigMutation,
+        file_mutation::FileMutation,
         group_mutation::GroupMutation, schedule_mutation::ScheduleMutation,
         subject_mutation::SubjectMutation, teacher_mutation::TeacherMutation,
         user_mutation::UserMutation,
@@ -16,6 +17,7 @@ use super::{
         audit_log_query::AuditLogQuery, auth_query::AuthQuery, backup_query::BackupQuery,
         building_query::BuildingQuery, classroom_query::ClassroomQuery,
         collaboration_query::CollaborationQuery, config_query::ConfigQuery,
+        file_query::FileQuery,
         group_query::GroupQuery, schedule_query::ScheduleQuery,
         subject_query::SubjectQuery, teacher_query::TeacherQuery, user_query::UserQuery,
     },
@@ -36,6 +38,7 @@ pub struct MergedQuery(
     GroupQuery,
     ScheduleQuery,
     BackupQuery,
+    FileQuery,
 );
 
 #[derive(MergedObject, Default)]
@@ -51,6 +54,7 @@ pub struct MergedMutation(
     GroupMutation,
     ScheduleMutation,
     BackupMutation,
+    FileMutation,
 );
 
 pub type AppSchema = Schema<MergedQuery, MergedMutation, RealtimeSubscription>;

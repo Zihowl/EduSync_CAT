@@ -33,7 +33,8 @@ use backend::domain::{
         schedule_slot_repository::ScheduleSlotRepository,
         school_year_repository::SchoolYearRepository, subject_repository::SubjectRepository,
         teacher_repository::TeacherRepository,
-        user_backup_repository::UserBackupRepository, user_repository::UserRepository,
+        user_backup_repository::UserBackupRepository,
+        user_file_repository::UserFileRepository, user_repository::UserRepository,
     },
     services::{
         auth_service::AuthService, building_service::BuildingService,
@@ -54,7 +55,8 @@ use backend::infrastructure::persistence::{
     pg_schedule_slot_repo::PgScheduleSlotRepository,
     pg_school_year_repo::PgSchoolYearRepository, pg_subject_repo::PgSubjectRepository,
     pg_teacher_repo::PgTeacherRepository,
-    pg_user_backup_repo::PgUserBackupRepository, pg_user_repo::PgUserRepository,
+    pg_user_backup_repo::PgUserBackupRepository,
+    pg_user_file_repo::PgUserFileRepository, pg_user_repo::PgUserRepository,
 };
 use rand::prelude::{IndexedRandom, SliceRandom};
 use rand::RngExt;
@@ -109,6 +111,8 @@ async fn main() -> anyhow::Result<()> {
         Arc::new(PgPasswordResetRepository::new(pool.clone()));
     let user_backup_repo: Arc<dyn UserBackupRepository> =
         Arc::new(PgUserBackupRepository::new(pool.clone()));
+    let user_file_repo: Arc<dyn UserFileRepository> =
+        Arc::new(PgUserFileRepository::new(pool.clone()));
     let collaboration_repo: Arc<dyn CollaborationRepository> =
         Arc::new(PgCollaborationRepository::new(pool.clone()));
 
@@ -193,6 +197,7 @@ async fn main() -> anyhow::Result<()> {
         .data(group_service.clone())
         .data(schedule_service.clone())
         .data(user_backup_repo.clone())
+        .data(user_file_repo.clone())
         .data(collaboration_service.clone())
         .data(config.clone())
         .data(realtime.clone())
