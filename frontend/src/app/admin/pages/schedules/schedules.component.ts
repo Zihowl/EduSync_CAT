@@ -10,7 +10,6 @@ import {
     IonSelectOption, IonIcon, IonFab, IonFabButton,
     IonInput,
     IonSegment, IonSegmentButton, IonToggle,
-    IonDatetime, IonDatetimeButton, IonPopover,
     IonCard, IonCardContent
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -24,6 +23,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ModalComponent } from '../../../shared/components/modal/modal.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
+import { TimePickerComponent } from '../../../shared/components/time-picker/time-picker.component';
 import { NotificationService } from '../../../shared/services/notification.service';
 import { RealtimeQueryCacheService } from '../../../core/services/realtime-query-cache.service';
 import { RealtimeScope, RealtimeSyncService } from '../../../core/services/realtime-sync.service';
@@ -131,10 +131,9 @@ interface ScheduleBlockForm {
         IonList, IonItem, IonLabel,
         IonSelect, IonSelectOption, IonIcon, IonFab, IonFabButton,
         IonSegment, IonSegmentButton, IonToggle,
-        IonDatetime, IonDatetimeButton, IonPopover,
         IonCard, IonCardContent,
         ModalComponent,
-        PageHeaderComponent, ScheduleCalendarComponent
+        PageHeaderComponent, ScheduleCalendarComponent, TimePickerComponent
     ],
     template: `
         <app-page-header
@@ -337,41 +336,19 @@ interface ScheduleBlockForm {
                                             
                                         </ion-item>
 
-                                        <ion-item fill="outline" class="schedule-form-item">
-                                            <ion-label position="stacked"><ion-icon name="time-outline" class="label-icon"></ion-icon> Hora de inicio *</ion-label>
-                                            <ion-datetime-button [datetime]="getStartTimePickerId(i)"></ion-datetime-button>
-                                            <ion-popover [keepContentsMounted]="true" [animated]="false">
-                                                <ng-template>
-                                                    <ion-datetime
-                                                        [id]="getStartTimePickerId(i)"
-                                                        presentation="time"
-                                                        [value]="getTimeAsISO(block.startTime)"
-                                                        (ionChange)="onStartTimeChange(i, $event)"
-                                                        hourCycle="h12"
-                                                        minuteValues="0,5,10,15,20,25,30,35,40,45,50,55">
-                                                    </ion-datetime>
-                                                </ng-template>
-                                            </ion-popover>
-                                            
-                                        </ion-item>
+                                        <div class="schedule-form-item schedule-time-field">
+                                            <p class="schedule-time-field__label">
+                                                <ion-icon name="time-outline" class="label-icon"></ion-icon> Hora de inicio *
+                                            </p>
+                                            <app-time-picker [value]="block.startTime" (valueChange)="onStartTimeChange(i, $event)"></app-time-picker>
+                                        </div>
 
-                                        <ion-item fill="outline" class="schedule-form-item">
-                                            <ion-label position="stacked"><ion-icon name="time-outline" class="label-icon"></ion-icon> Hora de fin *</ion-label>
-                                            <ion-datetime-button [datetime]="getEndTimePickerId(i)"></ion-datetime-button>
-                                            <ion-popover [keepContentsMounted]="true" [animated]="false">
-                                                <ng-template>
-                                                    <ion-datetime
-                                                        [id]="getEndTimePickerId(i)"
-                                                        presentation="time"
-                                                        [value]="getTimeAsISO(block.endTime)"
-                                                        (ionChange)="onEndTimeChange(i, $event)"
-                                                        hourCycle="h12"
-                                                        minuteValues="0,5,10,15,20,25,30,35,40,45,50,55">
-                                                    </ion-datetime>
-                                                </ng-template>
-                                            </ion-popover>
-                                            
-                                        </ion-item>
+                                        <div class="schedule-form-item schedule-time-field">
+                                            <p class="schedule-time-field__label">
+                                                <ion-icon name="time-outline" class="label-icon"></ion-icon> Hora de fin *
+                                            </p>
+                                            <app-time-picker [value]="block.endTime" (valueChange)="onEndTimeChange(i, $event)"></app-time-picker>
+                                        </div>
 
                                         <ion-item fill="outline" class="schedule-form-item">
                                             <ion-label position="stacked"><ion-icon name="location-outline" class="label-icon"></ion-icon> Edificio</ion-label>
@@ -1001,10 +978,6 @@ export class SchedulesComponent implements OnInit {
         return formatClockTime(normalizedTotal);
     }
 
-    getTimeAsISO(time: string): string {
-        return `2024-01-01T${time}:00`;
-    }
-
     private createBlockDraft(seed: Partial<ScheduleFormData & ScheduleBlockForm> = {}): ScheduleBlockForm {
         const draft: ScheduleBlockForm = {
             dayOfWeek: seed.dayOfWeek ?? this.calendarDays[0] ?? 1,
@@ -1029,30 +1002,8 @@ export class SchedulesComponent implements OnInit {
         });
     }
 
-    private updateBlockTime(blockIndex: number, field: 'startTime' | 'endTime', event: any): void {
-        const value = event?.detail?.value;
-        if (!value) {
-            return;
-        }
-
-        const date = new Date(value);
-        const nextValue = date.toTimeString().substring(0, 5);
-
-        this.scheduleBlocks = this.scheduleBlocks.map((block, index) => (
-            index === blockIndex ? { ...block, [field]: nextValue } : block
-        ));
-    }
-
     trackByBlockIndex(index: number): number {
         return index;
-    }
-
-    getStartTimePickerId(index: number): string {
-        return `schedule-start-${index}`;
-    }
-
-    getEndTimePickerId(index: number): string {
-        return `schedule-end-${index}`;
     }
 
     addScheduleBlock(seed: Partial<ScheduleBlockForm> = {}): void {
@@ -1097,12 +1048,16 @@ export class SchedulesComponent implements OnInit {
         return this.scheduleBlocks.length > 1 ? 'Guardar bloques' : 'Guardar';
     }
 
-    onStartTimeChange(blockIndex: number, event: any): void {
-        this.updateBlockTime(blockIndex, 'startTime', event);
+    onStartTimeChange(blockIndex: number, value: string): void {
+        this.scheduleBlocks = this.scheduleBlocks.map((block, index) =>
+            index === blockIndex ? { ...block, startTime: value } : block
+        );
     }
 
-    onEndTimeChange(blockIndex: number, event: any): void {
-        this.updateBlockTime(blockIndex, 'endTime', event);
+    onEndTimeChange(blockIndex: number, value: string): void {
+        this.scheduleBlocks = this.scheduleBlocks.map((block, index) =>
+            index === blockIndex ? { ...block, endTime: value } : block
+        );
     }
 
     LoadCatalogs(forceRefresh = false) {

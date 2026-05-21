@@ -410,6 +410,36 @@
     }
 }
 
+/* Custom time picker spinner field */
+.schedule-time-field {
+    display: flex;
+    flex-direction: column;
+    padding: 0.6rem 0.85rem 0.55rem;
+    border: 1px solid var(--cfg-border);
+    border-radius: 0.5rem;
+    background: transparent;
+    gap: 0.15rem;
+    transition: border-color 150ms ease;
+
+    &:focus-within {
+        border-color: rgba(56, 189, 248, 0.45);
+    }
+}
+
+.schedule-time-field__label {
+    margin: 0;
+    font-size: 0.72rem;
+    color: rgba(148, 163, 184, 0.75);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+
+    .label-icon {
+        font-size: 0.8rem;
+    }
+}
+
 ::ng-deep .teacher-select-popover {
   ion-radio::part(label) {
     white-space: pre-wrap !important;
@@ -423,7 +453,7 @@
     font-size: 1.15em;
     color: var(--ion-text-color) !important;
   }
-  
+
   /* Apply also to checkboxes if used in multiple select */
   ion-checkbox::part(label) {
     white-space: pre-wrap !important;

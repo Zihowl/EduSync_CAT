@@ -1,0 +1,54 @@
+<div class="tp">
+    <!-- Horas -->
+    <div class="tp__col">
+        <button class="tp__btn" type="button" (click)="incHour()" tabindex="-1" aria-label="Aumentar hora">
+            <ion-icon name="chevron-up-outline"></ion-icon>
+        </button>
+        <input class="tp__input"
+               [value]="pad(hour)"
+               inputmode="numeric"
+               maxlength="2"
+               (wheel)="onHourWheel($event)"
+               (keydown)="onHourKey($event)"
+               (change)="onHourInput($event)"
+               (focus)="$any($event.target).select()"
+               aria-label="Hora">
+        <button class="tp__btn" type="button" (click)="decHour()" tabindex="-1" aria-label="Disminuir hora">
+            <ion-icon name="chevron-down-outline"></ion-icon>
+        </button>
+    </div>
+
+    <span class="tp__sep">:</span>
+
+    <!-- Minutos -->
+    <div class="tp__col">
+        <button class="tp__btn" type="button" (click)="incMin()" tabindex="-1" aria-label="Aumentar minutos">
+            <ion-icon name="chevron-up-outline"></ion-icon>
+        </button>
+        <input class="tp__input"
+               [value]="pad(minute)"
+               inputmode="numeric"
+               maxlength="2"
+               (wheel)="onMinWheel($event)"
+               (keydown)="onMinKey($event)"
+               (change)="onMinInput($event)"
+               (focus)="$any($event.target).select()"
+               aria-label="Minutos">
+        <button class="tp__btn" type="button" (click)="decMin()" tabindex="-1" aria-label="Disminuir minutos">
+            <ion-icon name="chevron-down-outline"></ion-icon>
+        </button>
+    </div>
+
+    <!-- AM/PM -->
+    <div class="tp__col tp__col--period">
+        <button class="tp__btn" type="button" (click)="togglePM()" tabindex="-1" aria-label="Cambiar AM/PM">
+            <ion-icon name="chevron-up-outline"></ion-icon>
+        </button>
+        <button class="tp__period-btn" type="button" (click)="togglePM()" [class.tp__period-btn--pm]="isPM">
+            {{ isPM ? 'PM' : 'AM' }}
+        </button>
+        <button class="tp__btn" type="button" (click)="togglePM()" tabindex="-1" aria-label="Cambiar AM/PM">
+            <ion-icon name="chevron-down-outline"></ion-icon>
+        </button>
+    </div>
+</div>
