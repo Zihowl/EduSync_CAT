@@ -66,9 +66,9 @@ impl CollaborationRepository for PgCollaborationRepository {
             "INSERT INTO user_academic_profiles (user_id, group_id, subgroup_id, updated_at)
              VALUES ($1, $2, $3, NOW())
              ON CONFLICT (user_id) DO UPDATE
-             SET group_id = EXCLUDED.group_id,
-                 subgroup_id = EXCLUDED.subgroup_id,
-                 updated_at = NOW()",
+             SET group_id    = COALESCE(EXCLUDED.group_id,    user_academic_profiles.group_id),
+                 subgroup_id = COALESCE(EXCLUDED.subgroup_id, user_academic_profiles.subgroup_id),
+                 updated_at  = NOW()",
         )
         .bind(user_id)
         .bind(group_id)
