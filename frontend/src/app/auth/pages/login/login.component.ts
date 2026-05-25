@@ -143,7 +143,7 @@ export class LoginComponent implements OnInit, OnDestroy {
                   }
 
                   sessionStorage.removeItem('returnUrl');
-                  this.router.navigateByUrl(AuthService.homeRouteForRole(user.role));
+                  this.router.navigateByUrl(this.resolvePostLoginTarget(user.role));
               },
               error: (err: unknown) => {
                   this.isLoadingSignal.set(false);
@@ -156,6 +156,28 @@ export class LoginComponent implements OnInit, OnDestroy {
                   this.setError(parsed.title, parsed.message, parsed.lockoutSeconds ? 'lock-closed' : 'alert-circle', parsed.style);
               },
           });
+  }
+
+  private resolvePostLoginTarget(role: string | null | undefined): string {
+      const fallback = AuthService.homeRouteForRole(role);
+      const candidate = this.returnUrl;
+
+      if (!candidate || candidate === '/admin') {
+          return fallback;
+      }
+      if (!candidate.startsWith('/') || candidate.startsWith('//') || candidate.startsWith('/\\')) {
+          return fallback;
+      }
+      if (candidate.startsWith('/auth/')) {
+          return fallback;
+      }
+
+      const superAdminOnly = ['/admin/config', '/admin/users', '/admin/audit-logs', '/admin/app-users'];
+      if (role !== 'SUPER_ADMIN' && superAdminOnly.some((p) => candidate === p || candidate.startsWith(p + '/') || candidate.startsWith(p + '?'))) {
+          return fallback;
+      }
+
+      return candidate;
   }
 
   ngOnDestroy(): void {

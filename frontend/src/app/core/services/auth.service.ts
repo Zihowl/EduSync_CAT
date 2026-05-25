@@ -115,11 +115,11 @@ export class AuthService {
     }
 
     /**
-     * Ruta de inicio según el rol del usuario (RQNF-WEB-07/08).
-     * SUPER_ADMIN aterriza en configuración; el resto, en gestión de horarios.
+     * Ruta de inicio tras login (RQNF-WEB-07/08).
+     * Todos los roles aterrizan en el dashboard `/admin`.
      */
-    static homeRouteForRole(role: string | null | undefined): string {
-        return role === 'SUPER_ADMIN' ? '/admin/config' : '/admin/schedules';
+    static homeRouteForRole(_role?: string | null): string {
+        return '/admin';
     }
 
     login(email: string, password: string): Observable<User> {

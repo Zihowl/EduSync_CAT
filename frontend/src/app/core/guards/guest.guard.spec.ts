@@ -27,7 +27,7 @@ describe('GuestGuard', () => {
         guard = TestBed.inject(GuestGuard);
     });
 
-    it('should redirect súper admin users to the config panel', async () => {
+    it('should redirect súper admin users to the dashboard', async () => {
         authService.verifySession.and.returnValue(of({
             id: '1',
             email: 'admin@example.com',
@@ -39,10 +39,10 @@ describe('GuestGuard', () => {
         const can = await firstValueFrom(guard.canActivate({} as any, {} as any));
 
         expect(can).toBeFalse();
-        expect(router.navigateByUrl).toHaveBeenCalledWith('/admin/config');
+        expect(router.navigateByUrl).toHaveBeenCalledWith('/admin');
     });
 
-    it('should redirect horario admins to the schedules panel', async () => {
+    it('should redirect horario admins to the dashboard', async () => {
         authService.verifySession.and.returnValue(of({
             id: '1',
             email: 'admin@example.com',
@@ -54,7 +54,7 @@ describe('GuestGuard', () => {
         const can = await firstValueFrom(guard.canActivate({} as any, {} as any));
 
         expect(can).toBeFalse();
-        expect(router.navigateByUrl).toHaveBeenCalledWith('/admin/schedules');
+        expect(router.navigateByUrl).toHaveBeenCalledWith('/admin');
     });
 
     it('should allow the login page when the session cannot be verified', async () => {
