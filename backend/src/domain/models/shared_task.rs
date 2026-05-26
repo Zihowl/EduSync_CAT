@@ -49,6 +49,10 @@ pub struct RecipientStatus {
     pub full_name: String,
     pub status: String,
     pub reminders_sent_24h: i64,
+    /// No nulo cuando el destinatario marcó completada su copia local.
+    pub completed_at: Option<DateTime<Utc>>,
+    /// No nulo cuando el destinatario archivó la entrada de su inbox.
+    pub archived_by_recipient_at: Option<DateTime<Utc>>,
 }
 
 /// Elemento de la bandeja de salida: una tarea que yo compartí.
@@ -56,4 +60,21 @@ pub struct RecipientStatus {
 pub struct OutboxItem {
     pub shared_task: SharedTask,
     pub recipients: Vec<RecipientStatus>,
+}
+
+/// Evento durable en `notification_events`. Lo usa el cliente para sincronizar
+/// la bandeja al volver al foreground cuando FCM falló.
+#[derive(Clone, Debug)]
+pub struct NotificationEvent {
+    pub id: Uuid,
+    pub recipient_id: Uuid,
+    pub event_type: String,
+    pub shared_task_id: Option<Uuid>,
+    pub actor_user_id: Option<Uuid>,
+    pub actor_username: Option<String>,
+    pub actor_full_name: Option<String>,
+    pub title_preview: Option<String>,
+    pub payload_json: String,
+    pub created_at: DateTime<Utc>,
+    pub ack_at: Option<DateTime<Utc>>,
 }

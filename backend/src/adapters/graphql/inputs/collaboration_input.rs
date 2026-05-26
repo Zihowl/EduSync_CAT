@@ -35,3 +35,28 @@ pub struct AcademicProfileInput {
     pub group_id: Option<i32>,
     pub subgroup_id: Option<i32>,
 }
+
+/// Token FCM enviado por la app al loguearse o al rotar el token.
+#[derive(InputObject, Clone)]
+pub struct DeviceTokenInput {
+    pub token: String,
+}
+
+/// El destinatario marca/desmarca completada su copia local. Si `completed`
+/// es `true`, se notifica al sender; si es `false`, se reabre sin push.
+#[derive(InputObject, Clone)]
+pub struct MarkSharedTaskCompletedInput {
+    pub shared_task_id: String,
+    pub completed: bool,
+}
+
+/// Archivado por sender o destinatario (decide la dirección el contexto).
+#[derive(InputObject, Clone)]
+pub struct ArchiveSharedTaskInput {
+    pub shared_task_id: String,
+}
+
+#[derive(InputObject, Clone)]
+pub struct AckNotificationEventsInput {
+    pub ids: Vec<String>,
+}

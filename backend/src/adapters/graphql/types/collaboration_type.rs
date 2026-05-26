@@ -1,6 +1,8 @@
 use async_graphql::SimpleObject;
 
-use crate::domain::models::shared_task::{InboxItem, OutboxItem, RecipientStatus, ShareCandidate};
+use crate::domain::models::shared_task::{
+    InboxItem, NotificationEvent, OutboxItem, RecipientStatus, ShareCandidate,
+};
 
 /// Compañero candidato a recibir una tarea compartida.
 #[derive(SimpleObject, Clone)]
@@ -62,6 +64,10 @@ pub struct SharedTaskRecipientStatusType {
     pub status: String,
     /// Recordatorios enviados a este compañero en las últimas 24 h.
     pub reminders_sent24h: i64,
+    /// `true` cuando el destinatario marcó completada su copia local.
+    pub completed: bool,
+    /// `true` cuando el destinatario archivó la tarea en su inbox.
+    pub archived_by_recipient: bool,
 }
 
 impl From<RecipientStatus> for SharedTaskRecipientStatusType {
@@ -72,6 +78,8 @@ impl From<RecipientStatus> for SharedTaskRecipientStatusType {
             full_name: v.full_name,
             status: v.status,
             reminders_sent24h: v.reminders_sent_24h,
+            completed: v.completed_at.is_some(),
+            archived_by_recipient: v.archived_by_recipient_at.is_some(),
         }
     }
 }
@@ -119,4 +127,37 @@ pub struct RespondSharedTaskResultType {
 #[derive(SimpleObject, Clone)]
 pub struct SendTaskReminderResultType {
     pub remaining: i64,
+}
+
+/// Evento durable de notificación (TASK_SHARED/ACCEPTED/REJECTED/REMINDER/COMPLETED).
+/// Lo consume el cliente al volver al foreground si FCM no entregó el push.
+#[derive(SimpleObject, Clone)]
+pub struct NotificationEventType {
+    pub id: String,
+    pub event_type: String,
+    pub shared_task_id: Option<String>,
+    pub actor_user_id: Option<String>,
+    pub actor_username: Option<String>,
+    pub actor_full_name: Option<String>,
+    pub title_preview: Option<String>,
+    pub payload_json: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub acked: bool,
+}
+
+impl From<NotificationEvent> for NotificationEventType {
+    fn from(v: NotificationEvent) -> Self {
+        Self {
+            id: v.id.to_string(),
+            event_type: v.event_type,
+            shared_task_id: v.shared_task_id.map(|id| id.to_string()),
+            actor_user_id: v.actor_user_id.map(|id| id.to_string()),
+            actor_username: v.actor_username,
+            actor_full_name: v.actor_full_name,
+            title_preview: v.title_preview,
+            payload_json: v.payload_json,
+            created_at: v.created_at,
+            acked: v.ack_at.is_some(),
+        }
+    }
 }

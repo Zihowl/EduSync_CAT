@@ -45,7 +45,9 @@ use backend::domain::{
         teacher_service::TeacherService, user_service::UserService,
     },
 };
+use backend::domain::ports::notification_sender::NotificationSender;
 use backend::infrastructure::email::brevo_sender::BrevoEmailSender;
+use backend::infrastructure::fcm::sender::{FcmSender, NoopNotificationSender};
 use backend::infrastructure::persistence::{
     pg_allowed_domain_repo::PgAllowedDomainRepository, pg_audit_log_repo::PgAuditLogRepository,
     pg_building_repo::PgBuildingRepository, pg_classroom_repo::PgClassroomRepository,
@@ -177,9 +179,39 @@ async fn main() -> anyhow::Result<()> {
         group_service.clone(),
         schedule_service.clone(),
     ));
+    let notification_sender: Arc<dyn NotificationSender> = if config.fcm_service_account_path
+        .trim()
+        .is_empty()
+    {
+        tracing::warn!(
+            "FCM_SERVICE_ACCOUNT_PATH no configurado: push deshabilitado (notification_events sigue activo)"
+        );
+        Arc::new(NoopNotificationSender)
+    } else {
+        let project_id_override = if config.fcm_project_id.trim().is_empty() {
+            None
+        } else {
+            Some(config.fcm_project_id.as_str())
+        };
+        match FcmSender::from_service_account_file(
+            &config.fcm_service_account_path,
+            project_id_override,
+        ) {
+            Ok(sender) => {
+                tracing::info!("FCM configurado correctamente");
+                Arc::new(sender)
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, "No se pudo iniciar FcmSender; usando Noop");
+                Arc::new(NoopNotificationSender)
+            }
+        }
+    };
+
     let collaboration_service = Arc::new(CollaborationService::new(
         collaboration_repo.clone(),
         user_repo.clone(),
+        notification_sender.clone(),
     ));
     let realtime = Arc::new(RealtimeBroadcaster::new());
 

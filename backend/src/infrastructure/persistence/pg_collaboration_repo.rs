@@ -6,9 +6,10 @@ use uuid::Uuid;
 use crate::domain::{
     errors::DomainError,
     models::shared_task::{
-        AcademicProfile, InboxItem, OutboxItem, RecipientStatus, ShareCandidate, SharedTask,
+        AcademicProfile, InboxItem, NotificationEvent, OutboxItem, RecipientStatus, ShareCandidate,
+        SharedTask,
     },
-    ports::collaboration_repository::CollaborationRepository,
+    ports::collaboration_repository::{CollaborationRepository, RecipientSummary},
 };
 
 #[derive(Clone)]
@@ -215,6 +216,7 @@ impl CollaborationRepository for PgCollaborationRepository {
              JOIN shared_tasks t ON t.id = r.shared_task_id
              JOIN users o ON o.id = t.owner_user_id
              WHERE r.recipient_user_id = $1
+               AND r.archived_by_recipient_at IS NULL
              ORDER BY t.created_at DESC
              LIMIT 200",
         )
@@ -258,7 +260,8 @@ impl CollaborationRepository for PgCollaborationRepository {
     async fn find_outbox(&self, owner_user_id: Uuid) -> Result<Vec<OutboxItem>, DomainError> {
         let tasks = sqlx::query_as::<_, SharedTaskRow>(&format!(
             "SELECT {SHARED_TASK_COLUMNS} FROM shared_tasks
-             WHERE owner_user_id = $1 ORDER BY created_at DESC LIMIT 200"
+             WHERE owner_user_id = $1 AND archived_by_owner_at IS NULL
+             ORDER BY created_at DESC LIMIT 200"
         ))
         .bind(owner_user_id)
         .fetch_all(&self.pool)
@@ -267,13 +270,22 @@ impl CollaborationRepository for PgCollaborationRepository {
 
         let mut items = Vec::with_capacity(tasks.len());
         for task in tasks {
-            let recipients: Vec<(Uuid, String, Option<String>, String, i64)> = sqlx::query_as(
+            let recipients: Vec<(
+                Uuid,
+                String,
+                Option<String>,
+                String,
+                i64,
+                Option<DateTime<Utc>>,
+                Option<DateTime<Utc>>,
+            )> = sqlx::query_as(
                 "SELECT r.recipient_user_id, u.username, u.full_name, r.status,
                         (SELECT COUNT(*) FROM task_reminders tr
                          WHERE tr.shared_task_id = r.shared_task_id
                            AND tr.sender_user_id = $2
                            AND tr.recipient_user_id = r.recipient_user_id
-                           AND tr.created_at > NOW() - INTERVAL '24 hours') AS reminders
+                           AND tr.created_at > NOW() - INTERVAL '24 hours') AS reminders,
+                        r.completed_at, r.archived_by_recipient_at
                  FROM shared_task_recipients r
                  JOIN users u ON u.id = r.recipient_user_id
                  WHERE r.shared_task_id = $1
@@ -290,14 +302,22 @@ impl CollaborationRepository for PgCollaborationRepository {
                 recipients: recipients
                     .into_iter()
                     .map(
-                        |(user_id, username, full_name, status, reminders_sent_24h)| {
-                            RecipientStatus {
-                                user_id,
-                                username,
-                                full_name: full_name.unwrap_or_default(),
-                                status,
-                                reminders_sent_24h,
-                            }
+                        |(
+                            user_id,
+                            username,
+                            full_name,
+                            status,
+                            reminders_sent_24h,
+                            completed_at,
+                            archived_by_recipient_at,
+                        )| RecipientStatus {
+                            user_id,
+                            username,
+                            full_name: full_name.unwrap_or_default(),
+                            status,
+                            reminders_sent_24h,
+                            completed_at,
+                            archived_by_recipient_at,
                         },
                     )
                     .collect(),
@@ -378,6 +398,309 @@ impl CollaborationRepository for PgCollaborationRepository {
         .bind(shared_task_id)
         .bind(sender_user_id)
         .bind(recipient_user_id)
+        .execute(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+        Ok(())
+    }
+
+    async fn set_recipient_completed(
+        &self,
+        shared_task_id: Uuid,
+        recipient_user_id: Uuid,
+        completed: bool,
+    ) -> Result<Uuid, DomainError> {
+        let row: Option<(Uuid,)> = sqlx::query_as(
+            "UPDATE shared_task_recipients r
+             SET completed_at = CASE WHEN $3 THEN NOW() ELSE NULL END
+             FROM shared_tasks t
+             WHERE r.shared_task_id = $1
+               AND r.recipient_user_id = $2
+               AND t.id = r.shared_task_id
+             RETURNING t.owner_user_id",
+        )
+        .bind(shared_task_id)
+        .bind(recipient_user_id)
+        .bind(completed)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+
+        row.map(|(owner,)| owner).ok_or_else(|| {
+            DomainError::NotFound("Tarea compartida no encontrada para el destinatario".to_string())
+        })
+    }
+
+    async fn archive_for_recipient(
+        &self,
+        shared_task_id: Uuid,
+        recipient_user_id: Uuid,
+    ) -> Result<(), DomainError> {
+        let result = sqlx::query(
+            "UPDATE shared_task_recipients
+             SET archived_by_recipient_at = NOW()
+             WHERE shared_task_id = $1 AND recipient_user_id = $2",
+        )
+        .bind(shared_task_id)
+        .bind(recipient_user_id)
+        .execute(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+        if result.rows_affected() == 0 {
+            return Err(DomainError::NotFound(
+                "No eres destinatario de esa tarea compartida".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    async fn archive_for_owner(
+        &self,
+        shared_task_id: Uuid,
+        owner_user_id: Uuid,
+    ) -> Result<(), DomainError> {
+        let result = sqlx::query(
+            "UPDATE shared_tasks
+             SET archived_by_owner_at = NOW()
+             WHERE id = $1 AND owner_user_id = $2",
+        )
+        .bind(shared_task_id)
+        .bind(owner_user_id)
+        .execute(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+        if result.rows_affected() == 0 {
+            return Err(DomainError::NotFound(
+                "No eres dueño de esa tarea compartida".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    async fn recipient_summaries(
+        &self,
+        ids: &[Uuid],
+    ) -> Result<Vec<RecipientSummary>, DomainError> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let rows: Vec<(Uuid, String, Option<String>)> = sqlx::query_as(
+            "SELECT id, username, full_name FROM users WHERE id = ANY($1)",
+        )
+        .bind(ids)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+        Ok(rows
+            .into_iter()
+            .map(|(user_id, username, full_name)| RecipientSummary {
+                user_id,
+                username,
+                full_name: full_name.unwrap_or_default(),
+            })
+            .collect())
+    }
+
+    async fn recipient_has_completed(
+        &self,
+        shared_task_id: Uuid,
+        recipient_user_id: Uuid,
+    ) -> Result<bool, DomainError> {
+        let row: Option<(Option<DateTime<Utc>>,)> = sqlx::query_as(
+            "SELECT completed_at FROM shared_task_recipients
+             WHERE shared_task_id = $1 AND recipient_user_id = $2",
+        )
+        .bind(shared_task_id)
+        .bind(recipient_user_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+        Ok(row.and_then(|(c,)| c).is_some())
+    }
+
+    async fn actor_identity(
+        &self,
+        user_id: Uuid,
+    ) -> Result<Option<(String, String)>, DomainError> {
+        let row: Option<(String, Option<String>)> = sqlx::query_as(
+            "SELECT username, full_name FROM users WHERE id = $1",
+        )
+        .bind(user_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+        Ok(row.map(|(u, f)| (u, f.unwrap_or_default())))
+    }
+
+    async fn register_device_token(
+        &self,
+        user_id: Uuid,
+        token: &str,
+        platform: &str,
+    ) -> Result<(), DomainError> {
+        sqlx::query(
+            "INSERT INTO device_tokens (user_id, token, platform, last_seen_at)
+             VALUES ($1, $2, $3, NOW())
+             ON CONFLICT (user_id, token) DO UPDATE SET last_seen_at = NOW()",
+        )
+        .bind(user_id)
+        .bind(token)
+        .bind(platform)
+        .execute(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+        Ok(())
+    }
+
+    async fn unregister_device_token(
+        &self,
+        user_id: Uuid,
+        token: &str,
+    ) -> Result<(), DomainError> {
+        sqlx::query(
+            "DELETE FROM device_tokens WHERE user_id = $1 AND token = $2",
+        )
+        .bind(user_id)
+        .bind(token)
+        .execute(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+        Ok(())
+    }
+
+    async fn tokens_for_user(&self, user_id: Uuid) -> Result<Vec<String>, DomainError> {
+        let rows: Vec<(String,)> = sqlx::query_as(
+            "SELECT token FROM device_tokens WHERE user_id = $1",
+        )
+        .bind(user_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+        Ok(rows.into_iter().map(|(t,)| t).collect())
+    }
+
+    async fn drop_token(&self, token: &str) -> Result<(), DomainError> {
+        sqlx::query("DELETE FROM device_tokens WHERE token = $1")
+            .bind(token)
+            .execute(&self.pool)
+            .await
+            .map_err(map_sqlx)?;
+        Ok(())
+    }
+
+    async fn create_notification_event(
+        &self,
+        recipient_id: Uuid,
+        event_type: &str,
+        shared_task_id: Option<Uuid>,
+        actor_user_id: Option<Uuid>,
+        payload_json: &str,
+    ) -> Result<Uuid, DomainError> {
+        let payload: serde_json::Value = serde_json::from_str(payload_json).unwrap_or_else(|_| {
+            serde_json::Value::Object(serde_json::Map::new())
+        });
+        let row: (Uuid,) = sqlx::query_as(
+            "INSERT INTO notification_events
+                (recipient_id, event_type, shared_task_id, actor_user_id, payload_json)
+             VALUES ($1, $2, $3, $4, $5)
+             RETURNING id",
+        )
+        .bind(recipient_id)
+        .bind(event_type)
+        .bind(shared_task_id)
+        .bind(actor_user_id)
+        .bind(payload)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+        Ok(row.0)
+    }
+
+    async fn find_notification_events(
+        &self,
+        recipient_id: Uuid,
+        since: Option<DateTime<Utc>>,
+        limit: i64,
+    ) -> Result<Vec<NotificationEvent>, DomainError> {
+        let limit = limit.clamp(1, 200);
+        let rows: Vec<(
+            Uuid,
+            Uuid,
+            String,
+            Option<Uuid>,
+            Option<Uuid>,
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            serde_json::Value,
+            DateTime<Utc>,
+            Option<DateTime<Utc>>,
+        )> = sqlx::query_as(
+            "SELECT e.id, e.recipient_id, e.event_type, e.shared_task_id, e.actor_user_id,
+                    a.username, a.full_name, t.title_preview, e.payload_json,
+                    e.created_at, e.ack_at
+             FROM notification_events e
+             LEFT JOIN users a ON a.id = e.actor_user_id
+             LEFT JOIN shared_tasks t ON t.id = e.shared_task_id
+             WHERE e.recipient_id = $1
+               AND ($2::timestamptz IS NULL OR e.created_at > $2)
+             ORDER BY e.created_at DESC
+             LIMIT $3",
+        )
+        .bind(recipient_id)
+        .bind(since)
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+
+        Ok(rows
+            .into_iter()
+            .map(
+                |(
+                    id,
+                    recipient_id,
+                    event_type,
+                    shared_task_id,
+                    actor_user_id,
+                    actor_username,
+                    actor_full_name,
+                    title_preview,
+                    payload_json,
+                    created_at,
+                    ack_at,
+                )| NotificationEvent {
+                    id,
+                    recipient_id,
+                    event_type,
+                    shared_task_id,
+                    actor_user_id,
+                    actor_username,
+                    actor_full_name: actor_full_name.map(|s| if s.is_empty() { String::new() } else { s }),
+                    title_preview,
+                    payload_json: payload_json.to_string(),
+                    created_at,
+                    ack_at,
+                },
+            )
+            .collect())
+    }
+
+    async fn ack_notification_events(
+        &self,
+        recipient_id: Uuid,
+        ids: &[Uuid],
+    ) -> Result<(), DomainError> {
+        if ids.is_empty() {
+            return Ok(());
+        }
+        sqlx::query(
+            "UPDATE notification_events
+             SET ack_at = NOW()
+             WHERE recipient_id = $1 AND id = ANY($2) AND ack_at IS NULL",
+        )
+        .bind(recipient_id)
+        .bind(ids)
         .execute(&self.pool)
         .await
         .map_err(map_sqlx)?;

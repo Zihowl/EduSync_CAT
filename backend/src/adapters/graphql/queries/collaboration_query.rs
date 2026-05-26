@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use async_graphql::{Context, Object};
+use chrono::{DateTime, Utc};
 
 use crate::{
     adapters::{
@@ -8,7 +9,8 @@ use crate::{
         graphql::{
             schema::to_gql_error,
             types::collaboration_type::{
-                ShareCandidateType, SharedTaskInboxItemType, SharedTaskOutboxItemType,
+                NotificationEventType, ShareCandidateType, SharedTaskInboxItemType,
+                SharedTaskOutboxItemType,
             },
         },
     },
@@ -61,6 +63,25 @@ impl CollaborationQuery {
         let user = require_auth(ctx)?;
         let svc = ctx.data::<Arc<CollaborationService>>()?;
         svc.outbox(user.user_id)
+            .await
+            .map(|list| list.into_iter().map(Into::into).collect())
+            .map_err(to_gql_error)
+    }
+
+    /// Eventos durables del usuario (TASK_SHARED, TASK_ACCEPTED, etc.). El
+    /// cliente los consume al volver al foreground si el push FCM falló.
+    /// `since` es exclusivo: filtra eventos con `created_at > since`.
+    #[graphql(name = "MyNotificationEvents")]
+    async fn my_notification_events(
+        &self,
+        ctx: &Context<'_>,
+        since: Option<DateTime<Utc>>,
+        limit: Option<i32>,
+    ) -> async_graphql::Result<Vec<NotificationEventType>> {
+        let user = require_auth(ctx)?;
+        let svc = ctx.data::<Arc<CollaborationService>>()?;
+        let limit = limit.unwrap_or(50) as i64;
+        svc.notification_events(user.user_id, since, limit)
             .await
             .map(|list| list.into_iter().map(Into::into).collect())
             .map_err(to_gql_error)

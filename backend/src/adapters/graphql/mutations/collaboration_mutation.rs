@@ -8,8 +8,9 @@ use crate::{
         auth::middleware::require_auth,
         graphql::{
             inputs::collaboration_input::{
-                AcademicProfileInput, RespondSharedTaskInput, SendTaskReminderInput,
-                ShareTaskInput,
+                AcademicProfileInput, AckNotificationEventsInput, ArchiveSharedTaskInput,
+                DeviceTokenInput, MarkSharedTaskCompletedInput, RespondSharedTaskInput,
+                SendTaskReminderInput, ShareTaskInput,
             },
             realtime::{publish_realtime_event, RealtimeScope},
             schema::to_gql_error,
@@ -126,5 +127,95 @@ impl CollaborationMutation {
         Ok(SendTaskReminderResultType {
             remaining: result.remaining,
         })
+    }
+
+    /// El destinatario marca o desmarca completada su copia local de la
+    /// tarea. Al completarla, notifica al owner y bloquea futuros toques.
+    #[graphql(name = "MarkSharedTaskCompleted")]
+    async fn mark_shared_task_completed(
+        &self,
+        ctx: &Context<'_>,
+        input: MarkSharedTaskCompletedInput,
+    ) -> async_graphql::Result<bool> {
+        let user = require_auth(ctx)?;
+        let svc = ctx.data::<Arc<CollaborationService>>()?;
+        let shared_task_id = parse_uuid(&input.shared_task_id, "Tarea compartida")?;
+        svc.mark_completed(user.user_id, shared_task_id, input.completed)
+            .await
+            .map_err(to_gql_error)?;
+        publish_realtime_event(ctx, &[RealtimeScope::Collaboration]);
+        Ok(true)
+    }
+
+    /// Archiva una tarea compartida. Si el llamador es el dueño, archiva su
+    /// outbox; si es destinatario, archiva su inbox. Si es ambos (compartió
+    /// y aceptó, escenario raro), archiva ambos lados.
+    #[graphql(name = "ArchiveSharedTask")]
+    async fn archive_shared_task(
+        &self,
+        ctx: &Context<'_>,
+        input: ArchiveSharedTaskInput,
+    ) -> async_graphql::Result<bool> {
+        let user = require_auth(ctx)?;
+        let svc = ctx.data::<Arc<CollaborationService>>()?;
+        let shared_task_id = parse_uuid(&input.shared_task_id, "Tarea compartida")?;
+        // Best-effort en ambos lados: si no aplica, devuelve NotFound silencioso.
+        let _ = svc.archive_for_owner(user.user_id, shared_task_id).await;
+        let _ = svc
+            .archive_for_recipient(user.user_id, shared_task_id)
+            .await;
+        publish_realtime_event(ctx, &[RealtimeScope::Collaboration]);
+        Ok(true)
+    }
+
+    /// Registra un token FCM del dispositivo actual.
+    #[graphql(name = "RegisterDeviceToken")]
+    async fn register_device_token(
+        &self,
+        ctx: &Context<'_>,
+        input: DeviceTokenInput,
+    ) -> async_graphql::Result<bool> {
+        let user = require_auth(ctx)?;
+        let svc = ctx.data::<Arc<CollaborationService>>()?;
+        svc.register_device_token(user.user_id, &input.token)
+            .await
+            .map_err(to_gql_error)?;
+        Ok(true)
+    }
+
+    /// Da de baja un token FCM (logout, desinstalación, etc.).
+    #[graphql(name = "UnregisterDeviceToken")]
+    async fn unregister_device_token(
+        &self,
+        ctx: &Context<'_>,
+        input: DeviceTokenInput,
+    ) -> async_graphql::Result<bool> {
+        let user = require_auth(ctx)?;
+        let svc = ctx.data::<Arc<CollaborationService>>()?;
+        svc.unregister_device_token(user.user_id, &input.token)
+            .await
+            .map_err(to_gql_error)?;
+        Ok(true)
+    }
+
+    /// Marca como entregados ('ack') los eventos durables que el cliente ya
+    /// procesó para evitar duplicar notificaciones al siguiente polling.
+    #[graphql(name = "AckNotificationEvents")]
+    async fn ack_notification_events(
+        &self,
+        ctx: &Context<'_>,
+        input: AckNotificationEventsInput,
+    ) -> async_graphql::Result<bool> {
+        let user = require_auth(ctx)?;
+        let svc = ctx.data::<Arc<CollaborationService>>()?;
+        let ids = input
+            .ids
+            .iter()
+            .map(|id| parse_uuid(id, "Evento"))
+            .collect::<Result<Vec<_>, _>>()?;
+        svc.ack_notification_events(user.user_id, &ids)
+            .await
+            .map_err(to_gql_error)?;
+        Ok(true)
     }
 }

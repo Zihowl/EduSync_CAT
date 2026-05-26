@@ -14,6 +14,10 @@ pub struct AppConfig {
     pub genesis_super_admin_email: String,
     pub genesis_super_admin_password: String,
     pub genesis_super_admin_name: String,
+    /// Ruta al Service Account JSON de Firebase (vacío = push deshabilitado).
+    pub fcm_service_account_path: String,
+    /// Override del project_id de Firebase. Si está vacío se usa el del JSON.
+    pub fcm_project_id: String,
 }
 
 impl AppConfig {
@@ -47,6 +51,8 @@ impl AppConfig {
                 .unwrap_or_else(|_| "ChangeMe123!".to_string()),
             genesis_super_admin_name: env::var("GENESIS_SUPER_ADMIN_NAME")
                 .unwrap_or_else(|_| "Súper Administrador".to_string()),
+            fcm_service_account_path: env::var("FCM_SERVICE_ACCOUNT_PATH").unwrap_or_default(),
+            fcm_project_id: env::var("FCM_PROJECT_ID").unwrap_or_default(),
         }
     }
 
