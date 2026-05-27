@@ -153,7 +153,7 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
       const upper = /[A-Z]/.test(password);
       const lower = /[a-z]/.test(password);
       const number = /[0-9]/.test(password);
-      const symbol = /[!@#$%^&*()\-_=+\[\]{}<>?]/.test(password);
+      const symbol = /[ \!"#\$%&'\(\)\*\+,\-\.\/:;<=>\?@\[\\\]\^_\`\{\|\}~]/.test(password);
       const categories = [upper, lower, number, symbol].filter(Boolean).length;
       return categories >= 3 ? null : { weakPassword: true };
   }

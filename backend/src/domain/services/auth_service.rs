@@ -99,7 +99,7 @@ fn password_meets_complexity(password: &str) -> bool {
     }
     if password
         .chars()
-        .any(|c| "!@#$%^&*()-_=+[]{}<>?".contains(c))
+        .any(|c| c.is_ascii_punctuation() || c == ' ')
     {
         categories += 1;
     }
