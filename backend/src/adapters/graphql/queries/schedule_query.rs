@@ -93,12 +93,6 @@ impl ScheduleQuery {
                 })
                 .await
                 .map_err(to_gql_error)?;
-            tracing::info!(
-                "GetPublishedSchedule: group_id={} returned {} slots: {:?}",
-                group_id,
-                found.len(),
-                found.iter().map(|s| (s.id, s.is_published, s.day_of_week, s.start_time.clone())).collect::<Vec<_>>()
-            );
             // Dedup: la consulta por group_id sigue la jerarquía hacia los
             // ancestros, así que pedir [grupo, subgrupo] retorna los bloques
             // del grupo dos veces. Filtra por id de slot.
