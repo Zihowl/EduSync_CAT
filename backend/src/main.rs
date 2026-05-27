@@ -62,7 +62,10 @@ use backend::infrastructure::persistence::{
 };
 use rand::prelude::{IndexedRandom, SliceRandom};
 use rand::RngExt;
-use sqlx::PgPool;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use sqlx::ConnectOptions;
+use std::str::FromStr;
+use std::time::Duration;
 use backend::AppState;
 use tower_http::cors::{Any, CorsLayer};
 
@@ -76,7 +79,25 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let config = Arc::new(AppConfig::from_env());
-    let pool = match PgPool::connect(&config.database_url).await {
+    let connect_options = match PgConnectOptions::from_str(&config.database_url) {
+        Ok(opts) => opts
+            .log_slow_statements(tracing::log::LevelFilter::Warn, Duration::from_secs(5)),
+        Err(e) => {
+            tracing::error!(error = %e, "DATABASE_URL inválida");
+            eprintln!("DATABASE_URL inválida: {}", e);
+            std::process::exit(1);
+        }
+    };
+    let pool = match PgPoolOptions::new()
+        .min_connections(2)
+        .max_connections(20)
+        .acquire_timeout(Duration::from_secs(10))
+        .idle_timeout(Some(Duration::from_secs(600)))
+        .max_lifetime(Some(Duration::from_secs(1800)))
+        .test_before_acquire(true)
+        .connect_with(connect_options)
+        .await
+    {
         Ok(p) => p,
         Err(e) => {
             tracing::error!(error = %e, "No se pudo conectar a la base de datos");

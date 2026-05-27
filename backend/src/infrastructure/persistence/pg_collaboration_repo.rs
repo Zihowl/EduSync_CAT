@@ -608,6 +608,16 @@ impl CollaborationRepository for PgCollaborationRepository {
         token: &str,
         platform: &str,
     ) -> Result<(), DomainError> {
+        // Un token FCM es propiedad de UNA instalación; si el mismo token estaba
+        // ligado a otra cuenta (logout sin desregistrar, reinstalación, etc.),
+        // lo desligamos para que las notificaciones de la cuenta anterior dejen
+        // de llegar a este dispositivo.
+        sqlx::query("DELETE FROM device_tokens WHERE token = $1 AND user_id <> $2")
+            .bind(token)
+            .bind(user_id)
+            .execute(&self.pool)
+            .await
+            .map_err(map_sqlx)?;
         sqlx::query(
             "INSERT INTO device_tokens (user_id, token, platform, last_seen_at)
              VALUES ($1, $2, $3, NOW())
