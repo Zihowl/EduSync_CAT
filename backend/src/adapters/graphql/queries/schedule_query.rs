@@ -81,8 +81,9 @@ impl ScheduleQuery {
         let svc = ctx.data::<Arc<ScheduleService>>()?;
 
         let mut slots = Vec::new();
+        let mut seen_ids = std::collections::HashSet::new();
         for group_id in group_ids {
-            let mut found = svc
+            let found = svc
                 .find_all(ScheduleFilter {
                     group_id: Some(group_id),
                     is_published: Some(true),
@@ -92,7 +93,14 @@ impl ScheduleQuery {
                 })
                 .await
                 .map_err(to_gql_error)?;
-            slots.append(&mut found);
+            // Dedup: la consulta por group_id sigue la jerarquía hacia los
+            // ancestros, así que pedir [grupo, subgrupo] retorna los bloques
+            // del grupo dos veces. Filtra por id de slot.
+            for slot in found {
+                if seen_ids.insert(slot.id) {
+                    slots.push(slot);
+                }
+            }
         }
 
         Ok(slots.into_iter().map(Into::into).collect())
