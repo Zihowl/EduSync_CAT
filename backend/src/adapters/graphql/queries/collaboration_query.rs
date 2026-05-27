@@ -3,6 +3,8 @@ use std::sync::Arc;
 use async_graphql::{Context, Object};
 use chrono::{DateTime, Utc};
 
+use uuid::Uuid;
+
 use crate::{
     adapters::{
         auth::middleware::require_auth,
@@ -10,11 +12,11 @@ use crate::{
             schema::to_gql_error,
             types::collaboration_type::{
                 NotificationEventType, ShareCandidateType, SharedTaskInboxItemType,
-                SharedTaskOutboxItemType,
+                SharedTaskOutboxItemType, SharedTaskParticipantType,
             },
         },
     },
-    domain::services::collaboration_service::CollaborationService,
+    domain::{errors::DomainError, services::collaboration_service::CollaborationService},
 };
 
 #[derive(Default)]
@@ -63,6 +65,25 @@ impl CollaborationQuery {
         let user = require_auth(ctx)?;
         let svc = ctx.data::<Arc<CollaborationService>>()?;
         svc.outbox(user.user_id)
+            .await
+            .map(|list| list.into_iter().map(Into::into).collect())
+            .map_err(to_gql_error)
+    }
+
+    /// Participantes con los que puedo intercambiar toques sobre una tarea
+    /// compartida: el dueño y los destinatarios `ACCEPTED`, excluyéndome a mí.
+    /// Falla si no participo en la tarea.
+    #[graphql(name = "SharedTaskParticipants")]
+    async fn shared_task_participants(
+        &self,
+        ctx: &Context<'_>,
+        shared_task_id: String,
+    ) -> async_graphql::Result<Vec<SharedTaskParticipantType>> {
+        let user = require_auth(ctx)?;
+        let svc = ctx.data::<Arc<CollaborationService>>()?;
+        let id = Uuid::parse_str(shared_task_id.trim())
+            .map_err(|_| to_gql_error(DomainError::BadRequest("Tarea compartida inválida".to_string())))?;
+        svc.participants(user.user_id, id)
             .await
             .map(|list| list.into_iter().map(Into::into).collect())
             .map_err(to_gql_error)

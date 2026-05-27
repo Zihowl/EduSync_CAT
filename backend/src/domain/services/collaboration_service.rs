@@ -6,7 +6,9 @@ use uuid::Uuid;
 
 use crate::domain::{
     errors::DomainError,
-    models::shared_task::{InboxItem, NotificationEvent, OutboxItem, ShareCandidate, SharedTask},
+    models::shared_task::{
+        InboxItem, NotificationEvent, OutboxItem, Participant, ShareCandidate, SharedTask,
+    },
     ports::{
         collaboration_repository::CollaborationRepository,
         notification_sender::{NotificationError, NotificationSender, PushMessage},
@@ -225,14 +227,64 @@ impl CollaborationService {
         Ok(task)
     }
 
-    /// Recordatorio (toque). Bloquea si el destinatario ya completó y aplica
-    /// el límite RQNF-APP-45.
+    /// Lista los participantes con los que el solicitante puede interactuar
+    /// (dueño y destinatarios `ACCEPTED`, excluyéndose a sí mismo). Falla si
+    /// el solicitante no participa en la tarea.
+    pub async fn participants(
+        &self,
+        viewer_user_id: Uuid,
+        shared_task_id: Uuid,
+    ) -> Result<Vec<Participant>, DomainError> {
+        let task = self
+            .repo
+            .find_shared_task(shared_task_id)
+            .await?
+            .ok_or_else(|| {
+                DomainError::NotFound("Tarea compartida no encontrada".to_string())
+            })?;
+        let role = self.participant_role(&task, viewer_user_id).await?;
+        if role.is_none() {
+            return Err(DomainError::Unauthorized(
+                "No participas en esta tarea".to_string(),
+            ));
+        }
+        self.repo
+            .list_participants(shared_task_id, viewer_user_id)
+            .await
+    }
+
+    /// Devuelve `Some("OWNER")` si `user_id` es el dueño, `Some("RECIPIENT")`
+    /// si es destinatario ACCEPTED, o `None` si no participa.
+    async fn participant_role(
+        &self,
+        task: &SharedTask,
+        user_id: Uuid,
+    ) -> Result<Option<&'static str>, DomainError> {
+        if task.owner_user_id == user_id {
+            return Ok(Some("OWNER"));
+        }
+        let status = self.repo.recipient_status(task.id, user_id).await?;
+        Ok(match status.as_deref() {
+            Some("ACCEPTED") => Some("RECIPIENT"),
+            _ => None,
+        })
+    }
+
+    /// Recordatorio (toque). Permitido entre cualquier par de participantes
+    /// (dueño o destinatario ACCEPTED). Bloquea si el destinatario es un
+    /// destinatario que ya completó la tarea y aplica el límite RQNF-APP-45.
     pub async fn send_reminder(
         &self,
         sender_user_id: Uuid,
         shared_task_id: Uuid,
         recipient_user_id: Uuid,
     ) -> Result<ReminderResult, DomainError> {
+        if sender_user_id == recipient_user_id {
+            return Err(DomainError::BadRequest(
+                "No puedes enviarte un recordatorio a ti mismo".to_string(),
+            ));
+        }
+
         let task = self
             .repo
             .find_shared_task(shared_task_id)
@@ -241,34 +293,31 @@ impl CollaborationService {
                 DomainError::NotFound("Tarea compartida no encontrada".to_string())
             })?;
 
-        if task.owner_user_id != sender_user_id {
-            return Err(DomainError::Unauthorized(
-                "Solo quien compartió la tarea puede enviar recordatorios".to_string(),
-            ));
-        }
-
-        let status = self
-            .repo
-            .recipient_status(shared_task_id, recipient_user_id)
+        let sender_role = self
+            .participant_role(&task, sender_user_id)
             .await?
             .ok_or_else(|| {
-                DomainError::NotFound("El compañero no es destinatario de la tarea".to_string())
+                DomainError::Unauthorized("No participas en esta tarea".to_string())
             })?;
-        if status != "ACCEPTED" {
-            return Err(DomainError::BadRequest(
-                "Solo puedes recordar a quien ya aceptó la tarea".to_string(),
-            ));
-        }
-
-        if self
-            .repo
-            .recipient_has_completed(shared_task_id, recipient_user_id)
+        let recipient_role = self
+            .participant_role(&task, recipient_user_id)
             .await?
+            .ok_or_else(|| {
+                DomainError::NotFound("Ese compañero no participa en la tarea".to_string())
+            })?;
+
+        // Solo los destinatarios "completan" la tarea; al dueño no aplica.
+        if recipient_role == "RECIPIENT"
+            && self
+                .repo
+                .recipient_has_completed(shared_task_id, recipient_user_id)
+                .await?
         {
             return Err(DomainError::BadRequest(
                 "El compañero ya completó esta tarea".to_string(),
             ));
         }
+        let _ = sender_role; // (info de telemetría futura)
 
         let sent = self
             .repo

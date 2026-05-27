@@ -4,7 +4,8 @@ use uuid::Uuid;
 use crate::domain::{
     errors::DomainError,
     models::shared_task::{
-        AcademicProfile, InboxItem, NotificationEvent, OutboxItem, ShareCandidate, SharedTask,
+        AcademicProfile, InboxItem, NotificationEvent, OutboxItem, Participant, ShareCandidate,
+        SharedTask,
     },
 };
 
@@ -92,6 +93,16 @@ pub trait CollaborationRepository: Send + Sync {
         sender_user_id: Uuid,
         recipient_user_id: Uuid,
     ) -> Result<(), DomainError>;
+
+    /// Lista todos los participantes de una tarea compartida con los que el
+    /// solicitante puede interactuar (dueño + destinatarios `ACCEPTED`),
+    /// excluyendo al propio solicitante. Devuelve también cuántos
+    /// recordatorios envió el solicitante a cada uno en 24 h.
+    async fn list_participants(
+        &self,
+        shared_task_id: Uuid,
+        viewer_user_id: Uuid,
+    ) -> Result<Vec<Participant>, DomainError>;
 
     // ----- Entrega + colaboración avanzada (009_collab_delivery) -----
 

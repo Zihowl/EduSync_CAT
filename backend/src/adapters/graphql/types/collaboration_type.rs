@@ -1,7 +1,7 @@
 use async_graphql::SimpleObject;
 
 use crate::domain::models::shared_task::{
-    InboxItem, NotificationEvent, OutboxItem, RecipientStatus, ShareCandidate,
+    InboxItem, NotificationEvent, OutboxItem, Participant, RecipientStatus, ShareCandidate,
 };
 
 /// Compañero candidato a recibir una tarea compartida.
@@ -34,6 +34,7 @@ pub struct SharedTaskInboxItemType {
     pub scope: String,
     pub title_preview: String,
     pub status: String,
+    pub owner_user_id: String,
     pub owner_username: String,
     pub owner_full_name: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
@@ -48,6 +49,7 @@ impl From<InboxItem> for SharedTaskInboxItemType {
             scope: v.shared_task.scope,
             title_preview: v.shared_task.title_preview,
             status: v.status,
+            owner_user_id: v.shared_task.owner_user_id.to_string(),
             owner_username: v.owner_username,
             owner_full_name: v.owner_full_name,
             created_at: v.shared_task.created_at,
@@ -103,6 +105,37 @@ impl From<OutboxItem> for SharedTaskOutboxItemType {
             title_preview: v.shared_task.title_preview,
             created_at: v.shared_task.created_at,
             recipients: v.recipients.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+/// Participante de una tarea compartida (dueño o destinatario aceptado).
+/// Se usa para listar a quién puedo enviar toques desde cualquiera de los
+/// lados (dueño o receptor).
+#[derive(SimpleObject, Clone)]
+pub struct SharedTaskParticipantType {
+    pub user_id: String,
+    pub username: String,
+    pub full_name: String,
+    /// "OWNER" o "RECIPIENT".
+    pub role: String,
+    /// Estado del destinatario ("ACCEPTED") u "OWNER" si es el dueño.
+    pub status: String,
+    pub completed: bool,
+    /// Recordatorios que el solicitante ya envió a este participante en 24 h.
+    pub reminders_sent24h: i64,
+}
+
+impl From<Participant> for SharedTaskParticipantType {
+    fn from(v: Participant) -> Self {
+        Self {
+            user_id: v.user_id.to_string(),
+            username: v.username,
+            full_name: v.full_name,
+            role: v.role,
+            status: v.status,
+            completed: v.completed,
+            reminders_sent24h: v.reminders_sent_24h,
         }
     }
 }

@@ -55,6 +55,22 @@ pub struct RecipientStatus {
     pub archived_by_recipient_at: Option<DateTime<Utc>>,
 }
 
+/// Participante visible para enviar toques sobre una tarea compartida.
+/// Incluye al dueño y a los destinatarios `ACCEPTED`, excepto al solicitante.
+#[derive(Clone, Debug)]
+pub struct Participant {
+    pub user_id: Uuid,
+    pub username: String,
+    pub full_name: String,
+    /// "OWNER" o "RECIPIENT".
+    pub role: String,
+    /// "OWNER" para el dueño, "ACCEPTED" para destinatarios.
+    pub status: String,
+    pub completed: bool,
+    /// Recordatorios que el solicitante ya envió a este participante en 24 h.
+    pub reminders_sent_24h: i64,
+}
+
 /// Elemento de la bandeja de salida: una tarea que yo compartí.
 #[derive(Clone, Debug)]
 pub struct OutboxItem {

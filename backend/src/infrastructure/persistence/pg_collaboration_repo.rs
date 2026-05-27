@@ -6,8 +6,8 @@ use uuid::Uuid;
 use crate::domain::{
     errors::DomainError,
     models::shared_task::{
-        AcademicProfile, InboxItem, NotificationEvent, OutboxItem, RecipientStatus, ShareCandidate,
-        SharedTask,
+        AcademicProfile, InboxItem, NotificationEvent, OutboxItem, Participant, RecipientStatus,
+        ShareCandidate, SharedTask,
     },
     ports::collaboration_repository::{CollaborationRepository, RecipientSummary},
 };
@@ -120,8 +120,8 @@ impl CollaborationRepository for PgCollaborationRepository {
                AND (
                     ($2::int IS NOT NULL AND p.group_id = $2)
                  OR ($3::int IS NOT NULL AND p.subgroup_id = $3)
-                 OR ($4::text IS NOT NULL AND lower(u.username) LIKE $4)
                )
+               AND ($4::text IS NULL OR lower(u.username) LIKE $4)
              ORDER BY u.full_name
              LIMIT 100",
         )
@@ -324,6 +324,76 @@ impl CollaborationRepository for PgCollaborationRepository {
             });
         }
         Ok(items)
+    }
+
+    async fn list_participants(
+        &self,
+        shared_task_id: Uuid,
+        viewer_user_id: Uuid,
+    ) -> Result<Vec<Participant>, DomainError> {
+        // Dueño + destinatarios ACCEPTED, excluyendo al solicitante. Se reporta
+        // `reminders_sent24h` desde la perspectiva del solicitante para que el
+        // cliente pueda mostrar cuántos toques ya envió a cada uno.
+        let rows: Vec<(
+            Uuid,
+            String,
+            Option<String>,
+            String,
+            i64,
+            Option<DateTime<Utc>>,
+        )> = sqlx::query_as(
+            "WITH task AS (
+                SELECT id, owner_user_id FROM shared_tasks WHERE id = $1
+             )
+             SELECT u.id, u.username, u.full_name, 'OWNER'::text AS role,
+                    (SELECT COUNT(*) FROM task_reminders tr
+                       WHERE tr.shared_task_id = task.id
+                         AND tr.sender_user_id = $2
+                         AND tr.recipient_user_id = u.id
+                         AND tr.created_at > NOW() - INTERVAL '24 hours') AS reminders,
+                    NULL::timestamptz AS completed_at
+             FROM task
+             JOIN users u ON u.id = task.owner_user_id
+             WHERE u.id <> $2
+             UNION ALL
+             SELECT u.id, u.username, u.full_name, 'RECIPIENT'::text AS role,
+                    (SELECT COUNT(*) FROM task_reminders tr
+                       WHERE tr.shared_task_id = r.shared_task_id
+                         AND tr.sender_user_id = $2
+                         AND tr.recipient_user_id = r.recipient_user_id
+                         AND tr.created_at > NOW() - INTERVAL '24 hours') AS reminders,
+                    r.completed_at
+             FROM shared_task_recipients r
+             JOIN users u ON u.id = r.recipient_user_id
+             WHERE r.shared_task_id = $1
+               AND r.status = 'ACCEPTED'
+               AND r.recipient_user_id <> $2
+             ORDER BY 4 DESC, 3 NULLS LAST, 2",
+        )
+        .bind(shared_task_id)
+        .bind(viewer_user_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+
+        Ok(rows
+            .into_iter()
+            .map(
+                |(user_id, username, full_name, role, reminders, completed_at)| Participant {
+                    user_id,
+                    username,
+                    full_name: full_name.unwrap_or_default(),
+                    status: if role == "OWNER" {
+                        "OWNER".to_string()
+                    } else {
+                        "ACCEPTED".to_string()
+                    },
+                    role,
+                    completed: completed_at.is_some(),
+                    reminders_sent_24h: reminders,
+                },
+            )
+            .collect())
     }
 
     async fn recipient_status(
