@@ -44,6 +44,10 @@ pub const EVENT_TASK_REMINDER: &str = "TASK_REMINDER";
 pub const EVENT_TASK_COMPLETED: &str = "TASK_COMPLETED";
 pub const EVENT_INVITATION_CANCELED: &str = "INVITATION_CANCELED";
 pub const EVENT_TASK_INVITATION_RESPONDED: &str = "TASK_INVITATION_RESPONDED";
+/// Avisa al último sobreviviente de una colaboración cuando los demás
+/// participantes se desvinculan. El cliente lo usa para limpiar los campos
+/// `linkedSharedTaskId` / `sharedOutTaskId` y dejar la tarea como local pura.
+pub const EVENT_SHARED_TASK_ORPHANED: &str = "SHARED_TASK_ORPHANED";
 
 impl CollaborationService {
     pub fn new(
@@ -562,6 +566,26 @@ impl CollaborationService {
                 payload,
             )
             .await;
+        }
+
+        // Si tras este unlink queda exactamente un participante vivo, avísale
+        // para que limpie el vínculo local (badge + listado de compartidas).
+        if let Some(survivor) = self.repo.find_last_survivor(shared_task_id).await? {
+            if survivor != user_id {
+                let payload = json!({
+                    "sharedTaskId": shared_task_id.to_string(),
+                    "titlePreview": task.title_preview,
+                    "reason": "ALONE",
+                });
+                self.emit_durable(
+                    survivor,
+                    EVENT_SHARED_TASK_ORPHANED,
+                    Some(shared_task_id),
+                    Some(user_id),
+                    payload,
+                )
+                .await;
+            }
         }
 
         Ok(canceled.len() as i32)

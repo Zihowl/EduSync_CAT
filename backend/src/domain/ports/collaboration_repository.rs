@@ -110,6 +110,15 @@ pub trait CollaborationRepository: Send + Sync {
         viewer_user_id: Uuid,
     ) -> Result<i64, DomainError>;
 
+    /// Si tras un `unlink` queda exactamente un participante vivo (owner no
+    /// desvinculado + recipients ACCEPTED con sub_state distinto de UNLINKED),
+    /// devuelve su `user_id` para emitir `SHARED_TASK_ORPHANED` y que el
+    /// cliente limpie el vínculo local. `None` si quedan 0 o ≥2.
+    async fn find_last_survivor(
+        &self,
+        shared_task_id: Uuid,
+    ) -> Result<Option<Uuid>, DomainError>;
+
     /// Listado unificado de "mis tareas compartidas": tab Invitaciones (PENDING
     /// recibidas) o tab Vinculadas (lo que tengo aceptado o creé como dueño).
     async fn find_my_shared_tasks(

@@ -1134,6 +1134,35 @@ impl CollaborationRepository for PgCollaborationRepository {
         Ok(count.0)
     }
 
+    async fn find_last_survivor(
+        &self,
+        shared_task_id: Uuid,
+    ) -> Result<Option<Uuid>, DomainError> {
+        // Une al owner (si no se desvinculó) con los recipients ACCEPTED y no
+        // UNLINKED. Si hay exactamente un participante vivo, ese es el
+        // sobreviviente al que el servicio notifica con SHARED_TASK_ORPHANED.
+        let rows: Vec<(Uuid,)> = sqlx::query_as(
+            "SELECT owner_user_id AS user_id
+               FROM shared_tasks
+              WHERE id = $1 AND owner_unlinked_at IS NULL
+             UNION ALL
+             SELECT recipient_user_id AS user_id
+               FROM shared_task_recipients
+              WHERE shared_task_id = $1
+                AND status = 'ACCEPTED'
+                AND sub_state <> 'UNLINKED'",
+        )
+        .bind(shared_task_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+        if rows.len() == 1 {
+            Ok(Some(rows[0].0))
+        } else {
+            Ok(None)
+        }
+    }
+
     async fn find_my_shared_tasks(
         &self,
         user_id: Uuid,
