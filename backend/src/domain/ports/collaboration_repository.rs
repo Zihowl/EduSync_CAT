@@ -4,8 +4,8 @@ use uuid::Uuid;
 use crate::domain::{
     errors::DomainError,
     models::shared_task::{
-        AcademicProfile, InboxItem, NotificationEvent, OutboxItem, Participant, ShareCandidate,
-        SharedTask,
+        AcademicProfile, ForwardResult, InboxItem, MySharedTasksFilter, NotificationEvent,
+        OutboxItem, Participant, ShareCandidate, SharedTask, SubState,
     },
 };
 
@@ -35,14 +35,18 @@ pub trait CollaborationRepository: Send + Sync {
         user_id: Uuid,
     ) -> Result<Option<AcademicProfile>, DomainError>;
 
-    /// Compañeros candidatos: alumnos/docentes del mismo grupo o subgrupo, y/o
-    /// coincidencias por nombre de usuario cuando se proporciona `search`.
+    /// Compañeros candidatos: alumnos/docentes que comparten el grupo raíz
+    /// (árbol descendente de `groups.parent_id`) con el solicitante. Cuando se
+    /// proporciona `shared_task_id`, se calculan `already_invited` y
+    /// `already_has_copy` (sin revelar el inviter) para que el cliente muestre
+    /// el candidato deshabilitado con un mensaje genérico al reenviar.
     async fn find_candidates(
         &self,
         exclude_user_id: Uuid,
         group_id: Option<i32>,
         subgroup_id: Option<i32>,
         search: Option<&str>,
+        shared_task_id: Option<Uuid>,
     ) -> Result<Vec<ShareCandidate>, DomainError>;
 
     async fn create_shared_task(
@@ -54,6 +58,65 @@ pub trait CollaborationRepository: Send + Sync {
         title_preview: &str,
         recipient_ids: &[Uuid],
     ) -> Result<SharedTask, DomainError>;
+
+    /// Reenvía (o crea adicionalmente) invitaciones para una tarea ya existente.
+    /// `forwarder_user_id` debe ser un participante ACCEPTED+OPEN o el dueño
+    /// no-desvinculado. Aplica anti-duplicado por `(shared_task_id, recipient)`:
+    /// si la fila previa está en PENDING o ACCEPTED+sub_state activo, se reporta
+    /// como tal; si está en REJECTED o UNLINKED, se reescribe a PENDING con el
+    /// nuevo `inviter_user_id`.
+    async fn forward_share(
+        &self,
+        forwarder_user_id: Uuid,
+        shared_task_id: Uuid,
+        recipient_ids: &[Uuid],
+    ) -> Result<ForwardResult, DomainError>;
+
+    /// Desvincula al usuario de la tarea (marca su fila como
+    /// `sub_state='UNLINKED'`). Si tras la desvinculación quedan <2
+    /// participantes ACCEPTED+OPEN, cancela las invitaciones PENDING (devuelve
+    /// los recipient_ids cancelados para que el servicio emita
+    /// `INVITATION_CANCELED` durables).
+    async fn unlink_recipient(
+        &self,
+        user_id: Uuid,
+        shared_task_id: Uuid,
+    ) -> Result<Vec<Uuid>, DomainError>;
+
+    /// El dueño borra su copia: setea `owner_unlinked_at`. Los receptores
+    /// aceptados siguen vinculados entre sí. Aplica la misma regla de
+    /// cancelación de huérfanas que `unlink_recipient`.
+    async fn unlink_owner(
+        &self,
+        owner_user_id: Uuid,
+        shared_task_id: Uuid,
+    ) -> Result<Vec<Uuid>, DomainError>;
+
+    /// Cambia el sub-estado de la copia del usuario (OPEN/COMPLETED/DISMISSED_DONE).
+    /// No se permite `UNLINKED` por esta vía (usa `unlink_recipient`).
+    async fn mark_sub_state(
+        &self,
+        user_id: Uuid,
+        shared_task_id: Uuid,
+        sub_state: SubState,
+    ) -> Result<Uuid, DomainError>;
+
+    /// Cuenta participantes ACCEPTED + sub_state=OPEN sobre una tarea, sin
+    /// considerar al `viewer` (útil para decidir si el cliente debe mostrar
+    /// `badgeShared`: hay otros activos).
+    async fn count_others_active(
+        &self,
+        shared_task_id: Uuid,
+        viewer_user_id: Uuid,
+    ) -> Result<i64, DomainError>;
+
+    /// Listado unificado de "mis tareas compartidas": tab Invitaciones (PENDING
+    /// recibidas) o tab Vinculadas (lo que tengo aceptado o creé como dueño).
+    async fn find_my_shared_tasks(
+        &self,
+        user_id: Uuid,
+        filter: MySharedTasksFilter,
+    ) -> Result<Vec<InboxItem>, DomainError>;
 
     async fn find_shared_task(&self, id: Uuid) -> Result<Option<SharedTask>, DomainError>;
 
@@ -69,6 +132,15 @@ pub trait CollaborationRepository: Send + Sync {
         shared_task_id: Uuid,
         recipient_user_id: Uuid,
     ) -> Result<Option<String>, DomainError>;
+
+    /// Inviter (quién envió la invitación específica) de la fila
+    /// `(shared_task_id, recipient_user_id)`. Es `None` si la fila no existe o
+    /// si el inviter quedó nulificado por `ON DELETE SET NULL`.
+    async fn recipient_inviter(
+        &self,
+        shared_task_id: Uuid,
+        recipient_user_id: Uuid,
+    ) -> Result<Option<Uuid>, DomainError>;
 
     /// Fija el estado de respuesta (`ACCEPTED`/`REJECTED`) de un destinatario.
     async fn set_recipient_status(

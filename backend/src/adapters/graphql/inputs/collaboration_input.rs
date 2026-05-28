@@ -60,3 +60,27 @@ pub struct ArchiveSharedTaskInput {
 pub struct AckNotificationEventsInput {
     pub ids: Vec<String>,
 }
+
+/// Reenvía una tarea compartida ya existente a más compañeros (modelo viral).
+/// Cualquier participante activo puede ejecutarla; el servidor aplica
+/// anti-duplicado por `(shared_task_id, recipient)`.
+#[derive(InputObject, Clone)]
+pub struct ForwardSharedTaskInput {
+    pub shared_task_id: String,
+    pub recipient_ids: Vec<String>,
+}
+
+/// Desvincula al solicitante de una tarea compartida. Si soy el dueño marca
+/// `owner_unlinked_at`; si soy receptor pasa a `sub_state='UNLINKED'`.
+#[derive(InputObject, Clone)]
+pub struct UnlinkSharedTaskInput {
+    pub shared_task_id: String,
+}
+
+/// Cambia el sub-estado de mi copia compartida. Valores: OPEN, COMPLETED,
+/// DISMISSED_DONE. (Usa UnlinkSharedTask para UNLINKED.)
+#[derive(InputObject, Clone)]
+pub struct SetSharedTaskSubStateInput {
+    pub shared_task_id: String,
+    pub sub_state: String,
+}

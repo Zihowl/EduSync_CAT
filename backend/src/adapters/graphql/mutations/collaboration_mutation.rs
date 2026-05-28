@@ -9,17 +9,23 @@ use crate::{
         graphql::{
             inputs::collaboration_input::{
                 AcademicProfileInput, AckNotificationEventsInput, ArchiveSharedTaskInput,
-                DeviceTokenInput, MarkSharedTaskCompletedInput, RespondSharedTaskInput,
-                SendTaskReminderInput, ShareTaskInput,
+                DeviceTokenInput, ForwardSharedTaskInput, MarkSharedTaskCompletedInput,
+                RespondSharedTaskInput, SendTaskReminderInput, SetSharedTaskSubStateInput,
+                ShareTaskInput, UnlinkSharedTaskInput,
             },
             realtime::{publish_realtime_event, RealtimeScope},
             schema::to_gql_error,
             types::collaboration_type::{
-                RespondSharedTaskResultType, SendTaskReminderResultType, ShareTaskResultType,
+                ForwardSharedTaskResultType, RespondSharedTaskResultType,
+                SendTaskReminderResultType, ShareTaskResultType,
             },
         },
     },
-    domain::{errors::DomainError, services::collaboration_service::CollaborationService},
+    domain::{
+        errors::DomainError,
+        models::shared_task::SubState,
+        services::collaboration_service::CollaborationService,
+    },
 };
 
 fn parse_uuid(value: &str, field: &str) -> Result<Uuid, async_graphql::Error> {
@@ -164,6 +170,87 @@ impl CollaborationMutation {
         let _ = svc
             .archive_for_recipient(user.user_id, shared_task_id)
             .await;
+        publish_realtime_event(ctx, &[RealtimeScope::Collaboration]);
+        Ok(true)
+    }
+
+    /// Reenvía una tarea compartida existente a más compañeros (modelo viral).
+    /// Cualquier participante activo puede ejecutarla. El servidor aplica
+    /// anti-duplicado por `(shared_task_id, recipient)` y devuelve los grupos
+    /// `invited` / `alreadyInvited` / `alreadyHasCopy`.
+    #[graphql(name = "ForwardSharedTask")]
+    async fn forward_shared_task(
+        &self,
+        ctx: &Context<'_>,
+        input: ForwardSharedTaskInput,
+    ) -> async_graphql::Result<ForwardSharedTaskResultType> {
+        let user = require_auth(ctx)?;
+        let svc = ctx.data::<Arc<CollaborationService>>()?;
+        let shared_task_id = parse_uuid(&input.shared_task_id, "Tarea compartida")?;
+        let recipient_ids = input
+            .recipient_ids
+            .iter()
+            .map(|id| parse_uuid(id, "Compañero"))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let result = svc
+            .forward_share(user.user_id, shared_task_id, &recipient_ids)
+            .await
+            .map_err(to_gql_error)?;
+
+        publish_realtime_event(ctx, &[RealtimeScope::Collaboration]);
+        Ok(ForwardSharedTaskResultType::from_forward(
+            shared_task_id.to_string(),
+            result,
+        ))
+    }
+
+    /// Desvincula al solicitante de una tarea compartida. Si es el dueño,
+    /// marca `owner_unlinked_at`; si es receptor, deja su fila en
+    /// `sub_state='UNLINKED'`. Si tras esto quedan <2 participantes activos,
+    /// las invitaciones PENDING se cancelan automáticamente y se notifica
+    /// (durable) a los afectados. Devuelve cuántas invitaciones se cancelaron.
+    #[graphql(name = "UnlinkSharedTask")]
+    async fn unlink_shared_task(
+        &self,
+        ctx: &Context<'_>,
+        input: UnlinkSharedTaskInput,
+    ) -> async_graphql::Result<i32> {
+        let user = require_auth(ctx)?;
+        let svc = ctx.data::<Arc<CollaborationService>>()?;
+        let shared_task_id = parse_uuid(&input.shared_task_id, "Tarea compartida")?;
+        let orphans = svc
+            .unlink(user.user_id, shared_task_id)
+            .await
+            .map_err(to_gql_error)?;
+        publish_realtime_event(ctx, &[RealtimeScope::Collaboration]);
+        Ok(orphans)
+    }
+
+    /// Cambia el sub-estado de la copia del solicitante: `OPEN`, `COMPLETED`
+    /// o `DISMISSED_DONE`. Para desvincular usa `UnlinkSharedTask`.
+    #[graphql(name = "SetSharedTaskSubState")]
+    async fn set_shared_task_sub_state(
+        &self,
+        ctx: &Context<'_>,
+        input: SetSharedTaskSubStateInput,
+    ) -> async_graphql::Result<bool> {
+        let user = require_auth(ctx)?;
+        let svc = ctx.data::<Arc<CollaborationService>>()?;
+        let shared_task_id = parse_uuid(&input.shared_task_id, "Tarea compartida")?;
+        let sub_state = SubState::parse(&input.sub_state).ok_or_else(|| {
+            to_gql_error(DomainError::BadRequest(
+                "sub_state inválido (OPEN | COMPLETED | DISMISSED_DONE)".to_string(),
+            ))
+        })?;
+        if matches!(sub_state, SubState::Unlinked) {
+            return Err(to_gql_error(DomainError::BadRequest(
+                "Usa UnlinkSharedTask para desvincularte".to_string(),
+            )));
+        }
+        svc.set_sub_state(user.user_id, shared_task_id, sub_state)
+            .await
+            .map_err(to_gql_error)?;
         publish_realtime_event(ctx, &[RealtimeScope::Collaboration]);
         Ok(true)
     }
