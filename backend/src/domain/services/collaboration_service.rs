@@ -435,8 +435,8 @@ impl CollaborationService {
             "recipientUsername": actor.0,
             "recipientFullName": actor.1,
         });
-        // Modelo viral: el cierre se refleja al sincronizar, no genera push.
-        self.emit_durable(
+        // FCM-as-subscription: el owner refresca su UI al instante.
+        self.emit_with_push(
             owner_id,
             EVENT_TASK_COMPLETED,
             Some(shared_task_id),
@@ -558,7 +558,7 @@ impl CollaborationService {
                 "titlePreview": task.title_preview,
                 "reason": "ORPHANED",
             });
-            self.emit_durable(
+            self.emit_with_push(
                 *affected,
                 EVENT_INVITATION_CANCELED,
                 Some(shared_task_id),
@@ -577,7 +577,7 @@ impl CollaborationService {
                     "titlePreview": task.title_preview,
                     "reason": "ALONE",
                 });
-                self.emit_durable(
+                self.emit_with_push(
                     survivor,
                     EVENT_SHARED_TASK_ORPHANED,
                     Some(shared_task_id),
@@ -678,9 +678,9 @@ impl CollaborationService {
         self.repo.ack_notification_events(recipient_id, ids).await
     }
 
-    /// Persiste el evento durable (sin push). Para los eventos que el modelo
-    /// viral entrega solo "al sincronizar" (TASK_ACCEPTED/REJECTED/COMPLETED,
-    /// INVITATION_CANCELED).
+    /// Persiste el evento durable (sin push). Hoy se usa solo para
+    /// `TASK_ACCEPTED`/`TASK_REJECTED` del owner, ya cubiertos por el push
+    /// `TASK_INVITATION_RESPONDED` al inviter directo.
     async fn emit_durable(
         &self,
         recipient_id: Uuid,
@@ -705,9 +705,10 @@ impl CollaborationService {
         }
     }
 
-    /// Persiste el evento durable Y dispara push FCM. Solo se usa para los
-    /// 3 eventos con push del modelo viral: TASK_SHARED, TASK_REMINDER,
-    /// TASK_INVITATION_RESPONDED.
+    /// Persiste el evento durable Y dispara push FCM. Se usa para todos los
+    /// eventos que la UI necesita reflejar al instante: TASK_SHARED,
+    /// TASK_REMINDER, TASK_INVITATION_RESPONDED, TASK_COMPLETED,
+    /// INVITATION_CANCELED, SHARED_TASK_ORPHANED.
     async fn emit_with_push(
         &self,
         recipient_id: Uuid,
