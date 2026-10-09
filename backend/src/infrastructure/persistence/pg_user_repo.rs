@@ -11,7 +11,7 @@ use crate::domain::{
 };
 
 /// Lista de columnas compartida por todos los `SELECT`/`RETURNING` de usuarios.
-const USER_COLUMNS: &str = "id, email, username, full_name, password_hash, role::text AS role, is_active, is_temp_password, failed_login_attempts, lockout_until, created_at, updated_at";
+const USER_COLUMNS: &str = "id, email, username, full_name, password_hash, role::text AS role, is_active, is_temp_password, failed_login_attempts, lockout_until, tokens_invalid_before, created_at, updated_at";
 
 #[derive(Clone)]
 pub struct PgUserRepository {
@@ -36,6 +36,7 @@ struct UserRow {
     is_temp_password: bool,
     failed_login_attempts: i32,
     lockout_until: Option<DateTime<Utc>>,
+    tokens_invalid_before: Option<DateTime<Utc>>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
@@ -53,6 +54,7 @@ impl From<UserRow> for User {
             is_temp_password: v.is_temp_password,
             failed_login_attempts: v.failed_login_attempts,
             lockout_until: v.lockout_until,
+            tokens_invalid_before: v.tokens_invalid_before,
             created_at: v.created_at,
             updated_at: v.updated_at,
         }

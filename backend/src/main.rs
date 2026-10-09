@@ -1,7 +1,7 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use backend::adapters::{
-    auth::middleware::read_active_auth_user_from_headers,
+    auth::middleware::{read_active_auth_user_from_headers, AuthUserCache},
     graphql::{
         realtime::RealtimeBroadcaster,
         schema::build_schema,
@@ -67,6 +67,7 @@ use sqlx::ConnectOptions;
 use std::str::FromStr;
 use std::time::Duration;
 use backend::AppState;
+use tower_http::compression::CompressionLayer;
 use tower_http::cors::{Any, CorsLayer};
 
 #[tokio::main]
@@ -89,12 +90,12 @@ async fn main() -> anyhow::Result<()> {
         }
     };
     let pool = match PgPoolOptions::new()
-        .min_connections(2)
-        .max_connections(20)
+        .min_connections(config.db_min_connections)
+        .max_connections(config.db_max_connections)
         .acquire_timeout(Duration::from_secs(10))
         .idle_timeout(Some(Duration::from_secs(600)))
         .max_lifetime(Some(Duration::from_secs(1800)))
-        .test_before_acquire(true)
+        .test_before_acquire(config.db_test_before_acquire)
         .connect_with(connect_options)
         .await
     {
@@ -256,6 +257,8 @@ async fn main() -> anyhow::Result<()> {
         .data(realtime.clone())
         .finish();
 
+    let auth_cache = Arc::new(AuthUserCache::new());
+
     let state = AppState {
         config: config.clone(),
         user_repo: user_repo.clone(),
@@ -267,6 +270,7 @@ async fn main() -> anyhow::Result<()> {
         group_service: group_service.clone(),
         schedule_service,
         excel_service,
+        auth_cache,
     };
 
     let cors = build_cors_layer(&config.cors_origin)?;
@@ -286,6 +290,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/public/schedules", get(public_schedules))
         .layer(Extension(config.clone()))
         .layer(cors)
+        .layer(CompressionLayer::new())
         .with_state(state);
 
     let addr: SocketAddr = format!("{}:{}", config.app_host, config.app_port).parse()?;
@@ -307,8 +312,13 @@ async fn graphql_handler(
     req: GraphQLRequest,
 ) -> GraphQLResponse {
     let mut request = req.into_inner();
-    if let Some(auth_user) =
-        read_active_auth_user_from_headers(&headers, &state.config, state.user_repo.clone()).await
+    if let Some(auth_user) = read_active_auth_user_from_headers(
+        &headers,
+        &state.config,
+        state.user_repo.clone(),
+        Some(&state.auth_cache),
+    )
+    .await
     {
         request = request.data(auth_user);
     }

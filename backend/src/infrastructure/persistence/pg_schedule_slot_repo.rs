@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::domain::{
     errors::DomainError,
-    models::schedule_slot::{ScheduleFilter, ScheduleSlot},
+    models::schedule_slot::{DetailedScheduleSlot, ScheduleFilter, ScheduleSlot},
     ports::schedule_slot_repository::ScheduleSlotRepository,
 };
 
@@ -35,6 +35,49 @@ struct SlotRow {
     created_by_id: Option<Uuid>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
+}
+
+#[derive(FromRow)]
+struct DetailedSlotRow {
+    id: i32,
+    day_of_week: i32,
+    start_time: String,
+    end_time: String,
+    subgroup: Option<String>,
+    teacher_id: Option<i32>,
+    teacher_name: Option<String>,
+    subject_id: i32,
+    subject_name: String,
+    subject_grade: Option<i32>,
+    classroom_id: i32,
+    classroom_name: String,
+    group_id: i32,
+    group_name: String,
+    group_parent_id: Option<i32>,
+    parent_group_name: Option<String>,
+}
+
+impl From<DetailedSlotRow> for DetailedScheduleSlot {
+    fn from(v: DetailedSlotRow) -> Self {
+        Self {
+            id: v.id,
+            day_of_week: v.day_of_week,
+            start_time: v.start_time,
+            end_time: v.end_time,
+            subgroup: v.subgroup,
+            teacher_id: v.teacher_id,
+            teacher_name: v.teacher_name,
+            subject_id: v.subject_id,
+            subject_name: v.subject_name,
+            subject_grade: v.subject_grade,
+            classroom_id: v.classroom_id,
+            classroom_name: v.classroom_name,
+            group_id: v.group_id,
+            group_name: v.group_name,
+            group_parent_id: v.group_parent_id,
+            parent_group_name: v.parent_group_name,
+        }
+    }
 }
 
 impl From<SlotRow> for ScheduleSlot {
@@ -110,6 +153,72 @@ impl ScheduleSlotRepository for PgScheduleSlotRepository {
         .fetch_all(&self.pool)
         .await
         .map_err(map_sqlx)?;
+        Ok(rows.into_iter().map(Into::into).collect())
+    }
+
+    async fn find_all_detailed(
+        &self,
+        filter: ScheduleFilter,
+    ) -> Result<Vec<DetailedScheduleSlot>, DomainError> {
+        let page = filter.page.unwrap_or(1).max(1);
+        let limit = filter.limit.unwrap_or(50).max(1);
+        let offset = (page - 1) * limit;
+        let rows = sqlx::query_as::<_, DetailedSlotRow>(
+            r#"
+            WITH RECURSIVE group_hierarchy AS (
+                SELECT id, parent_id
+                FROM groups
+                WHERE id = $3::int
+                
+                UNION
+                
+                SELECT g.id, g.parent_id
+                FROM groups g
+                INNER JOIN group_hierarchy gh ON g.id = gh.parent_id
+            )
+            SELECT
+                s.id,
+                s.day_of_week,
+                s.start_time::text AS start_time,
+                s.end_time::text AS end_time,
+                s.subgroup,
+                s.teacher_id,
+                t.name AS teacher_name,
+                s.subject_id,
+                sub.name AS subject_name,
+                sub.grade AS subject_grade,
+                s.classroom_id,
+                c.name AS classroom_name,
+                s.group_id,
+                g.name AS group_name,
+                g.parent_id AS group_parent_id,
+                pg.name AS parent_group_name
+            FROM schedule_slots s
+            LEFT JOIN teachers t ON s.teacher_id = t.id
+            INNER JOIN subjects sub ON s.subject_id = sub.id
+            INNER JOIN classrooms c ON s.classroom_id = c.id
+            INNER JOIN groups g ON s.group_id = g.id
+            LEFT JOIN groups pg ON g.parent_id = pg.id
+            WHERE ($1::int IS NULL OR s.teacher_id = $1)
+              AND ($2::int IS NULL OR s.classroom_id = $2)
+              AND ($3::int IS NULL OR s.group_id IN (SELECT id FROM group_hierarchy))
+              AND ($4::int IS NULL OR s.day_of_week = $4)
+              AND ($5::bool IS NULL OR s.is_published = $5)
+            ORDER BY s.day_of_week ASC, s.start_time ASC
+            LIMIT $6 OFFSET $7
+            "#,
+        )
+        .bind(filter.teacher_id)
+        .bind(filter.classroom_id)
+        .bind(filter.group_id)
+        .bind(filter.day_of_week)
+        .bind(filter.is_published)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(map_sqlx)?;
+
         Ok(rows.into_iter().map(Into::into).collect())
     }
 

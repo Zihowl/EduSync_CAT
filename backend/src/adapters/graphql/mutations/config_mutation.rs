@@ -347,6 +347,7 @@ mod tests {
             is_temp_password: false,
             failed_login_attempts: 0,
             lockout_until: None,
+            tokens_invalid_before: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }

@@ -18,6 +18,12 @@ pub struct AppConfig {
     pub fcm_service_account_path: String,
     /// Override del project_id de Firebase. Si está vacío se usa el del JSON.
     pub fcm_project_id: String,
+    /// Máximo de conexiones concurrentes en el pool de PostgreSQL.
+    pub db_max_connections: u32,
+    /// Mínimo de conexiones inactivas en el pool de PostgreSQL.
+    pub db_min_connections: u32,
+    /// Verificar la conexión con un ping antes de prestarla del pool.
+    pub db_test_before_acquire: bool,
 }
 
 impl AppConfig {
@@ -30,6 +36,20 @@ impl AppConfig {
             .ok()
             .and_then(|v| v.parse::<i64>().ok())
             .unwrap_or(86_400);
+
+        let db_max_connections = env::var("DB_MAX_CONNECTIONS")
+            .or_else(|_| env::var("DATABASE_MAX_CONNECTIONS"))
+            .ok()
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(50);
+        let db_min_connections = env::var("DB_MIN_CONNECTIONS")
+            .or_else(|_| env::var("DATABASE_MIN_CONNECTIONS"))
+            .ok()
+            .and_then(|v| v.parse::<u32>().ok())
+            .unwrap_or(5);
+        let db_test_before_acquire = env::var("DB_TEST_BEFORE_ACQUIRE")
+            .map(|v| v == "true" || v == "1")
+            .unwrap_or(false);
 
         Self {
             app_host: env::var("APP_HOST").unwrap_or_else(|_| "0.0.0.0".to_string()),
@@ -53,6 +73,9 @@ impl AppConfig {
                 .unwrap_or_else(|_| "Súper Administrador".to_string()),
             fcm_service_account_path: env::var("FCM_SERVICE_ACCOUNT_PATH").unwrap_or_default(),
             fcm_project_id: env::var("FCM_PROJECT_ID").unwrap_or_default(),
+            db_max_connections,
+            db_min_connections,
+            db_test_before_acquire,
         }
     }
 

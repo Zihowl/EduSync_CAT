@@ -1,23 +1,11 @@
-use std::{collections::HashSet, sync::Arc};
-
 use axum::{
     extract::{Query, State},
-    http::StatusCode,
+    http::{header::CACHE_CONTROL, HeaderMap, StatusCode},
     Json,
 };
-use futures_util::future::try_join_all;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    domain::{
-        models::{
-            group::Group,
-            schedule_slot::{ScheduleFilter, ScheduleSlot},
-        },
-        services::group_service::GroupService,
-    },
-    AppState,
-};
+use crate::{domain::models::schedule_slot::ScheduleFilter, AppState};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -72,13 +60,16 @@ pub struct PublicScheduleDto {
     pub group: PublicGroupDto,
 }
 
+/// Endpoint público de consulta de horarios escolares.
+/// Optimizado con una única consulta SQL con JOINs para evitar el problema N+1
+/// y con cabeceras Cache-Control para descargar a PostgreSQL bajo ráfagas concurrentes.
 pub async fn public_schedules(
     State(state): State<AppState>,
     Query(query): Query<PublicScheduleQuery>,
-) -> Result<Json<Vec<PublicScheduleDto>>, (StatusCode, String)> {
-    let data = state
+) -> Result<(HeaderMap, Json<Vec<PublicScheduleDto>>), (StatusCode, String)> {
+    let slots = state
         .schedule_service
-        .find_all(ScheduleFilter {
+        .find_all_detailed(ScheduleFilter {
             teacher_id: query.teacher_id,
             classroom_id: query.classroom_id,
             group_id: query.group_id,
@@ -90,103 +81,50 @@ pub async fn public_schedules(
         .await
         .map_err(|e| (StatusCode::BAD_REQUEST, e.msg()))?;
 
-    let out = try_join_all(
-        data.into_iter()
-            .map(|slot| build_public_schedule(&state, slot)),
-    )
-    .await
-    .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
+    let out = slots
+        .into_iter()
+        .map(|slot| {
+            let parent = slot.group_parent_id.map(|parent_id| {
+                Box::new(PublicGroupDto {
+                    id: parent_id,
+                    name: slot.parent_group_name.clone().unwrap_or_default(),
+                    parent: None,
+                })
+            });
 
-    Ok(Json(out))
-}
+            PublicScheduleDto {
+                id: slot.id,
+                day_of_week: slot.day_of_week,
+                start_time: slot.start_time,
+                end_time: slot.end_time,
+                subgroup: slot.subgroup,
+                teacher: slot.teacher_id.map(|id| PublicTeacherDto {
+                    id,
+                    name: slot.teacher_name.unwrap_or_default(),
+                }),
+                subject: PublicSubjectDto {
+                    id: slot.subject_id,
+                    name: slot.subject_name,
+                    grade: slot.subject_grade,
+                },
+                classroom: PublicClassroomDto {
+                    id: slot.classroom_id,
+                    name: slot.classroom_name,
+                },
+                group: PublicGroupDto {
+                    id: slot.group_id,
+                    name: slot.group_name,
+                    parent,
+                },
+            }
+        })
+        .collect();
 
-async fn build_public_schedule(
-    state: &AppState,
-    slot: ScheduleSlot,
-) -> Result<PublicScheduleDto, String> {
-    let teacher = match slot.teacher_id {
-        Some(teacher_id) => state
-            .teacher_service
-            .find_one(teacher_id)
-            .await
-            .map_err(|e| e.msg())?
-            .map(|teacher| PublicTeacherDto {
-                id: teacher.id,
-                name: teacher.name,
-            }),
-        None => None,
-    };
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        CACHE_CONTROL,
+        "public, max-age=60, stale-while-revalidate=300".parse().unwrap(),
+    );
 
-    let subject = state
-        .subject_service
-        .find_one(slot.subject_id)
-        .await
-        .map_err(|e| e.msg())?
-        .ok_or_else(|| "Materia no encontrada".to_string())?;
-
-    let classroom = state
-        .classroom_service
-        .find_one(slot.classroom_id)
-        .await
-        .map_err(|e| e.msg())?
-        .ok_or_else(|| "Salón no encontrado".to_string())?;
-
-    let group = build_public_group(&state.group_service, slot.group_id).await?;
-
-    Ok(PublicScheduleDto {
-        id: slot.id,
-        day_of_week: slot.day_of_week,
-        start_time: slot.start_time,
-        end_time: slot.end_time,
-        subgroup: slot.subgroup,
-        teacher,
-        subject: PublicSubjectDto {
-            id: subject.id,
-            name: subject.name,
-            grade: subject.grade,
-        },
-        classroom: PublicClassroomDto {
-            id: classroom.id,
-            name: classroom.name,
-        },
-        group,
-    })
-}
-
-async fn build_public_group(
-    group_service: &Arc<GroupService>,
-    group_id: i32,
-) -> Result<PublicGroupDto, String> {
-    let mut chain: Vec<Group> = Vec::new();
-    let mut current_group_id = Some(group_id);
-    let mut visited = HashSet::new();
-
-    while let Some(id) = current_group_id {
-        if !visited.insert(id) {
-            return Err("La jerarquía de grupos contiene un ciclo".to_string());
-        }
-
-        let group = group_service
-            .find_one(id)
-            .await
-            .map_err(|e| e.msg())?
-            .ok_or_else(|| "Grupo no encontrado".to_string())?;
-
-        current_group_id = group.parent_id;
-        chain.push(group);
-    }
-
-    let mut parent: Option<Box<PublicGroupDto>> = None;
-
-    for group in chain.into_iter().rev() {
-        parent = Some(Box::new(PublicGroupDto {
-            id: group.id,
-            name: group.name,
-            parent,
-        }));
-    }
-
-    parent
-        .map(|group| *group)
-        .ok_or_else(|| "Grupo no encontrado".to_string())
+    Ok((headers, Json(out)))
 }

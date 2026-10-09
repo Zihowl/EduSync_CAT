@@ -94,13 +94,17 @@ async fn authorize_admin(
     headers: &HeaderMap,
     state: &AppState,
 ) -> Result<AuthUser, (axum::http::StatusCode, String)> {
-    let auth_user =
-        read_active_auth_user_from_headers(&headers, &state.config, state.user_repo.clone())
-            .await
-            .ok_or((
-                axum::http::StatusCode::UNAUTHORIZED,
-                "No autorizado".to_string(),
-            ))?;
+    let auth_user = read_active_auth_user_from_headers(
+        &headers,
+        &state.config,
+        state.user_repo.clone(),
+        Some(&state.auth_cache),
+    )
+    .await
+    .ok_or((
+        axum::http::StatusCode::UNAUTHORIZED,
+        "No autorizado".to_string(),
+    ))?;
 
     if !auth_user.is_admin_horarios() {
         return Err((

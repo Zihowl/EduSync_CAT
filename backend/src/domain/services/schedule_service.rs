@@ -4,7 +4,7 @@ use chrono::Utc;
 
 use crate::domain::{
     errors::DomainError,
-    models::schedule_slot::{ScheduleFilter, ScheduleSlot},
+    models::schedule_slot::{DetailedScheduleSlot, ScheduleFilter, ScheduleSlot},
     ports::{
         classroom_repository::ClassroomRepository, group_repository::GroupRepository,
         schedule_slot_repository::ScheduleSlotRepository, subject_repository::SubjectRepository,
@@ -69,6 +69,13 @@ impl ScheduleService {
 
     pub async fn find_all(&self, filter: ScheduleFilter) -> Result<Vec<ScheduleSlot>, DomainError> {
         self.repo.find_all(filter).await
+    }
+
+    pub async fn find_all_detailed(
+        &self,
+        filter: ScheduleFilter,
+    ) -> Result<Vec<DetailedScheduleSlot>, DomainError> {
+        self.repo.find_all_detailed(filter).await
     }
 
     pub async fn find_one(&self, id: i32) -> Result<Option<ScheduleSlot>, DomainError> {

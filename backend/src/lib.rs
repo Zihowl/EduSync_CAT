@@ -28,4 +28,5 @@ pub struct AppState {
     pub group_service: Arc<GroupService>,
     pub schedule_service: Arc<ScheduleService>,
     pub excel_service: Arc<ExcelService>,
+    pub auth_cache: Arc<crate::adapters::auth::middleware::AuthUserCache>,
 }

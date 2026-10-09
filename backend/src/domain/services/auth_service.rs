@@ -974,6 +974,7 @@ mod tests {
             is_temp_password: false,
             failed_login_attempts: 0,
             lockout_until: None,
+            tokens_invalid_before: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
@@ -1269,6 +1270,11 @@ mod tests {
             genesis_super_admin_email: "superadmin@edusync.edu.mx".to_string(),
             genesis_super_admin_password: "ChangeMe123!".to_string(),
             genesis_super_admin_name: "Súper Administrador".to_string(),
+            fcm_service_account_path: String::new(),
+            fcm_project_id: String::new(),
+            db_max_connections: 50,
+            db_min_connections: 5,
+            db_test_before_acquire: false,
         };
 
         let auth_user =

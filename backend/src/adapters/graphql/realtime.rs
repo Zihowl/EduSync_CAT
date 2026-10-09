@@ -32,7 +32,8 @@ pub struct RealtimeBroadcaster {
 
 impl RealtimeBroadcaster {
     pub fn new() -> Self {
-        let (sender, _) = broadcast::channel(256);
+        // Buffer incrementado a 1024 para evitar descartes por Lagged en miles de sockets concurrentes
+        let (sender, _) = broadcast::channel(1024);
         Self { sender }
     }
 

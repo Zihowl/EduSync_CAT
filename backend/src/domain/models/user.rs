@@ -48,6 +48,7 @@ pub struct User {
     pub is_temp_password: bool,
     pub failed_login_attempts: i32,
     pub lockout_until: Option<DateTime<Utc>>,
+    pub tokens_invalid_before: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
